@@ -1,0 +1,21 @@
+# Dependabot: security updates for the Python packages (merged and released by
+# .github/workflows/dependabot-security.yml once the tests pass) and monthly updates for the GitHub Actions.
+# Needs "Dependabot alerts" and "Dependabot security updates" switched on under Settings › Advanced Security.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directories: ["/", "/windows", "/macos"]
+    schedule:
+      interval: daily
+    # 0 = no plain version updates; security updates do not count against this limit and still come
+    open-pull-requests-limit: 0
+    labels: ["dependencies", "security"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    labels: ["dependencies"]

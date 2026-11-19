@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="__LANG__"><head><meta charset="utf-8"><title>__TITLE__</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/static/favicon-32.png">
+<style>
+:root { --accent: #d81b78; --ink: #1d1d1b; --quiet: #6b6a65; --line: #dddad3; --bg: #eceae5; --card: #fff; --blue: #1f6feb; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+.app { display: grid; grid-template-columns: 330px 1fr; min-height: 100vh; }
+.side { background: var(--card); border-right: 1px solid var(--line); padding: 18px 18px 30px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.side h1 { font-size: 20px; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+.side h1 img { width: 26px; height: 26px; }
+.side .sub { color: var(--quiet); font-size: 13px; line-height: 1.4; }
+.grp { margin-top: 18px; }
+.grp > b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--quiet); margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: #f6f5f2; color: var(--ink); cursor: pointer; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; font-size: 14px; }
+.row + .row { border-top: 1px solid #efede8; }
+.row input[type=number] { width: 70px; font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; text-align: right; }
+.row input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
+.row .unit { color: var(--quiet); font-size: 13px; margin-left: 4px; }
+.sw { position: relative; width: 40px; height: 24px; flex: none; }
+.sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; z-index: 1; }
+.sw i { position: absolute; inset: 0; border-radius: 12px; background: #d4d2cc; transition: background .15s; }
+.sw i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0003; transition: transform .15s; }
+.sw input:checked + i { background: var(--accent); }
+.sw input:checked + i::after { transform: translateX(16px); }
+.sw input:disabled + i { opacity: .4; }
+.custom { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 14px; }
+.custom input { width: 64px; font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; text-align: right; }
+.printbtn { margin-top: 22px; width: 100%; font: inherit; font-size: 16px; font-weight: 600; padding: 12px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; cursor: pointer; }
+.hint { margin-top: 10px; font-size: 12.5px; color: var(--quiet); line-height: 1.45; }
+.reset { font: inherit; font-size: 13px; color: var(--quiet); background: none; border: 0; text-decoration: underline; cursor: pointer; padding: 0; margin-top: 10px; }
+.main { padding: 22px; overflow: auto; }
+.info { color: var(--quiet); font-size: 13px; margin: 0 0 14px; }
+.pages { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.sheet { width: 210mm; height: 297mm; background: #fff; box-shadow: 0 2px 14px #0002; position: relative; overflow: hidden; flex: none; }
+.sheet .grid { position: absolute; display: grid; align-content: start; }
+.sheet .pno { position: absolute; right: 6mm; bottom: 3mm; font-size: 9px; color: #bbb; }
+.lab { position: relative; display: flex; align-items: center; justify-content: space-between; background: #fff; overflow: hidden;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.lab.empty { background: repeating-linear-gradient(45deg, #fafafa 0 2mm, #f1f1f1 2mm 4mm); }
+.cut .lab { outline: 0.2mm dashed #bdbdbd; }
+.round .lab { border-radius: 2mm; }
+.lab .strip { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.lab.res .strip { background: #8a8f98; }
+.lab .txt { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.lab .cab { text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; line-height: 1.15; }
+.lab.res .cab { color: #6b7079; }
+.lab b { font-weight: 800; letter-spacing: -.01em; line-height: 1.02; white-space: nowrap; overflow: hidden; font-variant-numeric: tabular-nums; color: #111; }
+.lab .pos { color: #666; white-space: nowrap; overflow: hidden; line-height: 1.15; }
+.lab .qr { flex: none; position: relative; color: var(--accent); }
+.lab .qr svg { width: 100%; height: 100%; display: block; }
+.lab .qr img { position: absolute; left: 50%; top: 50%; width: 25%; height: 25%; transform: translate(-50%, -50%); }
+.lab.center .txt { align-items: center; text-align: center; }
+/* print: the page margin comes from @page (set by the script), each sheet is one page and labels never split */
+@media print {
+  body { background: #fff; }
+  .app { display: block; }
+  .side, .info, .sheet .pno { display: none; }
+  .lab.empty { visibility: hidden; }
+  .main { padding: 0; overflow: visible; }
+  .pages { gap: 0; display: block; }
+  .sheet { width: auto; height: auto; box-shadow: none; overflow: visible; break-after: page; page-break-after: always; }
+  .sheet:last-child { break-after: auto; page-break-after: auto; }
+  .sheet .grid { position: static; margin: 0 auto; width: max-content; }
+  .lab { break-inside: avoid; page-break-inside: avoid; }
+}
+@media screen and (max-width: 800px) { .app { grid-template-columns: 1fr; } .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .main { padding: 12px; } .sheet { zoom: .45; } }
+</style></head><body>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main class="main"><p class="info" id="info"></p><div class="pages" id="pages"></div></main>
+</div>
+<script>
+const D = __DATA__, T = (k, ...a) => (D.T[k] || k).replace(/\{(\d)\}/g, (_, i) => a[i]);
+const DEF = { cabs: [], reserve: false, size: "m", w: 52, h: 26, head: true, purpose: false, pos: true, qr: true, strip: true,
+  color: "#d81b78", cut: true, round: true, gap: 2, margin: 8, skip: 0 };
+const SIZES = { s: [38, 21], m: [52, 26], l: [70, 35] };
+let S = { ...DEF };
+try { S = { ...DEF, ...JSON.parse(localStorage.getItem("labelSettings") || "{}") }; } catch (e) {}
+const save = () => { try { localStorage.setItem("labelSettings", JSON.stringify(S)); } catch (e) {} };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const clamp = (v, lo, hi, d) => { v = parseFloat(String(v).replace(",", ".")); return isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
+
+function sw(key, label, dis) {
+  return `<label class="row"><span>${esc(label)}</span><span class="sw"><input type="checkbox" data-k="${key}" ${S[key] ? "checked" : ""} ${dis ? "disabled" : ""}><i></i></span></label>`;
+}
+function num(key, label, lo, hi, step, unit) {
+  return `<label class="row"><span>${esc(label)}</span><span><input type="number" data-n="${key}" min="${lo}" max="${hi}" step="${step}" value="${S[key]}"><span class="unit">${unit || ""}</span></span></label>`;
+}
+function drawSide() {
+  const cabChips = D.cabs.map((c) => `<button class="chip ${S.cabs.includes(c.key) ? "on" : ""}" data-cab="${esc(c.key)}">${esc(c.name)}</button>`).join("");
+  $side.innerHTML = `<h1><img src="/static/logo.svg" alt="">${esc(T("Labels"))}</h1>
+    <p class="sub">${esc(T("Labels for your storage slots. The QR code opens the slot in PixxelSpool."))}</p>
+    <div class="grp"><b>${esc(T("Storage"))}</b><div class="chips"><button class="chip ${S.cabs.length ? "" : "on"}" data-cab="">${esc(T("all"))}</button>${cabChips}</div>
+      ${sw("reserve", T("Reserve areas too"))}</div>
+    <div class="grp"><b>${esc(T("Size"))}</b><div class="chips">${Object.entries(SIZES).map(([k, [w, h]]) => `<button class="chip ${S.size === k ? "on" : ""}" data-size="${k}">${w}×${h}</button>`).join("")}
+      <button class="chip ${S.size === "c" ? "on" : ""}" data-size="c">${esc(T("Custom"))}</button></div>
+      ${S.size === "c" ? `<div class="custom"><input type="number" data-n="w" min="25" max="100" step="1" value="${S.w}"> × <input type="number" data-n="h" min="12" max="70" step="1" value="${S.h}"> mm</div>` : ""}</div>
+    <div class="grp"><b>${esc(T("Content"))}</b>
+      ${sw("head", T("Storage name"))}${sw("purpose", T("Purpose / label"), !S.head)}${sw("pos", T("Position (level and slot)"))}
+      ${sw("qr", T("QR code"))}${D.logo !== null ? `<label class="row"><span>${esc(T("Logo in the QR code"))}</span><span class="sw"><input type="checkbox" id="logo" ${D.logo ? "checked" : ""} ${S.qr ? "" : "disabled"}><i></i></span></label>` : ""}</div>
+    <div class="grp"><b>${esc(T("Look"))}</b>
+      ${sw("strip", T("Colored strip"))}
+      <label class="row"><span>${esc(T("Color"))}</span><input type="color" data-c="color" value="${esc(S.color)}"></label>
+      ${sw("round", T("Rounded corners"))}${sw("cut", T("Cut lines"))}</div>
+    <div class="grp"><b>${esc(T("Sheet"))}</b>
+      ${num("gap", T("Gap between labels"), 0, 10, 0.5, "mm")}${num("margin", T("Page margin"), 0, 20, 1, "mm")}
+      ${num("skip", T("Skip fields at the start"), 0, 200, 1, "")}
+      <p class="hint">${esc(T("For a sheet that is already partly used: the first fields stay empty."))}</p></div>
+    <button class="printbtn" id="print">${esc(T("Print"))}</button>
+    <p class="hint">${esc(T("In the print dialog choose: paper A4, scale 100 % (not “fit to page”), margins “none” and no headers and footers."))}</p>
+    <button class="reset" id="reset">${esc(T("Reset settings"))}</button>`;
+  $side.querySelectorAll("[data-cab]").forEach((b) => (b.onclick = () => {
+    const k = b.dataset.cab;
+    S.cabs = !k ? [] : S.cabs.includes(k) ? S.cabs.filter((x) => x !== k) : [...S.cabs, k];
+    if (S.cabs.length === D.cabs.length) S.cabs = [];
+    upd(true);
+  }));
+  $side.querySelectorAll("[data-size]").forEach((b) => (b.onclick = () => { S.size = b.dataset.size; if (SIZES[S.size]) [S.w, S.h] = SIZES[S.size]; upd(true); }));
+  $side.querySelectorAll("[data-k]").forEach((i) => (i.onchange = () => { S[i.dataset.k] = i.checked; upd(true); }));
+  $side.querySelectorAll("[data-n]").forEach((i) => (i.onchange = () => {
+    const k = i.dataset.n, r = { w: [25, 100, 52], h: [12, 70, 26], gap: [0, 10, 2], margin: [0, 20, 8], skip: [0, 200, 0] }[k];
+    S[k] = clamp(i.value, ...r); if (k === "skip") S.skip = Math.round(S.skip); i.value = S[k]; upd(false);
+  }));
+  $side.querySelectorAll("[data-c]").forEach((i) => (i.oninput = () => { S.color = i.value; upd(false); }));
+  const lg = $side.querySelector("#logo");
+  if (lg) lg.onchange = () => { save(); const u = new URL(location.href); u.searchParams.set("logo", lg.checked ? 1 : 0); location.href = u; };
+  $side.querySelector("#print").onclick = () => print();
+  $side.querySelector("#reset").onclick = () => { S = { ...DEF }; upd(true); };
+}
+function upd(side) { save(); if (side) drawSide(); drawPages(); }
+
+function label(it) {
+  if (!it) return `<div class="lab empty"></div>`;
+  const w = S.w, h = S.h, pad = h * 0.09, strip = S.strip ? Math.max(1, h * 0.05) : 0;
+  const qrs = S.qr ? h - 2 * pad : 0, avail = w - qrs - 3 * pad - strip;
+  const head = S.head ? [it.cabName, S.purpose ? it.purpose : ""].filter(Boolean).join(" · ") : "";
+  const lines = 1 + (head ? 1 : 0) + (S.pos ? 1 : 0);
+  const fs = Math.min(h * (lines === 1 ? 0.55 : lines === 2 ? 0.45 : 0.40), avail / (Math.max(it.id.length, 4) * 0.62));
+  const small = Math.max(1.4, Math.min(h * 0.13, avail / (Math.max(it.where.length, 12) * 0.54)));
+  const headFs = Math.max(1.3, Math.min(small, avail / (Math.max(head.length, 6) * 0.74)));
+  return `<div class="lab${it.res ? " res" : ""}${S.qr ? "" : " center"}" style="padding:${pad}mm ${pad}mm ${pad}mm ${pad + strip}mm;gap:${pad}mm">
+    ${strip ? `<span class="strip" style="width:${strip}mm"></span>` : ""}
+    <div class="txt" style="gap:${h * 0.035}mm">${head ? `<span class="cab" style="font-size:${headFs.toFixed(2)}mm">${esc(head)}</span>` : ""}
+      <b style="font-size:${fs.toFixed(2)}mm">${esc(it.id)}</b>${S.pos ? `<span class="pos" style="font-size:${small.toFixed(2)}mm">${esc(it.where)}</span>` : ""}</div>
+    ${S.qr ? `<div class="qr" style="width:${qrs}mm;height:${qrs}mm">${it.qr}${D.logo ? `<img src="/static/logo-round.svg" alt="">` : ""}</div>` : ""}</div>`;
+}
+function drawPages() {
+  document.documentElement.style.setProperty("--accent", S.color);
+  let ps = document.getElementById("pagestyle");
+  if (!ps) { ps = document.createElement("style"); ps.id = "pagestyle"; document.head.append(ps); }
+  ps.textContent = `@page { size: A4 portrait; margin: ${S.margin}mm; }`;
+  document.body.classList.toggle("cut", S.cut); document.body.classList.toggle("round", S.round);
+  const items = D.items.filter((x) => (!S.cabs.length || S.cabs.includes(x.cab)) && (S.reserve || !x.res));
+  const m = S.margin, g = S.gap, w = S.w, h = S.h;
+  const cols = Math.max(1, Math.floor((210 - 2 * m + g) / (w + g))), rows = Math.max(1, Math.floor((297 - 2 * m + g) / (h + g)));
+  const per = cols * rows, cells = [...Array(S.skip).fill(null), ...items];
+  const pages = [];
+  for (let i = 0; i < cells.length; i += per) pages.push(cells.slice(i, i + per));
+  if (!pages.length) pages.push([]);
+  const left = (210 - (cols * w + (cols - 1) * g)) / 2;      // centered horizontally, so the margins are even
+  $pages.innerHTML = pages.map((pg, i) => `<div class="sheet"><div class="grid" style="left:${left}mm;top:${m}mm;grid-template-columns:repeat(${cols},${w}mm);grid-auto-rows:${h}mm;gap:${g}mm">
+    ${pg.map(label).join("")}</div><span class="pno">${i + 1} / ${pages.length}</span></div>`).join("");
+  $info.textContent = T("{0} labels · {1} per page · {2} pages · QR opens {3}", items.length, per, pages.length, D.base);
+  fit();
+}
+function fit() {   // shrink texts that would be cut off until they fit (down to 1 mm)
+  document.querySelectorAll(".lab .cab, .lab .pos, .lab b").forEach((e) => {
+    let fs = parseFloat(e.style.fontSize);
+    const r = document.createRange(); r.selectNodeContents(e);
+    while (r.getBoundingClientRect().width > e.clientWidth * 0.94 && fs > 1) { fs -= 0.1; e.style.fontSize = fs.toFixed(2) + "mm"; }
+  });
+}
+const $side = document.getElementById("side"), $pages = document.getElementById("pages"), $info = document.getElementById("info");
+if (D.cab && !localStorage.getItem("labelSettings")) S.cabs = [D.cab];
+drawSide(); drawPages();
+</script></body></html>

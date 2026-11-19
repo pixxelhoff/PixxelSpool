@@ -1,0 +1,76 @@
+# Builds the Mac app (PixxelSpool.app in a .dmg, Apple silicon) for every version tag (v*), or by hand under Actions.
+# A tag adds the disk image to the GitHub release of that tag (created by whichever app workflow finishes first).
+# The app is not signed by a registered developer: macOS asks once before the first start (README, "Mac app").
+name: Mac app
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        run: |
+          brew install swig || true
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r macos/requirements-macos.txt
+
+      - name: Check the code imports
+        env:
+          PIXXELSPOOL_DATA: ${{ runner.temp }}/pxdata
+        run: python -c "import filament_tool.main, filament_tool.winapp; print('ok')"
+
+      - name: Build the app
+        run: |
+          python macos/make_icns.py
+          pyinstaller --noconfirm --clean macos/pixxelspool.spec
+          codesign --verify --verbose dist/PixxelSpool.app || true
+          find dist/PixxelSpool.app -name cacert.pem | grep -q . || { echo "certifi CA bundle missing"; exit 1; }
+
+      - name: Smoke test (start the server, ask for the overview)
+        env:
+          PIXXELSPOOL_DATA: ${{ runner.temp }}/pxsmoke
+        run: |
+          dist/PixxelSpool.app/Contents/MacOS/PixxelSpool --no-browser --port 8123 &
+          pid=$!
+          ok=0
+          for i in $(seq 1 60); do
+            sleep 2
+            if curl -fsS http://localhost:8123/api/overview | python -c "import json,sys; sys.exit(0 if json.load(sys.stdin)['host']['kind'] == 'mac' else 1)"; then ok=1; break; fi
+          done
+          kill $pid || true
+          if [ $ok != 1 ]; then ls -R "$PIXXELSPOOL_DATA" || true; cat "$PIXXELSPOOL_DATA/logs/pixxelspool.log" || true; echo "app did not start"; exit 1; fi
+          echo "smoke test ok"
+
+      - name: Build the disk image
+        run: |
+          sh macos/make_dmg.sh
+          echo "VERSION=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_ENV"
+
+      # Only manual runs keep the files as a build artifact (for 2 days); a tag puts them into the release instead,
+      # so nothing is stored twice in the Actions storage of the account.
+      - uses: actions/upload-artifact@v5
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: PixxelSpool-${{ env.VERSION }}-macos
+          path: macos/Output/*
+          retention-days: 2
+          compression-level: 0
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/ci/release.sh "${{ github.ref_name }}" "${{ env.VERSION }}" macos/Output/*

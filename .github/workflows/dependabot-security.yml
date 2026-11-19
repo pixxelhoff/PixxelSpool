@@ -1,0 +1,78 @@
+# Security updates of Python packages without waiting for a person: when Dependabot opens a pull request for a
+# pip package (only security updates, see .github/dependabot.yml), this workflow tests it (installs the pinned
+# packages, starts the test server, clicks through the interface, runs the updater test). If everything passes,
+# it merges the pull request, raises the version with a "Security" section in the changelogs (the updater on the
+# Pi installs such a version by itself, if allowed), tags it and starts the package workflows for the release.
+# If a test fails, the pull request stays open for a look by hand. No build artifacts are stored.
+name: Dependabot security updates
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: dependabot-security
+  cancel-in-progress: false
+
+jobs:
+  test-merge-release:
+    if: github.actor == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/pip/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: What Dependabot changed
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0       # the updater test needs the history and the tags
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"      # Raspberry Pi OS Bookworm
+
+      - name: Install the packages
+        run: |
+          python -m venv .devenv
+          grep -v '^pyscard' requirements.txt > /tmp/req.txt     # comes from apt on the Pi
+          .devenv/bin/pip install -q -r /tmp/req.txt playwright==1.65.2
+          .devenv/bin/python -m playwright install --with-deps chromium >/dev/null
+
+      - name: Test
+        run: |
+          mkdir -p .devdata
+          PIXXELSPOOL_DATA="$PWD/.devdata" FILAMENT_MOCK=1 .devenv/bin/python -m uvicorn filament_tool.main:app --port 8135 > .devdata/server.log 2>&1 &
+          for i in $(seq 1 30); do sleep 1; curl -fsS http://localhost:8135/api/overview >/dev/null && break; done
+          .devenv/bin/python tools/dev/smoke.py
+          .devenv/bin/python tools/dev/update_test.py
+          if grep -E "Traceback|ERROR" .devdata/server.log; then echo "server reported errors"; exit 1; fi
+
+      - name: Merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ github.event.pull_request.html_url }}" --squash --delete-branch
+
+      - name: Security release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PKGS: ${{ steps.meta.outputs.dependency-names }} ${{ steps.meta.outputs.new-version }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ver=$(python3 tools/ci/security_release.py "$PKGS")
+          git commit -qam "PixxelSpool $ver: security update of Python packages"
+          git tag "v$ver"
+          git push origin main "v$ver"
+          # a tag pushed by this workflow starts no other workflow by itself: start them by hand
+          gh workflow run pi.yml -f tag="v$ver"
+          gh workflow run windows.yml --ref "v$ver"
+          gh workflow run macos.yml --ref "v$ver"

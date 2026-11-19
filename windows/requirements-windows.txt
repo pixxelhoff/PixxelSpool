@@ -1,0 +1,4 @@
+# Extra packages for the Windows app (on top of ../requirements.txt), pinned to exact versions
+pystray==0.19.5
+pillow==13.0.0
+pyinstaller==6.22.3

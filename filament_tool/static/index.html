@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default" id="sbstyle">
+<script>try{var d=document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");if(d==="dark")document.getElementById("sbstyle").content="black-translucent";}catch(e){}</script>
+<meta name="apple-mobile-web-app-title" content="PixxelSpool">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#22221f" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="/static/icon-180.png?v=5">
+<link rel="icon" type="image/svg+xml" href="/static/logo.svg?v=5">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png?v=5">
+<link rel="manifest" href="/static/manifest.json">
+<title>PixxelSpool · by pixxelhoff</title>
+<link rel="stylesheet" href="/static/style.css?v=VERSION">
+</head>
+<body class="booting">
+<header>
+  <img class="logo" src="/static/logo.svg?v=5" alt=""><h1><span class="wordmark" translate="no">Pi<span class="xx"><span>x</span><span>x</span></span>elSpool</span></h1>
+  <span id="reader" class="pill">…</span>
+  <span id="ha" class="pill" title="">HA …</span>
+  <div class="search">
+    <svg class="sico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+    <input id="q" type="search" autocomplete="off">
+    <ul id="results" hidden></ul>
+  </div>
+  <div id="bell" class="bell"><button class="bellbtn" aria-label="Notifications" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg><i class="badge" hidden></i></button><div class="bellbody"></div></div>
+  <button id="burger" class="burger" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <span class="hbreak" aria-hidden="true"></span>
+  <nav class="tabs" id="nav"><button data-view="storage" class="on"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9.5 12 4l9.5 5.5"/><path d="M4.5 8.5V20h15V8.5"/><rect x="7.5" y="14" width="4" height="3.5" rx=".5"/><rect x="12.5" y="14" width="4" height="3.5" rx=".5"/><rect x="10" y="10" width="4" height="3.5" rx=".5"/></svg><span data-t="tabStorage"></span></button><button data-view="printerview" class="phoneonly" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3" width="17" height="18" rx="2.5"/><rect x="6.5" y="6" width="11" height="10" rx="1"/><path d="M10.5 6v2.2l1.5 1.3 1.5-1.3V6"/><path d="M8.5 14h7"/><path d="M7.5 18.5h3"/></svg><span>Printer</span></button><button data-view="print"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 7.5h18"/><path d="M10 7.5h4v2.5l-1 1.5h-2l-1-1.5z"/><path d="M12 11.5v1"/><path d="M8.5 17.5h7"/><path d="M10 17.5v-2.2h4v2.2"/></svg><span>Print</span></button><button data-view="catalog"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="6" height="17" rx="1.6"/><rect x="4" y="2.5" width="6" height="17" rx="1.6" transform="rotate(28 7 17)"/><rect x="4" y="2.5" width="6" height="17" rx="1.6" transform="rotate(56 7 17)"/><circle cx="7" cy="17" r="1"/></svg><span data-t="tabCatalog"></span></button><button data-view="reorg"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16"/><path d="m3.5 7.5 3.5-3.5 3.5 3.5"/><path d="M17 20V4"/><path d="m20.5 16.5-3.5 3.5-3.5-3.5"/></svg><span data-t="tabReorg"></span> <span id="reorgcount"></span></button><button data-view="statsview"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><rect x="5.5" y="11" width="3" height="6.5" rx=".6"/><rect x="10.5" y="6.5" width="3" height="11" rx=".6"/><rect x="15.5" y="13.5" width="3" height="4" rx=".6"/></svg><span>Statistics</span></button><button data-view="tools"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg><span data-t="tabTools"></span></button><div class="navstatus" id="navstatus"></div></nav>
+  <div id="navdim" class="navdim" hidden></div>
+  <div id="stats" class="stats"></div>
+</header>
+<div id="batchbar" class="batchbar" hidden></div>
+<main>
+  <div class="side">
+    <aside id="panel"></aside>
+    <div id="printer" class="printer" hidden></div>
+    <div id="ams" class="ams" hidden></div>
+    <div id="climate" class="tool insight foldbox" hidden></div>
+  </div>
+  <section id="storage">
+    <div id="pickhint" class="pickhint" hidden></div>
+    <div id="selbar" class="selbar" hidden></div>
+    <div id="returns" class="returns" hidden></div>
+    <div id="jobnote" class="returns jobnote" hidden></div>
+    <div id="drynote" class="returns drynote" hidden></div>
+    <div id="climwarn" class="returns" hidden></div>
+    <div class="cabhead"><h2 id="cabtitle0"></h2><span class="cabtools"><button id="selmode" class="small selbtn">Select</button><div id="cabmode" class="seg cabmode"><button data-mode="compact" data-t="viewCompact"></button><button data-mode="detail" data-t="viewDetail"></button><button data-mode="list" data-t="viewList"></button></div></span></div>
+    <div id="cabs"></div>
+    <div id="spoollist" class="spoollist" hidden></div>
+    <div class="cabhead" id="ovhead"><h2 class="cabfold" data-fold="overflow"><span data-t="overflowTitle"></span><span class="foldn" id="overflown"></span><span class="chev">›</span></h2><span class="cabtools"><button class="small selbtn">Select</button></span></div><div id="overflow" class="shelves"></div>
+    <div id="logwrap" class="foldbox"><h2 class="fold" id="logfold"><span data-t="history"></span><span class="chev">›</span></h2><ul id="log" class="log"></ul></div>
+  </section>
+  <section id="reorg" hidden>
+    <p class="sub" data-t="reorgIntro"></p>
+    <ol id="reorglist" class="reorg"></ol>
+  </section>
+  <section id="tools" hidden>
+    <div class="opthead"><div class="search optsearch"><input id="optq" type="search" placeholder="Search" aria-label="Search settings" autocomplete="off"></div></div>
+    <div class="optwrap">
+    <nav id="optnav" class="optnav" aria-label="Categories"></nav>
+    <div id="optmain">
+    <div class="optcat" data-cat="stock" data-ico="box">
+      <h2 class="optgroup">Manage stock</h2>
+    <div class="tool" id="manualtool">
+      <h3>Add spool manually</h3>
+      <p class="sub">For spools without a tag, e.g. from other brands, and for spools you can't scan right now, e.g. still packed or the reader doesn't recognize the tag. If you scan the spool later, PixxelSpool knows it's this one and doesn't add it twice.</p>
+      <div class="optgrid manual">
+        <span class="sub" id="manBrandRow" hidden>Brand</span><select id="manBrand" hidden></select>
+        <span class="sub">Line</span><select id="manLine"></select>
+        <span class="sub">Color</span><select id="manColor"></select>
+        <span class="sub">Where</span><select id="manWhere"><option value="auto">Automatic (rod, if the color isn't hanging yet)</option><option value="reserve">Reserve (shelf)</option></select>
+        <span class="sub">Price (optional)</span><span class="inline"><input id="manPrice" inputmode="decimal" placeholder="e.g. 15.99" style="width:110px"> €</span>
+      </div>
+      <div class="actions"><button class="primary" id="manAdd">Add</button></div>
+    </div>
+    <div class="tool" id="batchtool">
+      <h3 data-t="batchTitle"></h3>
+      <p class="sub" data-t="batchIntro"></p>
+      <p class="sub">💡 <span data-t="batchLogo"></span></p>
+      <p class="sub">📦 <span data-t="batchTip"></span></p>
+      <div class="actions"><button class="primary" id="batchstart" data-t="batchStart"></button></div>
+      <p class="sub auditbusy">A stock check is running right now. Finish or cancel it first (Stock check below), then you can start the bulk inventory.</p>
+      <div id="batchresult"></div>
+    </div>
+    <div class="tool" id="audittool">
+      <h3>Stock check</h3>
+      <p class="sub">Checks whether everything is where PixxelSpool thinks it is. Go slot by slot and briefly place each spool on the reader. At the end you see what's missing or misplaced. Only what you confirm at the end is saved.</p>
+      <div class="actions"><button class="primary" id="auditstart">Start check</button></div>
+      <div id="auditbox"></div>
+    </div>
+    <div class="tool" id="usedtool">
+      <h3>Used-up spools</h3>
+      <p class="sub">Spools you marked as empty, the most recent first. Tap one to see its details, or to put it back into storage if it was marked empty by mistake.</p>
+      <div id="usedbox"></div>
+    </div>
+    <div class="tool" id="spoolstool">
+      <h3>Empty spools</h3>
+      <div class="optrow"><span>Empty Bambu spools for refills</span><span class="inline"><button class="small" data-spooldelta="-1">−</button><b id="spoolcount" class="bignum">0</b><button class="small" data-spooldelta="1">+</button></span></div>
+      <p class="sub">Counts automatically: spool marked empty → +1. Spool marked as refill using an empty spool → −1.</p>
+    </div>
+    </div>
+    <div class="optcat" data-cat="storage" data-ico="shelf">
+      <h2 class="optgroup">Storage and alerts</h2>
+    <div class="tool" id="layouttool">
+      <h3>Set up storage</h3>
+      <p class="sub cabintro">A storage can be a cabinet, a shelf unit, a rod on the wall or anything similar. Its name is up to you. PixxelSpool tells apart the active storage, where every spool has a fixed slot, and the reserve for spare spools, which has no fixed slots or order. <button type="button" class="helpq" id="cabhelp" aria-label="Help and examples">?</button></p>
+      <p class="sub nowiz">When you apply, slot codes are updated and all spools move along. A backup is made first. Slots that still hold a spool can't be removed.</p>
+      <div id="cabeditor"></div>
+      <div class="actions"><button id="cabadd">+ Add storage</button><button class="primary nowiz" id="cabapply">Apply</button><button class="nowiz" id="cabreset">Discard</button><a class="btn nowiz" href="/labels" target="_blank" rel="noopener">Print labels</a></div>
+      <div id="cabmsg"></div>
+    </div>
+    <div class="tool" id="warntool">
+      <h3>Alerts</h3>
+      <p class="sub">When PixxelSpool shows a notice in the bell (and as a push message, if switched on). 0 means off.</p>
+      <div class="optrow"><span>“Almost empty” alert from</span><span><input id="setLow" type="number" min="0" max="50" inputmode="numeric"> %</span></div>
+      <div class="optrow"><span>Safety margin for prints <span class="sub">If a spool has less left than the print needs plus this margin, the print check warns with “tight”.</span></span><span><input id="setTight" type="number" min="0" max="100" inputmode="numeric"> %</span></div>
+      <div class="optrow"><span>Minimum stock for all colors <span class="sub">If you have fewer spools of a color than this, it goes on the shopping list. Applies to every color you have or had. A minimum you set for a single color counts instead.</span></span><span><input id="setMinAll" type="number" min="0" max="9" inputmode="numeric"> spools</span></div>
+      <div class="optrow"><span>AMS humidity limit <span class="sub">0 = automatic by the loaded material</span></span><span><input id="setAmsHum" type="number" min="0" max="90" inputmode="numeric"> %</span></div>
+      <div class="optrow"><span>Spool from the AMS not put back after</span><span><input id="setReturn" type="number" min="0" max="1440" inputmode="numeric"> min</span></div>
+      <div class="actions"><button class="primary" id="saveMisc">Save</button></div>
+      <div class="optsub" id="drytool">
+        <h4>Drying reminder</h4>
+        <p class="sub">Reminds you to dry spools that have been open for a long time.</p>
+        <div class="optrow"><span>Recommend drying</span><div class="seg on-always" id="dryonseg"><button data-dryon="1">On</button><button data-dryon="0">Off</button></div></div>
+        <div id="dryfields">
+        <div class="optrow"><span>Recommend drying (dry zone: PETG, TPU …) after</span><span><input id="setDryDry" type="number" min="1" max="104" inputmode="numeric"> weeks open</span></div>
+        <div class="optrow"><span>Recommend drying (PLA) after</span><span><input id="setDryOther" type="number" min="1" max="104" inputmode="numeric"> weeks open</span></div>
+        <div class="actions"><button class="primary" id="saveDry">Save</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tool" id="pushtool">
+      <h3>Push notifications</h3>
+      <p class="sub">Bell notifications (print finished, printer errors, spool almost empty …) as messages on your phone, even when PixxelSpool is closed. Delivered encrypted through your phone's push service, no account needed.</p>
+      <div id="pushbox"><p class="sub">…</p></div>
+    </div>
+    </div>
+    <div class="optcat" data-cat="shop" data-ico="store">
+      <h2 class="optgroup">Shopping and prices</h2>
+    <div class="tool" id="brandtool">
+      <h3>Other brands</h3>
+      <p class="sub">Add filament from other makers, e.g. Sunlu, eSun or Polymaker: a line with material, weight and price, plus its colors. They then appear under “Add spool manually”. With an NFC sticker you find them by placing them on the reader, just like Bambu spools.</p>
+      <div id="brandbox"></div>
+    </div>
+    <div class="tool" id="pricetool">
+      <h3>Standard price per line</h3>
+      <p class="sub">What one spool of a line normally costs. It is suggested when you add a spool by hand and is used for value and print costs wherever a spool has no price of its own. Bambu Lab lines start with the prices of the Bambu Lab shop; change them to what you usually pay. Next to each line: what you actually paid on average.</p>
+      <div id="pricebox"></div>
+    </div>
+    <div class="tool" id="delivtool">
+      <h3>Prices per delivery</h3>
+      <p class="sub">What you paid per spool for a delivery. Applies to all spools of the line stored on that day.</p>
+      <div id="delivbox"></div>
+    </div>
+    <div class="tool" id="shoptool">
+      <h3>Shopping list</h3>
+      <p class="sub">Lines you want to have complete. Missing colors from them go on the shopping list.</p>
+      <div id="collectlines" class="checks"></div>
+      <div class="actions"><button class="primary" id="saveShop">Save</button></div>
+    </div>
+    </div>
+    <div class="optcat" data-cat="devices" data-ico="printer">
+      <h2 class="optgroup">Printer and devices</h2>
+    <div class="tool" id="bambutool">
+      <h3>Printer</h3>
+      <p class="sub nowiz">PixxelSpool connects to your printer locally on your home network and reads the AMS, remaining amounts and the print job – no cloud, no Bambu account. For now PixxelSpool only switches the printer light; more controls are planned.</p>
+      <ul id="bbList" class="bblist"></ul>
+      <div id="bbForm" class="bbform" hidden>
+        <b id="bbFormTitle"></b>
+        <div class="optrow"><span>Name</span><input id="bbName" type="text" maxlength="40" placeholder="e.g. H2C workshop" autocomplete="off"></div>
+        <div class="optrow"><span>IP address</span><input id="bbIp" type="text" inputmode="url" placeholder="192.168.1.50" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <div class="optrow"><span>Serial number</span><input id="bbSerial" type="text" placeholder="e.g. 31B8BP…" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+        <div class="optrow"><span>Access code</span><input id="bbCode" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false"></div>
+        <p class="sub">You can find these values on the printer’s display: Settings › Network (IP address, access code) and Settings › Device (serial number). The access code is only stored locally in PixxelSpool.</p>
+        <div class="actions"><button class="primary" id="bbSave">Test connection and save</button><button id="bbCancel">Cancel</button></div>
+      </div>
+      <div class="actions" id="bbAddRow"><button class="small" id="bbAdd">+ Add printer</button></div>
+      <div id="bbOut"></div>
+      <div class="optrow nowiz"><span>Camera image</span><div class="seg on-always" id="camseg"><button data-cam="off">Off</button><button data-cam="eco">1 fps</button><button data-cam="smooth">5 fps</button><button data-cam="max">Max</button></div></div>
+      <p class="sub nowiz">Shows the camera image in the printer card. 1 fps: hardly any load. 5 fps: needs about one CPU core. Max: every frame the printer sends (up to 30 per second), needs much more computing power. The camera only runs while someone is looking at the card.</p>
+      <p class="sub nowiz expnote">Experimental: the camera image has only been tested with a few printers so far and may not work with yours.</p>
+    </div>
+    <div class="tool" id="readertool">
+      <h3>NFC reader</h3>
+      <p class="sub" id="readerinfo"></p>
+      <div class="optrow nowiz"><span title="The reader reads nothing for this long after a scan, so a spool is not detected twice">Pause after a scan</span><span><input id="setScanPause" type="number" min="0" max="5" step="0.1" inputmode="decimal"> seconds</span></div>
+      <div id="readertest" class="readertest" hidden></div>
+      <details class="readerhelp readermode">
+        <summary>Reader type</summary>
+        <p class="sub">“Automatic” finds a USB reader and a PN532 by itself. Only choose a type if your reader is not detected.</p>
+        <div class="seg on-always" id="readerseg"><button data-rmode="auto">Automatic</button><button data-rmode="usb">USB reader</button><button data-rmode="pn532">PN532 via I2C</button></div>
+      </details>
+      <details class="readerhelp">
+        <summary>Which readers work?</summary>
+        <p class="sub">You need a 13.56 MHz NFC reader that can read MIFARE Classic. <b>Not suitable:</b> readers that act as a keyboard and only “type” a number, and 125 kHz readers.</p>
+        <h4>Plug &amp; play</h4>
+        <ul class="compat">
+          <li><b>ACS ACR122U</b> <span class="tag ok">tested</span></li>
+          <li><b>ACS ACR1252U</b> <span class="tag ok">tested</span></li>
+          <li><b>PN532 module with USB-C</b> <span class="tag ok">tested</span>
+            <details class="wiring"><summary>Setup</summary><p class="sub">Set both switches to HSU or UART (usually both OFF), then plug it in via USB. PixxelSpool finds the port by itself.</p></details></li>
+        </ul>
+        <h4 class="pi-only">Other (on the Raspberry Pi)</h4>
+        <ul class="compat pi-only">
+          <li><b>Waveshare PN532 NFC HAT</b> <span class="tag warn">untested</span>
+            <details class="wiring"><summary>Port</summary><p class="sub">Set the jumpers to I2C (I0 = H, I1 = L) and plug it onto the Pi.</p></details></li>
+          <li><b>PN532 NFC Modul V3</b> <span class="tag warn">untested</span>
+            <details class="wiring"><summary>Wiring</summary><p class="sub">Switches to I2C (1 = ON, 2 = OFF). VCC → 3.3 V (pin 1), GND → pin 6, SDA → pin 3, SCL → pin 5. The install script turns on I2C.</p></details></li>
+        </ul>
+        <p class="sub">Tried another reader? Put a spool on it: if PixxelSpool reacts, it works. Let us know on <a href="https://github.com/__PM_REPO__/issues" target="_blank" rel="noopener">GitHub</a> know and it goes on the list.</p>
+      </details>
+      <details class="readerhelp">
+        <summary>No reader yet? Your AMS can read the spools too.</summary>
+        <p class="sub">Once your printer is connected, PixxelSpool detects a Bambu Lab spool you put into the AMS and asks whether to add it to storage. To put it away, simply take it out again: PixxelSpool shows you its slot.</p>
+        <p class="sub">We still recommend a separate NFC reader: it's faster, you don't have to unpack spools, and spools from other brands with NFC stickers only work with a reader.</p>
+      </details>
+    </div>
+    <div class="tool" id="hatool">
+      <h3>Home Assistant</h3>
+      <p class="sub nowiz">Optional: Home Assistant supplies temperature and humidity for your storage.</p>
+      <div class="optrow nowiz"><span>Home Assistant</span><div class="seg on-always"><button data-haon="1">On</button><button data-haon="0">Off</button></div></div>
+      <p id="haInfo" class="sub"></p>
+      <div id="haFields">
+      <div class="optrow"><span>Address</span><input id="haUrl" type="url" placeholder="http://192.168.1.100:8123" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="optrow"><span>Access token</span><input id="haToken" type="password" placeholder="" autocomplete="new-password" autocapitalize="off" spellcheck="false"></div>
+      <p class="sub">Create the token in Home Assistant under Profile › Security › “Long-lived access tokens”. It is only stored locally in PixxelSpool.</p>
+      <div class="actions"><button class="primary" id="saveHaCfg">Test connection and save</button></div>
+      <div id="haclim">
+      <h4>Storage sensors</h4>
+      <p class="sub">Assign a temperature and a humidity sensor from Home Assistant to each storage unit. Above the limit, PixxelSpool warns you in the storage view.</p>
+      <div id="climatecfg"></div>
+      <div class="optrow"><span>Poll sensors every</span><span><input id="setPoll" type="number" min="10" max="600" inputmode="numeric"> seconds</span></div>
+      <div class="actions nowiz"><button class="primary" id="saveHa">Save</button><button id="haSync">Sync now</button></div>
+      </div>
+      </div>
+    </div>
+    </div>
+    <div class="optcat" data-cat="app" data-ico="sliders">
+      <h2 class="optgroup">App</h2>
+    <div class="tool nofold" id="viewtool">
+      <h3>Appearance</h3>
+      <div class="optrow"><span>Color scheme</span><div class="seg on-always" id="themeseg"><button data-theme-opt="system">System</button><button data-theme-opt="light">Light</button><button data-theme-opt="dark">Dark</button></div></div>
+      <div class="optrow"><span title="Automatic: on phones, iPhone Duo and tablets in landscape; on a PC the bar at the top"><span class="beta" title="Experimental">β</span>Side menu <span class="sub">Experimental</span></span><div class="seg on-always" id="railseg"><button data-rail-opt="auto">Automatic</button><button data-rail-opt="on">On</button><button data-rail-opt="off">Off</button></div></div>
+      <div class="optrow"><span>Sound when scanning</span><span class="inline"><button class="small" id="soundtest">Run test</button><span class="seg on-always"><button data-sound="on">On</button><button data-sound="off">Off</button></span></span></div>
+      <p class="sub" id="soundinfo"></p>
+      <div class="optrow"><span>Entries in history</span><span><input id="setLogRows" type="number" min="1" max="50" inputmode="numeric"></span></div>
+      <div class="optrow"><span>Storage view on iPhone</span><div class="seg on-always"><button data-mode="compact">Compact</button><button data-mode="detail">Detail</button></div></div>
+      <p class="sub">Color scheme, sound and storage view apply to this device only, everything else to all devices.</p>
+    </div>
+    <div class="tool nofold" id="langtool">
+      <h3>Language and format</h3>
+      <div class="optrow"><span>Language</span><div class="seg on-always lang"><button data-lang="de">Deutsch</button><button data-lang="en">English</button><button data-lang="es">Español</button></div></div>
+      <div class="optrow"><span>Date format</span><select id="datefmt"><option value="auto">Automatic</option><option value="dmy.">31.12.2026</option><option value="dmy/">31/12/2026</option><option value="mdy/">12/31/2026</option><option value="ymd-">2026-12-31</option></select></div>
+      <div class="optrow"><span>Time</span><div class="seg on-always" id="timeseg"><button data-tf="auto">Automatic</button><button data-tf="24">24 h</button><button data-tf="12">12 h</button></div></div>
+      <p class="sub">Apply to all devices.</p>
+    </div>
+    <div class="tool nofold" id="helptool">
+      <h3>Help</h3>
+      <div class="optrow"><span>Short introduction</span><button class="small" id="touropen">Show</button></div>
+      <div class="optrow"><span>Setup assistant</span><button class="small" id="wizopen">Start</button></div>
+      <p class="sub">Goes through reader, storage, printer and Home Assistant step by step, like on the first start.</p>
+    </div>
+    </div>
+    <div class="optcat" data-cat="system" data-ico="server">
+      <h2 class="optgroup">System</h2>
+    <div class="tool" id="backuptool">
+      <h3>Backup</h3>
+      <p class="sub">Downloads a ZIP file with the database (all spools, history, usage) and all settings including the storage layout. PixxelSpool also makes a backup automatically every night at 3:30.</p>
+      <div class="optrow"><span title="Nightly backups and backups before actions (deleting, stock check …). The 10 newest backups before actions are always kept.">Keep backups</span><span><input id="setKeep" type="number" min="3" max="365" inputmode="numeric"> days</span></div>
+      <label class="check"><input type="checkbox" id="bkha"> Include credentials (Home Assistant token, printer access code)</label>
+      <label class="check"><input type="checkbox" id="bklock"> Protect the file with a password</label>
+      <div class="authform" id="bkpwrow" hidden><input id="bkpw" type="password" autocomplete="new-password" placeholder="Password for this backup (at least 6 characters)"></div>
+      <div class="actions"><a class="btn primary" id="bkdl" href="/api/backup/download" download>Download backup</a>
+        <button id="bkrestore">Restore backup …</button><input type="file" id="bkfile" accept=".zip,.db,.pspbackup,application/zip" hidden></div>
+      <p class="sub">Before restoring, PixxelSpool backs up the current state automatically.</p>
+      <div class="optsub" id="offsitetool">
+        <h4>Network backup</h4>
+        <p class="sub">Also stores the nightly backup on a network share. Credentials are only stored locally in PixxelSpool.</p>
+        <div id="offsitebox"></div>
+      </div>
+    </div>
+    <div class="tool" id="authtool">
+      <h3>Password</h3>
+      <p class="sub">Optional: PixxelSpool only opens after entering a password. Useful if others in your network shouldn't change anything. Each device stays signed in for 30 days. Scanning at the reader keeps working without a password.</p>
+      <div id="authbox"><p class="sub">…</p></div>
+    </div>
+    <div class="tool" id="remotetool">
+      <h3>Remote access</h3>
+      <p class="sub">Open PixxelSpool on the go, securely via Tailscale: only your own devices get in, and nothing has to be opened on the router. Install the Tailscale app on your phone once and sign in with the same account.</p>
+      <div id="remotebox"><p class="sub">…</p></div>
+    </div>
+    <div class="tool" id="updatetool">
+      <h3>Updates</h3>
+      <p class="sub" id="updintro">New versions come straight from GitHub; PixxelSpool only installs a download whose checksum matches. Before every update it backs up the database and the current version; your data stays unchanged.</p>
+      <div id="updatebox"><p class="sub">…</p></div>
+      <div class="optrow"><span>Check for updates daily</span><div class="seg on-always"><button data-upc="1">On</button><button data-upc="0">Off</button></div></div>
+      <div class="optrow"><span>Offer pre-releases <span class="sub">Beta: tested, shortly before the final version. Alpha: also the newest test versions. Both may contain bugs.</span></span><div class="seg on-always"><button data-upch="off">Off</button><button data-upch="beta">Beta</button><button data-upch="alpha">Alpha</button></div></div>
+      <div class="optrow pi-only"><span>Install security updates automatically <span class="sub">Checked daily, only versions marked as security updates. The database is backed up first; if the new version does not start, PixxelSpool goes back to the old one by itself.</span></span><div class="seg on-always"><button data-upa="1">On</button><button data-upa="0">Off</button></div></div>
+    </div>
+    <div class="tool" id="logtool">
+      <h3>Log</h3>
+      <p class="sub">PixxelSpool messages for troubleshooting, newest first. Access codes, tokens and passwords are redacted, in the export too.</p>
+      <div class="optrow"><span>Detailed log <span class="sub">For troubleshooting: also records printer data, reader scans and every change. Switch it off again afterwards.</span></span><div class="seg on-always"><button data-logdet="1">On</button><button data-logdet="0">Off</button></div></div>
+      <div class="logbar"><div class="seg on-always" id="loglvl"><button data-lvl="">All</button><button data-lvl="WARNING">Warnings and up</button><button data-lvl="ERROR">Error</button></div>
+        <input id="logq" type="search" placeholder="Filter…" autocomplete="off"><button class="small" id="logreload">Refresh</button><a class="btn small" id="logdl" href="/api/logs/download" download>Export</a></div>
+      <div id="logbox" class="logbox"></div>
+    </div>
+    <div class="tool" id="systool">
+      <h3 data-t="sysTitle"></h3>
+      <div id="sysinfo" class="pi-only"></div>
+      <p class="sub" data-t="sysIntro"></p>
+      <div class="actions"><button id="sysrestart">Restart PixxelSpool</button><button id="sysreboot" data-t="sysReboot"></button><button class="danger" id="syspoweroff" data-t="sysPoweroff"></button></div>
+    </div>
+    <div class="tool danger-zone" id="resettool">
+      <h3 data-t="resetTitle"></h3>
+      <p class="sub" data-t="resetIntro"></p>
+      <div class="field"><span data-t="resetType"></span><input id="resetword" autocomplete="off" autocapitalize="characters"></div>
+      <div class="actions"><button class="danger" id="resetbtn" disabled data-t="resetBtn"></button></div>
+      <h4>Reset PixxelSpool</h4>
+      <p class="sub">Starts PixxelSpool again like a new installation: storage, history, settings, printer, Home Assistant, password and push are deleted and the setup assistant opens. Download a backup first if you might want your data back.</p>
+      <div class="actions"><button class="danger" id="factorybtn">Reset PixxelSpool …</button></div>
+    </div>
+    </div>
+    <div class="optcat" data-cat="about" data-ico="info">
+      <h2 class="optgroup">About</h2>
+    <div class="tool" id="abouttool">
+      <h3>About PixxelSpool</h3>
+      <div class="about"><img class="logo" src="/static/logo.svg?v=5" alt="">
+        <div><b translate="no">PixxelSpool</b> <span class="sub">Version __PM_RELEASE__</span><div class="sub">by pixxelhoff</div></div></div>
+      <div class="links">
+        <button type="button" class="btn" id="donatebtn"><span class="ico" data-ico="heart"></span>Support PixxelSpool</button>
+        <a class="btn" href="https://github.com/__PM_REPO__" target="_blank" rel="noopener"><span class="ico" data-ico="code"></span>Project on GitHub</a>
+        <a class="btn" href="https://github.com/__PM_REPO__/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span class="ico" data-ico="list"></span>Changelog</a>
+        <a class="btn" href="https://github.com/__PM_REPO__/issues" target="_blank" rel="noopener"><span class="ico" data-ico="bug"></span>Report a bug</a>
+        <a class="btn" href="https://github.com/pixxelhoff" target="_blank" rel="noopener"><span class="ico" data-ico="user"></span>pixxelhoff on GitHub</a>
+      </div>
+      <details class="legal"><summary><span class="ico" data-ico="scale"></span>Legal notice</summary>
+      <p class="sub">PixxelSpool is an independent hobby project by pixxelhoff. It is not affiliated with, endorsed by or sponsored by Bambu Lab.</p>
+      <p class="sub">“Bambu Lab”, “AMS” and the names of Bambu Lab filaments and colors are trademarks or designations of their respective owners. They are used here only to describe which spools and devices PixxelSpool works with. Color names, numbers and color values in the catalog are for identification only; the colors shown may differ from the real filament.</p>
+      <p class="sub">PixxelSpool only reads the spools' NFC tags; it never writes or changes them. Amounts, remaining values and estimates (e.g. from 3MF files or the AMS) are approximate and without guarantee. Use at your own risk.</p>
+      <p class="sub">All data stays on your own device, nothing goes to a cloud. Source code under the GNU AGPL-3.0 license; the name and logo “PixxelSpool by pixxelhoff” are excluded. Bambu tag layout based on the RFID Tag Guide by the Bambu Research Group.</p>
+      <p class="sub">Other names mentioned, such as Raspberry Pi, Home Assistant, Tailscale, Apple, macOS and Windows, are trademarks of their respective owners.</p>
+      </details>
+    </div>
+    </div>
+    <p class="sub optnone" id="optnone" hidden>No setting found.</p>
+    </div>
+    </div>
+  </section>
+  <section id="printerview" hidden></section>
+  <section id="print" hidden>
+    <div id="jobprint" class="tool jobnote"></div>
+    <div id="project" class="tool insight foldbox open">
+      <h3 class="fold nofold" id="projfold">Plan a project <span class="sub foldsum" id="projsum"></span></h3>
+      <div class="foldbody">
+        <p class="sub">Put together the colors for a print: you see right away what you have, how much is left and where it is.</p>
+        <div class="search projsearch"><input id="projq" type="search" placeholder="Add color: name, number, line" autocomplete="off"><ul id="projres" hidden></ul></div>
+        <ul id="projlist" class="shop"></ul>
+        <div class="actions"><button class="small" id="projclear">Clear list</button></div>
+      </div>
+    </div>
+    <div class="tool" id="tmf">
+      <h3>Check 3MF</h3>
+      <p class="sub">Load a 3MF file from Bambu Studio: PixxelSpool shows the filaments used, estimates the amount needed and compares everything with your storage.</p>
+      <div class="imgctl"><label class="btn primary small filebtn">Choose 3MF file<input type="file" id="tmffile" accept=".3mf,model/3mf,application/vnd.ms-package.3dmanufacturing-3dmodel+xml,application/octet-stream" hidden></label>
+        <button class="small" id="tmfremove" hidden>Remove file</button><span class="sub" id="tmfname"></span></div>
+      <div id="tmfout"></div>
+    </div>
+  </section>
+  <section id="statsview" hidden>
+    <div id="usage" class="tool insight foldbox"></div>
+    <div id="statsbox"><p class="sub">…</p></div>
+  </section>
+  <section id="catalog" hidden>
+    <div id="imgpick" class="tool foldbox">
+      <h3 class="fold" id="imgfold">Color from picture <span class="sub foldsum" id="imgsum"></span><span class="chev">›</span></h3>
+      <div class="foldbody">
+        <p class="sub">Load a picture and tap the spots whose color you are looking for. For each point PixxelSpool shows the closest Bambu filaments.</p>
+        <p class="sub">Only the color is compared: a picture can't tell whether e.g. a translucent, metal or silk filament fits better. The results are only a guide.</p>
+        <div class="imgctl">
+          <label class="btn primary small filebtn">Choose picture<input type="file" id="imgfile" accept="image/*" hidden></label>
+          <button class="small" id="imgremove" hidden>Remove picture</button>
+          <div class="seg on-always" id="imgmat"><button data-mat="all" class="on">All</button><button data-mat="PLA">PLA</button><button data-mat="PETG">PETG</button><button data-mat="ABS">ABS</button><button data-mat="TPU">TPU</button></div>
+          <label class="check toggle"><input type="checkbox" id="imgowned"> in storage only</label>
+          <button class="small" id="imgclear" hidden>Clear points</button>
+        </div>
+        <div class="imgwrap" id="imgwrap" hidden><canvas id="imgcv"></canvas></div>
+        <ol id="imgpoints" class="imgpoints"></ol>
+      </div>
+    </div>
+    <div id="shopping" class="tool insight foldbox"></div>
+    <div class="cathead">
+      <h2>Bambu Lab catalog</h2>
+      <p class="sub catnote">Only original Bambu Lab filament. Spools of other brands are set up under Options › Other brands.</p>
+      <div class="catfilters">
+        <label class="check toggle"><input type="checkbox" id="onlymissing"> <span data-t="onlyMissing"></span></label>
+        <label class="check toggle"><input type="checkbox" id="onlyowned" checked> <span data-t="onlyOwnedLines"></span></label>
+      </div>
+    </div>
+    <div id="catlines"></div>
+  </section>
+</main>
+<div id="wizard" hidden>
+  <div class="wizbox" role="dialog" aria-modal="true" aria-labelledby="wizstep">
+    <div class="wiztop">
+      <div class="wizhead"><img class="logo" src="/static/logo.svg?v=5" alt=""><span class="sub" id="wizstep"></span></div>
+      <button class="wiztheme" id="wiztheme" aria-label="Light or dark" title="Light or dark">
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        <span class="knob"></span>
+      </button>
+    </div>
+    <div id="wizbody"></div>
+    <div class="wizfoot">
+      <div class="wizside"><button class="ghost" id="wizback">Back</button></div>
+      <div class="wizdots" id="wizdots"></div>
+      <div class="wizside end"><button class="ghost" id="wizskip" hidden>Later</button></div>
+    </div>
+    <div class="wiznext"><button class="primary" id="wiznext">Next</button></div>
+  </div>
+</div>
+<div id="toast" hidden></div>
+<script src="/static/intro.js?v=VERSION"></script>
+<script src="/static/app.js?v=VERSION"></script>
+</body>
+</html>

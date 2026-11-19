@@ -1,0 +1,6 @@
+# Extra packages for the Mac app (on top of ../requirements.txt), pinned to exact versions
+pystray==0.19.5
+pillow==13.0.0
+pyobjc-framework-Cocoa==13.0
+pyinstaller==6.22.3
+certifi==2026.10.23

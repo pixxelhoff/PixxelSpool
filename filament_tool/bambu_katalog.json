@@ -1,0 +1,4474 @@
+{
+"source": "https://github.com/bambulab/BambuStudio/blob/master/resources/profiles/BBL/filament/filaments_color_codes.json",
+"fetched": "2026-11-13",
+"colors": [
+{
+"bambu_no": "10300",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-A0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#FF6A13"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10301",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-A1",
+"name_en": "Pumpkin Orange",
+"name_de": "Kürbis-Orange",
+"colors": [
+"#FF9016"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10602",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-B1",
+"name_en": "Blue Gray",
+"name_de": "Blau-Grau",
+"colors": [
+"#5B6579"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10604",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-B3",
+"name_en": "Cobalt Blue",
+"name_de": "Kobaltblau",
+"colors": [
+"#0056B8"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10605",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-B5",
+"name_en": "Turquoise",
+"name_de": "Türkis",
+"colors": [
+"#00B1B7"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10603",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-B8",
+"name_en": "Cyan",
+"name_de": "Cyan",
+"colors": [
+"#0086D6"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10601",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-B9",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#0A2989"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10103",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#8E9089"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10102",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-D1",
+"name_en": "Silver",
+"name_de": "Silber",
+"colors": [
+"#A6A9AA"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10104",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-D2",
+"name_en": "Light Gray",
+"name_de": "Hellgrau",
+"colors": [
+"#D1D3D5"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10105",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-D3",
+"name_en": "Dark Gray",
+"name_de": "Dunkelgrau",
+"colors": [
+"#545454"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10502",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-G2",
+"name_en": "Mistletoe Green",
+"name_de": "Mistelzweig-Grün",
+"colors": [
+"#3F8E43"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10503",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-G3",
+"name_en": "Bright Green",
+"name_de": "Hellgrün",
+"colors": [
+"#BECF00"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10501",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-G6",
+"name_en": "Bambu Green",
+"name_de": "Bambusgrün",
+"colors": [
+"#00AE42"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10101",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10900",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M0",
+"name_en": "Arctic Whisper",
+"name_de": "Arktisches Flüstern",
+"colors": [
+"#9CDBD9",
+"#FFFFFF"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10901",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M1",
+"name_en": "Solar Breeze",
+"name_de": "Sonnenbrise",
+"colors": [
+"#E94B3C",
+"#FFFFFF"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10902",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M2",
+"name_en": "Ocean to Meadow",
+"name_de": "Meer und Wiese",
+"colors": [
+"#307FE2",
+"#54FF9B"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10903",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M3",
+"name_en": "Pink Citrus",
+"name_de": "Zitrus-Pink",
+"colors": [
+"#F78F77",
+"#E4505A"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10904",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M4",
+"name_en": "Mint Lime",
+"name_de": "Minze-Limette",
+"colors": [
+"#B6FF43",
+"#4EC939"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10905",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M5",
+"name_en": "Blueberry Bubblegum",
+"name_de": "Blaubeere-Bubblegum",
+"colors": [
+"#6FCAEF",
+"#8573DD"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10906",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M6",
+"name_en": "Dusk Glare",
+"name_de": "Leuchtende Abenddämmerung",
+"colors": [
+"#CE4406",
+"#ED9558"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10907",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-M7",
+"name_en": "Cotton Candy Cloud",
+"name_de": "Zuckerwatten-Wolke",
+"colors": [
+"#E7C1D5",
+"#8EC9E9"
+],
+"kind": "gradient",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10800",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-N0",
+"name_en": "Brown",
+"name_de": "Braun",
+"colors": [
+"#9D432C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10802",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-N1",
+"name_en": "Cocoa Brown",
+"name_de": "Kakaobraun",
+"colors": [
+"#6F5034"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10201",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-P0",
+"name_en": "Beige",
+"name_de": "Beige",
+"colors": [
+"#F7E6DE"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10203",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-P1",
+"name_en": "Pink",
+"name_de": "Pink",
+"colors": [
+"#F55A74"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10701",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-P2",
+"name_en": "Indigo Purple",
+"name_de": "Indigo-Violett",
+"colors": [
+"#482960"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10700",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-P5",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#5E43B7"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10202",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-P6",
+"name_en": "Magenta",
+"name_de": "Magenta",
+"colors": [
+"#EC008C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10200",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#C12E1F"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10205",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-R2",
+"name_en": "Maroon Red",
+"name_de": "Kastanienrot",
+"colors": [
+"#9D2235"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10204",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-R3",
+"name_en": "Hot Pink",
+"name_de": "Heißes Pink",
+"colors": [
+"#F5547C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10100",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-W1",
+"name_en": "Jade White",
+"name_de": "Jade-Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10400",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#F4EE2A"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10402",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-Y2",
+"name_en": "Sunflower Yellow",
+"name_de": "Sonnenblumen-Gelb",
+"colors": [
+"#FEC600"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10801",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-Y3",
+"name_en": "Bronze",
+"name_de": "Bronze",
+"colors": [
+"#847D48"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "10401",
+"material_id": "GFA00",
+"line": "PLA Basic",
+"variant_id": "A00-Y4",
+"name_en": "Gold",
+"name_de": "Gold",
+"colors": [
+"#E4BD68"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11300",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-A2",
+"name_en": "Mandarin Orange",
+"name_de": "Mandarine-Orange",
+"colors": [
+"#F99963"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11603",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-B0",
+"name_en": "Sky Blue",
+"name_de": "Himmelblau",
+"colors": [
+"#56B7E6"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11600",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-B3",
+"name_en": "Marine Blue",
+"name_de": "Marineblau",
+"colors": [
+"#0078BF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11601",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-B4",
+"name_en": "Ice Blue",
+"name_de": "Eisblau",
+"colors": [
+"#A3D8E1"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11602",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-B6",
+"name_en": "Dark Blue",
+"name_de": "Dunkelblau",
+"colors": [
+"#042F56"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11104",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-D0",
+"name_en": "Nardo Gray",
+"name_de": "Nardo-Grau",
+"colors": [
+"#757575"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11102",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-D3",
+"name_en": "Ash Gray",
+"name_de": "Aschgrau",
+"colors": [
+"#9B9EA0"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11502",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-G0",
+"name_en": "Apple Green",
+"name_de": "Apfelgrün",
+"colors": [
+"#C2E189"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11500",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-G1",
+"name_en": "Grass Green",
+"name_de": "Grasgrün",
+"colors": [
+"#61C680"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11501",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-G7",
+"name_en": "Dark Green",
+"name_de": "Dunkelgrün",
+"colors": [
+"#68724D"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11101",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-K1",
+"name_en": "Charcoal",
+"name_de": "Kohlschwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11802",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-N0",
+"name_en": "Dark Chocolate",
+"name_de": "Dunkel-Schokoladenbraun",
+"colors": [
+"#4D3324"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11800",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-N1",
+"name_en": "Latte Brown",
+"name_de": "Milchkaffee-Braun",
+"colors": [
+"#D3B7A7"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11801",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-N2",
+"name_en": "Dark Brown",
+"name_de": "Dunkelbraun",
+"colors": [
+"#7D6556"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11803",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-N3",
+"name_en": "Caramel",
+"name_de": "Karamell",
+"colors": [
+"#AE835B"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11201",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-P3",
+"name_en": "Sakura Pink",
+"name_de": "Sakura-Pink",
+"colors": [
+"#E8AFCF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11700",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-P4",
+"name_en": "Lilac Purple",
+"name_de": "Flieder-Violett",
+"colors": [
+"#AE96D4"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11200",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-R1",
+"name_en": "Scarlet Red",
+"name_de": "Scharlachrot",
+"colors": [
+"#DE4343"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11203",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-R2",
+"name_en": "Terracotta",
+"name_de": "Terrakotta",
+"colors": [
+"#B15533"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11204",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-R3",
+"name_en": "Plum",
+"name_de": "Pflaume",
+"colors": [
+"#950051"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11202",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-R4",
+"name_en": "Dark Red",
+"name_de": "Dunkelrot",
+"colors": [
+"#BB3D43"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11100",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-W2",
+"name_en": "Ivory White",
+"name_de": "Elfenbeinweiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11103",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-W3",
+"name_en": "Bone White",
+"name_de": "Knochenweiß",
+"colors": [
+"#CBC6B8"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11400",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-Y2",
+"name_en": "Lemon Yellow",
+"name_de": "Zitronengelb",
+"colors": [
+"#F7D959"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "11401",
+"material_id": "GFA01",
+"line": "PLA Matte",
+"variant_id": "A01-Y3",
+"name_en": "Desert Tan",
+"name_de": "Wüstenbraun",
+"colors": [
+"#E8DBB7"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13601",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#147BD1"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13104",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-D1",
+"name_en": "Silver",
+"name_de": "Silber",
+"colors": [
+"#EAECEB"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13502",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-G1",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#4CE4A0"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13300",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-N4",
+"name_en": "Copper",
+"name_de": "Kupfer",
+"colors": [
+"#5E4B3C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13202",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-P3",
+"name_en": "Pink",
+"name_de": "Pink",
+"colors": [
+"#EEB1C1"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13701",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-P5",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#854CE4"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13901",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-T1",
+"name_en": "Gilded Rose",
+"name_de": "Goldenes Rosa",
+"colors": [
+"#FF9425",
+"#C16784"
+],
+"kind": "multi",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13902",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-T2",
+"name_en": "Midnight Blaze",
+"name_de": "Mitternachtsglanz",
+"colors": [
+"#0047BB",
+"#7D1B49"
+],
+"kind": "multi",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13903",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-T3",
+"name_en": "Neon City",
+"name_de": "Neon City",
+"colors": [
+"#0047BB",
+"#BB22A3"
+],
+"kind": "multi",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13904",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-T4",
+"name_en": "Blue Hawaii",
+"name_de": "Hawaii-Blau",
+"colors": [
+"#418FDE",
+"#70C884"
+],
+"kind": "multi",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13905",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-T5",
+"name_en": "Velvet Eclipse (Black-Red)",
+"name_de": "Dunkler Samt (Schwarz-Rot)",
+"colors": [
+"#000000",
+"#A34342"
+],
+"kind": "multi",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13105",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13401",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-Y4",
+"name_en": "Gold",
+"name_de": "Gold",
+"colors": [
+"#E5B03D"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13603",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-B0",
+"name_en": "Baby Blue",
+"name_de": "Babyblau",
+"colors": [
+"#A8C6EE"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13604",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-B1",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#008BDA"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13108",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-D0",
+"name_en": "Titan Gray",
+"name_de": "Titangrau",
+"colors": [
+"#5F6367"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13109",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-D1",
+"name_en": "Silver",
+"name_de": "Silber",
+"colors": [
+"#C8C8C8"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13506",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-G0",
+"name_en": "Candy Green",
+"name_de": "Candy-Grün",
+"colors": [
+"#018814"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13507",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-G1",
+"name_en": "Mint",
+"name_de": "Minze",
+"colors": [
+"#96DCB9"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13702",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-P0",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#8671CB"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13205",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-R0",
+"name_en": "Candy Red",
+"name_de": "Candy-Rot",
+"colors": [
+"#D02727"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13206",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-R1",
+"name_en": "Rose Gold",
+"name_de": "Gold-Rosa",
+"colors": [
+"#BA9594"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13207",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-R2",
+"name_en": "Pink",
+"name_de": "Pink",
+"colors": [
+"#F7ADA6"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13110",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13404",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-Y0",
+"name_en": "Champagne",
+"name_de": "Champagner",
+"colors": [
+"#F3CFB2"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13405",
+"material_id": "GFA06",
+"line": "PLA Silk+",
+"variant_id": "A06-Y1",
+"name_en": "Gold",
+"name_de": "Gold",
+"colors": [
+"#F4A925"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13103",
+"material_id": "GFA07",
+"line": "PLA Marble",
+"variant_id": "A07-D4",
+"name_en": "White Marble",
+"name_de": "Weißer Marmor",
+"colors": [
+"#F7F3F0"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13201",
+"material_id": "GFA07",
+"line": "PLA Marble",
+"variant_id": "A07-R5",
+"name_en": "Red Granite",
+"name_de": "Granitrot",
+"colors": [
+"#AD4E38"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13700",
+"material_id": "GFA08",
+"line": "PLA Sparkle",
+"variant_id": "A08-B7",
+"name_en": "Royal Purple Sparkle",
+"name_de": "Glitzerndes Königslila",
+"colors": [
+"#483D8B"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13102",
+"material_id": "GFA08",
+"line": "PLA Sparkle",
+"variant_id": "A08-D5",
+"name_en": "Slate Gray Sparkle",
+"name_de": "Glitzerndes Schiefergrau",
+"colors": [
+"#8E9089"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13501",
+"material_id": "GFA08",
+"line": "PLA Sparkle",
+"variant_id": "A08-G3",
+"name_en": "Alpine Green Sparkle",
+"name_de": "Glitzerndes Alpengrün",
+"colors": [
+"#3F5443"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13101",
+"material_id": "GFA08",
+"line": "PLA Sparkle",
+"variant_id": "A08-K2",
+"name_en": "Onyx Black Sparkle",
+"name_de": "Glitzerndes Onyx-Schwarz",
+"colors": [
+"#2D2B28"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13200",
+"material_id": "GFA08",
+"line": "PLA Sparkle",
+"variant_id": "A08-R2",
+"name_en": "Crimson Red Sparkle",
+"name_de": "Glitzerndes Karminrot",
+"colors": [
+"#792B36"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13402",
+"material_id": "GFA08",
+"line": "PLA Sparkle",
+"variant_id": "A08-Y1",
+"name_en": "Classic Gold Sparkle",
+"name_de": "Klassisches Glitzer-Gold",
+"colors": [
+"#CEA629"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12300",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-A0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#FF7F41"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12600",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-B4",
+"name_en": "Light Blue",
+"name_de": "Hellblau",
+"colors": [
+"#0085AD"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12700",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-B5",
+"name_en": "Lavender Blue",
+"name_de": "Lavendelblau",
+"colors": [
+"#6667AB"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12102",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#515A6C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12103",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-D1",
+"name_en": "Silver",
+"name_de": "Silber",
+"colors": [
+"#898D8D"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12500",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-G4",
+"name_en": "Pine Green",
+"name_de": "Tannengrün",
+"colors": [
+"#00482B"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12101",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#25282A"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12200",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-R3",
+"name_en": "Vermilion Red",
+"name_de": "Zinnoberrot",
+"colors": [
+"#DD3C22"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12100",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-W3",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#F9F7F4"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "12400",
+"material_id": "GFA09",
+"line": "PLA Tough",
+"variant_id": "A09-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#FEDB00"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14104",
+"material_id": "GFA11",
+"line": "PLA Aero",
+"variant_id": "A11-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#CDCECA"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14103",
+"material_id": "GFA11",
+"line": "PLA Aero",
+"variant_id": "A11-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14102",
+"material_id": "GFA11",
+"line": "PLA Aero",
+"variant_id": "A11-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "15300",
+"material_id": "GFA12",
+"line": "PLA Glow",
+"variant_id": "A12-A0",
+"name_en": "Glow Orange",
+"name_de": "Leuchtend-Orange",
+"colors": [
+"#FF9D5B"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "15600",
+"material_id": "GFA12",
+"line": "PLA Glow",
+"variant_id": "A12-B0",
+"name_en": "Glow Blue",
+"name_de": "Leuchtend-Blau",
+"colors": [
+"#7AC0E9"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "15500",
+"material_id": "GFA12",
+"line": "PLA Glow",
+"variant_id": "A12-G0",
+"name_en": "Glow Green",
+"name_de": "Leuchtend-Grün",
+"colors": [
+"#A1FFAC"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "15200",
+"material_id": "GFA12",
+"line": "PLA Glow",
+"variant_id": "A12-R0",
+"name_en": "Glow Pink",
+"name_de": "Leuchtend-Pink",
+"colors": [
+"#F17B8F"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "15400",
+"material_id": "GFA12",
+"line": "PLA Glow",
+"variant_id": "A12-Y0",
+"name_en": "Glow Yellow",
+"name_de": "Leuchtend-Gelb",
+"colors": [
+"#F8FF80"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "15100",
+"material_id": "GFA13",
+"line": "PLA Dynamic",
+"variant_id": "A13-W0",
+"name_en": "UV Color Changing - White to Coral",
+"name_de": "UV-Farbwechsel – Weiß nach Koralle",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13602",
+"material_id": "GFA15",
+"line": "PLA Galaxy",
+"variant_id": "A15-B0",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#594177"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13503",
+"material_id": "GFA15",
+"line": "PLA Galaxy",
+"variant_id": "A15-G0",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#3B665E"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13504",
+"material_id": "GFA15",
+"line": "PLA Galaxy",
+"variant_id": "A15-G1",
+"name_en": "Nebulae",
+"name_de": "Nebel",
+"colors": [
+"#424379"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13203",
+"material_id": "GFA15",
+"line": "PLA Galaxy",
+"variant_id": "A15-R0",
+"name_en": "Brown",
+"name_de": "Braun",
+"colors": [
+"#684A43"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13505",
+"material_id": "GFA16",
+"line": "PLA Wood",
+"variant_id": "A16-G0",
+"name_en": "Classic Birch",
+"name_de": "Klassische Birke",
+"colors": [
+"#918669"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13107",
+"material_id": "GFA16",
+"line": "PLA Wood",
+"variant_id": "A16-K0",
+"name_en": "Black Walnut",
+"name_de": "Schwarze Walnuss",
+"colors": [
+"#4F3F24"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13801",
+"material_id": "GFA16",
+"line": "PLA Wood",
+"variant_id": "A16-N0",
+"name_en": "Clay Brown",
+"name_de": "Lehmbraun",
+"colors": [
+"#995F11"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13204",
+"material_id": "GFA16",
+"line": "PLA Wood",
+"variant_id": "A16-R0",
+"name_en": "Rosewood",
+"name_de": "Rosenholz",
+"colors": [
+"#4C241C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13106",
+"material_id": "GFA16",
+"line": "PLA Wood",
+"variant_id": "A16-W0",
+"name_en": "White Oak",
+"name_de": "Weiße Eiche",
+"colors": [
+"#D6CCA3"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13403",
+"material_id": "GFA16",
+"line": "PLA Wood",
+"variant_id": "A16-Y0",
+"name_en": "Ochre Yellow",
+"name_de": "Ockergelb",
+"colors": [
+"#C98935"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14601",
+"material_id": "GFA50",
+"line": "PLA-CF",
+"variant_id": "A50-B6",
+"name_en": "Royal Blue",
+"name_de": "Königsblau",
+"colors": [
+"#2842AD"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14600",
+"material_id": "GFA50",
+"line": "PLA-CF",
+"variant_id": "A50-B9",
+"name_en": "Jeans Blue",
+"name_de": "Jeansblau",
+"colors": [
+"#6e88bc"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14101",
+"material_id": "GFA50",
+"line": "PLA-CF",
+"variant_id": "A50-D6",
+"name_en": "Lava Gray",
+"name_de": "Lava-Grau",
+"colors": [
+"#4d5054"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14500",
+"material_id": "GFA50",
+"line": "PLA-CF",
+"variant_id": "A50-G7",
+"name_en": "Matcha Green",
+"name_de": "Matcha-Grün",
+"colors": [
+"#5c9748"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14100",
+"material_id": "GFA50",
+"line": "PLA-CF",
+"variant_id": "A50-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14700",
+"material_id": "GFA50",
+"line": "PLA-CF",
+"variant_id": "A50-P7",
+"name_en": "Iris Purple",
+"name_de": "Iris-Violett",
+"colors": [
+"#69398E"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "14200",
+"material_id": "GFA50",
+"line": "PLA-CF",
+"variant_id": "A50-R4",
+"name_en": "Burgundy Red",
+"name_de": "Burgunderrot",
+"colors": [
+"#951e23"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40300",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-A0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#FF6A13"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40600",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#0A2CA5"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40601",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-B4",
+"name_en": "Azure",
+"name_de": "Azurblau",
+"colors": [
+"#489FDF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40602",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-B6",
+"name_en": "Navy Blue",
+"name_de": "Marineblau",
+"colors": [
+"#0C2340"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40501",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-B8",
+"name_en": "Mint",
+"name_de": "Minze",
+"colors": [
+"#7AE1BF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40102",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-D1",
+"name_en": "Silver",
+"name_de": "Silber",
+"colors": [
+"#87909A"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40500",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-G6",
+"name_en": "Bambu Green",
+"name_de": "Bambusgrün",
+"colors": [
+"#00AE42"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40502",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-G7",
+"name_en": "Olive",
+"name_de": "Olive",
+"colors": [
+"#789D4A"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40101",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40701",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-P4",
+"name_en": "Lavender",
+"name_de": "Lavendel",
+"colors": [
+"#7248BD"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40700",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-P6",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#AF1685"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40200",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#D32941"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40100",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40400",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#FCE900"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40402",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-Y1",
+"name_en": "Tangerine Yellow",
+"name_de": "Mandarinengelb",
+"colors": [
+"#FFC72C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "40401",
+"material_id": "GFB00",
+"line": "ABS",
+"variant_id": "B00-Y2",
+"name_en": "Beige",
+"name_de": "Beige",
+"colors": [
+"#DFD1A7"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "45600",
+"material_id": "GFB01",
+"line": "ASA",
+"variant_id": "B01-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#2140B4"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "45102",
+"material_id": "GFB01",
+"line": "ASA",
+"variant_id": "B01-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#8A949E"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "45500",
+"material_id": "GFB01",
+"line": "ASA",
+"variant_id": "B01-G0",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#00A6A0"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "45101",
+"material_id": "GFB01",
+"line": "ASA",
+"variant_id": "B01-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "45200",
+"material_id": "GFB01",
+"line": "ASA",
+"variant_id": "B01-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#E02928"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "45100",
+"material_id": "GFB01",
+"line": "ASA",
+"variant_id": "B01-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFAF2"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "46100",
+"material_id": "GFB02",
+"line": "ASA Aero",
+"variant_id": "B02-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#F5F1DD"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41300",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-A0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#F48438"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41600",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#0C3B95"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41102",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#C6C6C6"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41500",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-G0",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#61BF36"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41101",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41200",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#E83100"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41100",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "41400",
+"material_id": "GFB50",
+"line": "ABS-GF",
+"variant_id": "B50-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#FFE133"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "46101",
+"material_id": "GFB51",
+"line": "ASA-CF",
+"variant_id": "B51-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "60102",
+"material_id": "GFC00",
+"line": "PC",
+"variant_id": "C00-C0",
+"name_en": "Clear Black",
+"name_de": "Klares Schwarz",
+"colors": [
+"#686865"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "60103",
+"material_id": "GFC00",
+"line": "PC",
+"variant_id": "C00-C1",
+"name_en": "Transparent",
+"name_de": "Durchsichtig",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "60101",
+"material_id": "GFC00",
+"line": "PC",
+"variant_id": "C00-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "60100",
+"material_id": "GFC00",
+"line": "PC",
+"variant_id": "C00-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "63102",
+"material_id": "GFC01",
+"line": "PC FR",
+"variant_id": "C01-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#A8A8AA"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "63100",
+"material_id": "GFC01",
+"line": "PC FR",
+"variant_id": "C01-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "63101",
+"material_id": "GFC01",
+"line": "PC FR",
+"variant_id": "C01-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32300",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-A0",
+"name_en": "Translucent Orange",
+"name_de": "Durchsichtiges Orange",
+"colors": [
+"#FF911A"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32600",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-B0",
+"name_en": "Translucent Light Blue",
+"name_de": "Durchsichtiges Hellblau",
+"colors": [
+"#61B0FF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32101",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-C0",
+"name_en": "Clear",
+"name_de": "Klar",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32100",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-D0",
+"name_en": "Translucent Gray",
+"name_de": "Durchsichtiges Grau",
+"colors": [
+"#8E8E8E"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32500",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-G0",
+"name_en": "Translucent Olive",
+"name_de": "Durchsichtiges Olivgrün",
+"colors": [
+"#748C45"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32501",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-G1",
+"name_en": "Translucent Teal",
+"name_de": "Durchsichtiges Blaugrün",
+"colors": [
+"#77EDD7"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32800",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-N0",
+"name_en": "Translucent Brown",
+"name_de": "Durchsichtiges Braun",
+"colors": [
+"#C9A381"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32700",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-P0",
+"name_en": "Translucent Purple",
+"name_de": "Durchsichtiges Lila",
+"colors": [
+"#D6ABFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "32200",
+"material_id": "GFG01",
+"line": "PETG Translucent",
+"variant_id": "G01-P1",
+"name_en": "Translucent Pink",
+"name_de": "Durchsichtiges Pink",
+"colors": [
+"#F9C1BD"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33300",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-A0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#F75403"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33600",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#002E96"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33601",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-B1",
+"name_en": "Lake Blue",
+"name_de": "Blauer See",
+"colors": [
+"#1F79E5"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33101",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#ADB1B2"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33103",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-D1",
+"name_en": "Dark Gray",
+"name_de": "Dunkelgrau",
+"colors": [
+"#515151"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33500",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-G0",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#00AE42"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33501",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-G1",
+"name_en": "Lime Green",
+"name_de": "Limettengrün",
+"colors": [
+"#6EE53C"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33502",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-G2",
+"name_en": "Forest Green",
+"name_de": "Waldgrün",
+"colors": [
+"#39541A"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33102",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33801",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-N1",
+"name_en": "Peanut Brown",
+"name_de": "Erdnussbraun",
+"colors": [
+"#875718"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33200",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#BC0900"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33100",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33400",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#FFD00B"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "33401",
+"material_id": "GFG02",
+"line": "PETG HF",
+"variant_id": "G02-Y1",
+"name_en": "Cream",
+"name_de": "Creme",
+"colors": [
+"#F9DFB9"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "31600",
+"material_id": "GFG50",
+"line": "PETG-CF",
+"variant_id": "G50-B6",
+"name_en": "Indigo Blue",
+"name_de": "Indigo-Blau",
+"colors": [
+"#324585"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "31101",
+"material_id": "GFG50",
+"line": "PETG-CF",
+"variant_id": "G50-D6",
+"name_en": "Titan Gray",
+"name_de": "Titangrau",
+"colors": [
+"#565656"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "31500",
+"material_id": "GFG50",
+"line": "PETG-CF",
+"variant_id": "G50-G7",
+"name_en": "Malachite Green",
+"name_de": "Malachitgrün",
+"colors": [
+"#16b08e"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "31100",
+"material_id": "GFG50",
+"line": "PETG-CF",
+"variant_id": "G50-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "31700",
+"material_id": "GFG50",
+"line": "PETG-CF",
+"variant_id": "G50-P7",
+"name_en": "Violet Purple",
+"name_de": "Lila-Violett",
+"colors": [
+"#583061"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "31200",
+"material_id": "GFG50",
+"line": "PETG-CF",
+"variant_id": "G50-R4",
+"name_en": "Brick Red",
+"name_de": "Ziegelrot",
+"colors": [
+"#9f332a"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "70100",
+"material_id": "GFN04",
+"line": "PAHT-CF",
+"variant_id": "N04-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72100",
+"material_id": "GFN05",
+"line": "PA6-CF",
+"variant_id": "N05-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "73100",
+"material_id": "GFN06",
+"line": "PPA-CF",
+"variant_id": "N06-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72600",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#75AED8"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72102",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-D0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#EAEAE4"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72103",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-D1",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#353533"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72500",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-G0",
+"name_en": "Lime",
+"name_de": "Limette",
+"colors": [
+"#C5ED48"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72104",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72800",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-N0",
+"name_en": "Brown",
+"name_de": "Braun",
+"colors": [
+"#5B492F"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72200",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-R0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#FF4800"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "72400",
+"material_id": "GFN08",
+"line": "PA6-GF",
+"variant_id": "N08-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#FFCE00"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "65500",
+"material_id": "GFS03",
+"line": "Support for PA/PET",
+"variant_id": "S03-G1",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#C0DF16"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "66400",
+"material_id": "GFS04",
+"line": "PVA",
+"variant_id": "S04-Y0",
+"name_en": "Clear",
+"name_de": "Klar",
+"colors": [
+"#F0F1A8"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "65102",
+"material_id": "GFS05",
+"line": "Support for PLA/PETG",
+"variant_id": "S05-C0",
+"name_en": "Nature",
+"name_de": "Natur",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "65103",
+"material_id": "GFS05",
+"line": "Support for PLA/PETG",
+"variant_id": "S05-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "66100",
+"material_id": "GFS06",
+"line": "Support for ABS",
+"variant_id": "S06-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "71100",
+"material_id": "GFT01",
+"line": "PET-CF",
+"variant_id": "T01-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "76100",
+"material_id": "GFT02",
+"line": "PPS-CF",
+"variant_id": "T02-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "51600",
+"material_id": "GFU00",
+"line": "TPU 95A HF",
+"variant_id": "U00-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#0072CE"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "51101",
+"material_id": "GFU00",
+"line": "TPU 95A HF",
+"variant_id": "U00-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#898D8D"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "51100",
+"material_id": "GFU00",
+"line": "TPU 95A HF",
+"variant_id": "U00-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#101820"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "51200",
+"material_id": "GFU00",
+"line": "TPU 95A HF",
+"variant_id": "U00-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#C8102E"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "51102",
+"material_id": "GFU00",
+"line": "TPU 95A HF",
+"variant_id": "U00-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "51400",
+"material_id": "GFU00",
+"line": "TPU 95A HF",
+"variant_id": "U00-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#F3E600"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "50101",
+"material_id": "GFU01",
+"line": "TPU 95A",
+"variant_id": "U01-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "50100",
+"material_id": "GFU01",
+"line": "TPU 95A",
+"variant_id": "U01-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "53600",
+"material_id": "GFU02",
+"line": "TPU for AMS",
+"variant_id": "U02-B0",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#5898DD"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "53102",
+"material_id": "GFU02",
+"line": "TPU for AMS",
+"variant_id": "U02-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#939393"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "53500",
+"material_id": "GFU02",
+"line": "TPU for AMS",
+"variant_id": "U02-G0",
+"name_en": "Neon Green",
+"name_de": "Neongrün",
+"colors": [
+"#90FF1A"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "53101",
+"material_id": "GFU02",
+"line": "TPU for AMS",
+"variant_id": "U02-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "53200",
+"material_id": "GFU02",
+"line": "TPU for AMS",
+"variant_id": "U02-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#ED0000"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "53100",
+"material_id": "GFU02",
+"line": "TPU for AMS",
+"variant_id": "U02-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "53400",
+"material_id": "GFU02",
+"line": "TPU for AMS",
+"variant_id": "U02-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#F9EF41"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "16100",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16400",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#EFE255"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16103",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16600",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-B0",
+"name_en": "Cyan",
+"name_de": "Cyan",
+"colors": [
+"#4DAFDA"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16200",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#C6001A"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16101",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#999D9D"
+],
+"kind": "single",
+"de_source": "bambu"
+},
+{
+"bambu_no": "13210",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-R0",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#B50011"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13211",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-R1",
+"name_en": "Cherry Pink",
+"name_de": "Kirschrosa",
+"colors": [
+"#F5B6CD"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "13301",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-A0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#F74E02"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13410",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-Y0",
+"name_en": "Mellow Yellow",
+"name_de": "Sanftgelb",
+"colors": [
+"#F5DBAB"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "13510",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-G0",
+"name_en": "Light Jade",
+"name_de": "Helljade",
+"colors": [
+"#96D8AF"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "13610",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-B0",
+"name_en": "Ice Blue",
+"name_de": "Eisblau",
+"colors": [
+"#B8CDE9"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13611",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-B1",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#0047BB"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13612",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-B2",
+"name_en": "Teal",
+"name_de": "Petrol",
+"colors": [
+"#009FA1"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "13710",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-P0",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#8344B0"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13711",
+"material_id": "GFA17",
+"line": "PLA Translucent",
+"variant_id": "A17-P1",
+"name_en": "Lavender",
+"name_de": "Lavendel",
+"colors": [
+"#B8ACD6"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13906",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-M1",
+"name_en": "South Beach",
+"name_de": "South Beach",
+"colors": [
+"#F772A4",
+"#00918B"
+],
+"kind": "gradient",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "13909",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-M4",
+"name_en": "Aurora Purple",
+"name_de": "Aurora-Lila",
+"colors": [
+"#7F3696",
+"#006EC9"
+],
+"kind": "gradient",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "13912",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-M8",
+"name_en": "Dawn Radiance",
+"name_de": "Morgenröte",
+"colors": [
+"#EC984C",
+"#6CD4BC",
+"#A66EB9",
+"#D87694"
+],
+"kind": "gradient",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51103",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "51105",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-W1",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "51305",
+"material_id": "GFU04",
+"line": "TPU 85A",
+"variant_id": "U04-A1",
+"name_en": "Neon Orange",
+"name_de": "Neonorange",
+"colors": [
+"#F68B1B"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51500",
+"material_id": "GFU04",
+"line": "TPU 85A",
+"variant_id": "U04-G0",
+"name_en": "Light Cyan",
+"name_de": "Hellcyan",
+"colors": [
+"#C3E2D6"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51900",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-M0",
+"name_en": "Frozen",
+"name_de": "Frost",
+"colors": [
+"#40B6E4",
+"#FFFFFF"
+],
+"kind": "gradient",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51901",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-M1",
+"name_en": "Blaze",
+"name_de": "Feuerrot",
+"colors": [
+"#D21B3C",
+"#F1AAA8"
+],
+"kind": "gradient",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "65104",
+"material_id": "GFS02",
+"line": "Support for PLA",
+"variant_id": "S02-W1",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "12104",
+"material_id": "GFA10",
+"line": "PLA Tough+",
+"variant_id": "A10-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "12105",
+"material_id": "GFA10",
+"line": "PLA Tough+",
+"variant_id": "A10-D0",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#AFB1AE"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "12106",
+"material_id": "GFA10",
+"line": "PLA Tough+",
+"variant_id": "A10-D1",
+"name_en": "Silver",
+"name_de": "Silber",
+"colors": [
+"#959698"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "12107",
+"material_id": "GFA10",
+"line": "PLA Tough+",
+"variant_id": "A10-W0",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "12301",
+"material_id": "GFA10",
+"line": "PLA Tough+",
+"variant_id": "A10-A0",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#DC3A27"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "12401",
+"material_id": "GFA10",
+"line": "PLA Tough+",
+"variant_id": "A10-Y0",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#F4D53F"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "12601",
+"material_id": "GFA10",
+"line": "PLA Tough+",
+"variant_id": "A10-B0",
+"name_en": "Cyan",
+"name_de": "Cyan",
+"colors": [
+"#009BD8"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13100",
+"material_id": "GFA02",
+"line": "PLA Metal",
+"variant_id": "A02-D2",
+"name_en": "Iron Gray Metallic",
+"name_de": "Eisen-Metallgrau",
+"colors": [
+"#43403D"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "13400",
+"material_id": "GFA02",
+"line": "PLA Metal",
+"variant_id": "A02-Y1",
+"name_en": "Iridium Gold Metallic",
+"name_de": "Iridium-Goldmetall",
+"colors": [
+"#B39B84"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "13500",
+"material_id": "GFA02",
+"line": "PLA Metal",
+"variant_id": "A02-G2",
+"name_en": "Oxide Green Metallic",
+"name_de": "Metallisches Oxidgrün",
+"colors": [
+"#1D7C6A"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "13600",
+"material_id": "GFA02",
+"line": "PLA Metal",
+"variant_id": "A02-B2",
+"name_en": "Cobalt Blue Metallic",
+"name_de": "Metallisches Kobaltblau",
+"colors": [
+"#39699E"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "13800",
+"material_id": "GFA02",
+"line": "PLA Metal",
+"variant_id": "A02-N3",
+"name_en": "Copper Brown Metallic",
+"name_de": "Metallisches Kupferbraun",
+"colors": [
+"#AA6443"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "16601",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-B1",
+"name_en": "Blue",
+"name_de": "Blau",
+"colors": [
+"#004EA8"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16401",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-Y1",
+"name_en": "Sunflower Yellow",
+"name_de": "Sonnenblumen-Gelb",
+"colors": [
+"#FFB549"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16501",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-G1",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#00BB31"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16301",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-A1",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#FF671F"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16700",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-P0",
+"name_en": "Matte Beige",
+"name_de": "Mattbeige",
+"colors": [
+"#ECC3B2"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "16800",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-N0",
+"name_en": "Cocoa Brown",
+"name_de": "Kakaobraun",
+"colors": [
+"#745335"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "16102",
+"material_id": "GFA18",
+"line": "PLA Lite",
+"variant_id": "A18-D1",
+"name_en": "Dark Gray",
+"name_de": "Dunkelgrau",
+"colors": [
+"#8c8b8c"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "13913",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-T7",
+"name_en": "Mystic Magenta",
+"name_de": "Mystisches Magenta",
+"colors": [
+"#720062",
+"#3a913f"
+],
+"kind": "multi",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "13916",
+"material_id": "GFA05",
+"line": "PLA Silk",
+"variant_id": "A05-T9",
+"name_en": "Phantom Blue",
+"name_de": "Phantomblau",
+"colors": [
+"#00629b",
+"#000000"
+],
+"kind": "multi",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51601",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-B1",
+"name_en": "Crystal Blue",
+"name_de": "Kristallblau",
+"colors": [
+"#7eb4e1"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51106",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-D0",
+"name_en": "Quicksilver",
+"name_de": "Quecksilber",
+"colors": [
+"#9ea2a2"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51201",
+"material_id": "GFU04",
+"line": "TPU 85A",
+"variant_id": "U04-P0",
+"name_en": "Rose Beige/Flesh",
+"name_de": "Rosébeige/Hautfarbe",
+"colors": [
+"#F3CFB2"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51700",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-P1",
+"name_en": "Grape Jelly",
+"name_de": "Traubengelee",
+"colors": [
+"#D6ABFF"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "51107",
+"material_id": "GFU04",
+"line": "TPU 85A",
+"variant_id": "U04-K0",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "51501",
+"material_id": "GFU04",
+"line": "TPU 85A",
+"variant_id": "U04-G1",
+"name_en": "Lime Green",
+"name_de": "Limettengrün",
+"colors": [
+"#CDEA80"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "51800",
+"material_id": "GFU03",
+"line": "TPU 90A",
+"variant_id": "U03-N0",
+"name_en": "Cocoa Brown",
+"name_de": "Kakaobraun",
+"colors": [
+"#5C4738"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "30105",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-K00",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30106",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-W00",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30107",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-D00",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#7F7E83"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30402",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-Y00",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#FCE300"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30201",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-R00",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#D6001C"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30603",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-B00",
+"name_en": "Reflex Blue",
+"name_de": "Reflexblau",
+"colors": [
+"#001489"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "30800",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-N00",
+"name_en": "Dark Brown",
+"name_de": "Dunkelbraun",
+"colors": [
+"#4f2c1d"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30502",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-G00",
+"name_en": "Green",
+"name_de": "Grün",
+"colors": [
+"#009639"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30301",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-A00",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#FF671F"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30503",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-G01",
+"name_en": "Pine Green",
+"name_de": "Piniengrün",
+"colors": [
+"#034638"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30604",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-B01",
+"name_en": "Navy Blue",
+"name_de": "Marine Blau",
+"colors": [
+"#0086d6"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "30108",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-D01",
+"name_en": "Misty Blue",
+"name_de": "Nebelblau",
+"colors": [
+"#688197"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "30403",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-Y01",
+"name_en": "Dark Beige",
+"name_de": "Dunkelbeige",
+"colors": [
+"#dbc8b6"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "17100",
+"material_id": "GFA19",
+"line": "PLA Pure",
+"variant_id": "A19-W00",
+"name_en": "Pure White",
+"name_de": "Reinweiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "17101",
+"material_id": "GFA19",
+"line": "PLA Pure",
+"variant_id": "A19-K00",
+"name_en": "Absolute Black",
+"name_de": "Absolutes Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "17200",
+"material_id": "GFA19",
+"line": "PLA Pure",
+"variant_id": "A19-P00",
+"name_en": "Milky Pink",
+"name_de": "Milchrosa",
+"colors": [
+"#f7ced7"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "17600",
+"material_id": "GFA19",
+"line": "PLA Pure",
+"variant_id": "A19-B00",
+"name_en": "Baby Blue",
+"name_de": "Babyblau",
+"colors": [
+"#a4dbe8"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "17300",
+"material_id": "GFA19",
+"line": "PLA Pure",
+"variant_id": "A19-A00",
+"name_en": "Apricot",
+"name_de": "Aprikose",
+"colors": [
+"#ffb673"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "56100",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-K00",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "30701",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-P01",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#8A75D1"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "30404",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-Y04",
+"name_en": "Sunflower Yellow",
+"name_de": "Sonnenblumen-Gelb",
+"colors": [
+"#FFB81C"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "30504",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-G04",
+"name_en": "Bright Green",
+"name_de": "Hellgrün",
+"colors": [
+"#97D700"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "30702",
+"material_id": "GFG00",
+"line": "PETG Basic",
+"variant_id": "G00-P02",
+"name_en": "Hot Pink",
+"name_de": "Heißes Pink",
+"colors": [
+"#F277C6"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35100",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-W00",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#FFFFFF"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "35101",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-K00",
+"name_en": "Black",
+"name_de": "Schwarz",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "35500",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-G00",
+"name_en": "Lime",
+"name_de": "Lime",
+"colors": [
+"#c0df16"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "35102",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-D00",
+"name_en": "Gray",
+"name_de": "Grau",
+"colors": [
+"#7F7E83"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "35700",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-P00",
+"name_en": "Pink",
+"name_de": "Pink",
+"colors": [
+"#FABBCB"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "35600",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-B00",
+"name_en": "Baby Blue",
+"name_de": "Babyblau",
+"colors": [
+"#B9D9EB"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35701",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-P01",
+"name_en": "Rose Beige",
+"name_de": "Rosébeige",
+"colors": [
+"#F0BDA5"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "35702",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-P02",
+"name_en": "Violet",
+"name_de": "Violett",
+"colors": [
+"#A7A4E0"
+],
+"kind": "single",
+"de_source": "bestand"
+},
+{
+"bambu_no": "35501",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-G01",
+"name_en": "Avocado Green",
+"name_de": "Avocadogrün",
+"colors": [
+"#bce194"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "35400",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-Y00",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#FFD100"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35602",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-B02",
+"name_en": "Dark Blue",
+"name_de": "Dunkelblau",
+"colors": [
+"#003087"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35601",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-B01",
+"name_en": "Cyan",
+"name_de": "Cyan",
+"colors": [
+"#00a9e0"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35200",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-R00",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#D6001C"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35300",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-A00",
+"name_en": "Orange",
+"name_de": "Orange",
+"colors": [
+"#FF671F"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35603",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-B03",
+"name_en": "Turquoise",
+"name_de": "Türkis",
+"colors": [
+"#00c7b1"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35703",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-P03",
+"name_en": "Hot Pink",
+"name_de": "Heißes Pink",
+"colors": [
+"#EF4A81"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "35801",
+"material_id": "GFG03",
+"line": "PETG Matte",
+"variant_id": "G03-N01",
+"name_en": "Caramel",
+"name_de": "Karamell",
+"colors": [
+"#bf9474"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56400",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-Y00",
+"name_en": "Lemon Yellow",
+"name_de": "Zitronengelb",
+"colors": [
+"#fbdb65"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56401",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-Y01",
+"name_en": "Dark Ivory",
+"name_de": "Dunkles Elfenbein",
+"colors": [
+"#f1e6b2"
+],
+"kind": "single",
+"de_source": "übersetzt"
+},
+{
+"bambu_no": "56500",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-G00",
+"name_en": "Dark Green",
+"name_de": "Dunkelgrün",
+"colors": [
+"#617354"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56501",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-G01",
+"name_en": "Grass Green",
+"name_de": "Grasgrün",
+"colors": [
+"#7ccc6c"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56300",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-A00",
+"name_en": "Mandarin Orange",
+"name_de": "Mandarine-Orange",
+"colors": [
+"#ffa06a"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56700",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-P00",
+"name_en": "Purple",
+"name_de": "Lila",
+"colors": [
+"#ad96dc"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56701",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-P01",
+"name_en": "Pink",
+"name_de": "Pink",
+"colors": [
+"#fabbcb"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56200",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-R00",
+"name_en": "Red",
+"name_de": "Rot",
+"colors": [
+"#e4002b"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "56600",
+"material_id": "GFU06",
+"line": "TPU 75A (2.85mm)",
+"variant_id": "U06-B00",
+"name_en": "Cyan",
+"name_de": "Cyan",
+"colors": [
+"#00a3e1"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "18600",
+"material_id": "GFA20",
+"line": "PLA Palette",
+"variant_id": "A20-B00",
+"name_en": "Cyan",
+"name_de": "Cyan",
+"colors": [
+"#0090da"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "18200",
+"material_id": "GFA20",
+"line": "PLA Palette",
+"variant_id": "A20-R00",
+"name_en": "Magenta",
+"name_de": "Magenta",
+"colors": [
+"#E24585"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "18400",
+"material_id": "GFA20",
+"line": "PLA Palette",
+"variant_id": "A20-Y00",
+"name_en": "Yellow",
+"name_de": "Gelb",
+"colors": [
+"#fce300"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "18100",
+"material_id": "GFA20",
+"line": "PLA Palette",
+"variant_id": "A20-W00",
+"name_en": "White",
+"name_de": "Weiß",
+"colors": [
+"#ffffff"
+],
+"kind": "single",
+"de_source": "bambu-andere-linie"
+},
+{
+"bambu_no": "18101",
+"material_id": "GFA20",
+"line": "PLA Palette",
+"variant_id": "A20-K00",
+"name_en": "Key",
+"name_de": "Key",
+"colors": [
+"#000000"
+],
+"kind": "single",
+"de_source": "übersetzt"
+}
+]
+}

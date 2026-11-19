@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions / Fragen
+    url: https://github.com/pixxelhoff/pixxelspool/discussions
+    about: Ask questions and share setups in Discussions. / Fragen stellen und Setups zeigen in den Discussions.
+  - name: Report a security issue / Sicherheitslücke melden
+    url: https://github.com/pixxelhoff/pixxelspool/security/advisories/new
+    about: Please report security issues privately. / Sicherheitslücken bitte vertraulich melden.
+  - name: Support PixxelSpool / PixxelSpool unterstützen
+    url: https://ko-fi.com/pixxelhoff
+    about: Help with a donation on Ko-fi. / Mit einer Spende auf Ko-fi helfen.

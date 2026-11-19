@@ -1,0 +1,22 @@
+# Python packages of PixxelSpool, pinned to exact, tested versions (updated by Dependabot security updates).
+# The web server and the packages behind it
+fastapi==0.162.5
+starlette==1.7.0
+uvicorn==0.54.0
+h11==0.16.0
+# Printer (MQTT), camera, QR codes, network backup, encryption, serial NFC readers
+paho-mqtt==2.2.0
+av==17.1.0
+segno==1.6.6
+pysmb==1.2.15
+cryptography==50.0.2
+pyserial==3.5
+# Passkeys (WebAuthn sign-in) and the packages behind it
+webauthn==3.0.1
+cbor2==6.2.1
+pyOpenSSL==26.4.0
+pyasn1==0.6.5
+pyasn1-modules==0.4.2
+# NFC readers: on the Raspberry Pi pyscard comes from the system (apt package python3-pyscard, see install.sh)
+pyscard==2.3.2; sys_platform != "linux"
+pyscard>=2.0; sys_platform == "linux"

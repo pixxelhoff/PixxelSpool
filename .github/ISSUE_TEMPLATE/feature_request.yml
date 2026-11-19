@@ -1,0 +1,27 @@
+name: Suggest an idea / Wunsch oder Idee
+description: A new feature or an improvement. / Eine neue Funktion oder Verbesserung.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for your idea! Please write in English or German.
+
+        Danke für deine Idee! Du kannst auf Englisch oder Deutsch schreiben.
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea / Deine Idee
+      description: What should PixxelSpool do? / Was soll PixxelSpool können?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help? / Wobei würde es helfen?
+      description: Describe the situation in which you miss it. / Beschreib die Situation, in der es dir fehlt.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else / Sonstiges
+      description: Sketches, screenshots, examples. / Skizzen, Bilder, Beispiele.

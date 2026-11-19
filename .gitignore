@@ -1,0 +1,36 @@
+# Your own data: database, settings, Home Assistant token, backups – never in the repository
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+homeassistant.json
+settings.json
+
+# Python / System
+.venv/
+.venv.old/
+__pycache__/
+*.pyc
+.DS_Store
+
+# local archives
+archiv/
+archiv-mac/
+versionen/
+
+# installer and updates
+install.log
+.update/
+
+# Windows build output
+build/
+dist/
+windows/Output/
+windows/*.ico
+macos/Output/
+macos/*.icns
+
+# local test environment (tools/dev/mock.sh)
+.devenv/
+.devdata/

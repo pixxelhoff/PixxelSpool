@@ -1,0 +1,75 @@
+name: Report a bug / Fehler melden
+description: Something does not work as it should. / Etwas funktioniert nicht wie erwartet.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please write in English or German.
+
+        **Privacy:** Do not include tokens, passwords, access codes, serial numbers or IP addresses, neither in the
+        text nor in screenshots or logs. Cover them before uploading. Security issues please do not report here,
+        see [SECURITY.md](https://github.com/pixxelhoff/pixxelspool/blob/main/SECURITY.md).
+
+        ---
+
+        Danke, dass du einen Fehler meldest! Du kannst auf Englisch oder Deutsch schreiben.
+
+        **Datenschutz:** Bitte keine Tokens, Passwörter, Zugangscodes, Seriennummern oder IP-Adressen angeben, weder
+        im Text noch in Bildern oder Logs. Schwärze sie vor dem Hochladen. Sicherheitslücken bitte nicht hier melden,
+        siehe [SECURITY.md](https://github.com/pixxelhoff/pixxelspool/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in Options › About. / Steht unter Optionen › Über.
+      placeholder: 1.0.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform / Plattform
+      options:
+        - Raspberry Pi
+        - Windows app / Windows-App
+        - Mac app / Mac-App
+        - Other / Andere
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Browser, device, printer / Browser, Gerät, Drucker
+      description: Optional, if it matters. / Optional, falls wichtig.
+      placeholder: Safari on iPhone, Bambu Lab H2C
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / Was ist passiert?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Schritte zum Nachstellen
+      placeholder: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect? / Was hast du erwartet?
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Bilder
+      description: Drag images here. Cover private data first. / Bilder hierher ziehen. Private Daten vorher schwärzen.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy / Datenschutz
+      options:
+        - label: My report contains no tokens, passwords, access codes or IP addresses. / Meine Meldung enthält keine Tokens, Passwörter, Zugangscodes oder IP-Adressen.
+          required: true

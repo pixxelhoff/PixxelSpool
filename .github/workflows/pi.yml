@@ -1,0 +1,39 @@
+# Package for the Raspberry Pi (the built-in updater) for every version tag (v*): the source archive of the tag
+# plus its SHA-256 checksum, put into the GitHub release of the tag. The updater installs only an archive whose
+# checksum matches. No build artifact is kept (the files only go into the release).
+name: Raspberry Pi package
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to package again (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Source archive and checksum
+        run: |
+          ver=$(tr -d '[:space:]' < VERSION)
+          tag="${{ inputs.tag || github.ref_name }}"
+          [ "v$ver" = "$tag" ] || { echo "VERSION ($ver) does not match the tag ($tag)"; exit 1; }
+          mkdir -p out
+          git archive --format=tar.gz --prefix="pixxelspool-$ver/" -o "out/pixxelspool-$ver.tar.gz" HEAD
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          echo "VERSION=$ver" >> "$GITHUB_ENV"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/ci/release.sh "$TAG" "$VERSION" out/*
