@@ -19,8 +19,11 @@
 <link rel="stylesheet" href="/static/style.css?v=VERSION">
 </head>
 <body class="booting">
-<div id="boot" aria-hidden="true"><div class="bk bkhead"></div><div class="bkmain"><div class="bkside"><div class="bk"></div><div class="bk tall"></div></div>
-  <div class="bkgrid"><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i></div></div></div>
+<div id="boot" aria-hidden="true"><div class="bootbox">
+  <svg class="bootspool" viewBox="-60 -60 120 120"><circle class="flange" r="56"/><g class="wound"><circle class="ring" r="18.0" style="--c:#F47A2A;--d:0.00s"/><circle class="ring" r="22.4" style="--c:#F4C430;--d:0.18s"/><circle class="ring" r="26.8" style="--c:#3FAE5A;--d:0.36s"/><circle class="ring" r="31.2" style="--c:#2F80ED;--d:0.54s"/><circle class="ring" r="35.6" style="--c:#8E5BD6;--d:0.72s"/><circle class="ring" r="40.0" style="--c:#E84393;--d:0.90s"/><circle class="ring" r="44.4" style="--c:#E5484D;--d:1.08s"/><circle class="ring" r="48.8" style="--c:#14B8A6;--d:1.26s"/></g>
+    <g class="hub"><circle r="14"/><circle class="hole" cx="0" cy="-8" r="3"/><circle class="hole" cx="6.9" cy="4" r="3"/><circle class="hole" cx="-6.9" cy="4" r="3"/></g>
+    <path class="thread" d="M60 -60 C 40 -58, 20 -54, 0 -52"/></svg>
+  <div class="bootname" translate="no">Pi<span class="xx">xx</span>elSpool</div></div></div>
 <header>
   <img class="logo" src="/static/logo.svg?v=5" alt=""><h1><span class="wordmark" translate="no">Pi<span class="xx"><span>x</span><span>x</span></span>elSpool</span></h1>
   <span id="reader" class="pill">…</span>
@@ -49,12 +52,13 @@
   <section id="storage">
     <div id="pickhint" class="pickhint" hidden></div>
     <div id="selbar" class="selbar" hidden></div>
+    <div id="sortbar" class="sortbar" hidden></div>
     <div id="today" class="today" hidden></div>
     <div id="returns" class="returns" hidden></div>
     <div id="jobnote" class="returns jobnote" hidden></div>
     <div id="drynote" class="returns drynote" hidden></div>
     <div id="climwarn" class="returns" hidden></div>
-    <div class="cabhead"><h2 id="cabtitle0"></h2><span class="cabtools"><button id="selmode" class="small selbtn">Select</button><div id="cabmode" class="seg cabmode"><button data-mode="compact" data-t="viewCompact"></button><button data-mode="detail" data-t="viewDetail"></button><button data-mode="list" data-t="viewList"></button></div></span></div>
+    <div class="cabhead"><h2 id="cabtitle0"></h2><span class="cabtools"><button id="sortmode" class="small sortbtn" title="Sort spools by dragging them (with a mouse)">Sort</button><button id="selmode" class="small selbtn">Select</button><div id="cabmode" class="seg cabmode"><button data-mode="compact" data-t="viewCompact"></button><button data-mode="detail" data-t="viewDetail"></button><button data-mode="list" data-t="viewList"></button></div></span></div>
     <div id="cabs"></div>
     <div id="spoollist" class="spoollist" hidden></div>
     <div class="cabhead" id="ovhead"><h2 class="cabfold" data-fold="overflow"><span data-t="overflowTitle"></span><span class="foldn" id="overflown"></span><span class="chev">›</span></h2><span class="cabtools"><button class="small selbtn">Select</button></span></div><div id="overflow" class="shelves"></div>
@@ -253,7 +257,6 @@
       <div class="optrow"><span title="Automatic: on phones, iPhone Duo and tablets in landscape; on a PC the bar at the top"><span class="beta" title="Experimental">β</span>Side menu <span class="sub">Experimental</span></span><div class="seg on-always" id="railseg"><button data-rail-opt="auto">Automatic</button><button data-rail-opt="on">On</button><button data-rail-opt="off">Off</button></div></div>
       <div class="optrow"><span>Sound when scanning</span><span class="inline"><button class="small" id="soundtest">Run test</button><span class="seg on-always"><button data-sound="on">On</button><button data-sound="off">Off</button></span></span></div>
       <p class="sub" id="soundinfo"></p>
-      <div class="optrow"><span title="Colors Bambu Lab no longer sells. They are marked in the catalog, do not count as missing and get no shop link.">Discontinued colors in the catalog</span><div class="seg on-always" id="discseg"><button data-disc="1">Show</button><button data-disc="0">Hide</button></div></div>
       <div class="optrow"><span>Entries in history</span><span><input id="setLogRows" type="number" min="1" max="50" inputmode="numeric"></span></div>
       <div class="optrow"><span>Storage view on iPhone</span><div class="seg on-always"><button data-mode="compact">Compact</button><button data-mode="detail">Detail</button></div></div>
       <p class="sub">Color scheme, sound and storage view apply to this device only, everything else to all devices.</p>
@@ -408,6 +411,7 @@
       <div class="catfilters">
         <label class="check toggle"><input type="checkbox" id="onlymissing"> <span data-t="onlyMissing"></span></label>
         <label class="check toggle"><input type="checkbox" id="onlyowned" checked> <span data-t="onlyOwnedLines"></span></label>
+        <label class="check toggle" title="Colors Bambu Lab no longer sells. They do not count as missing and get no shop link."><input type="checkbox" id="showdisc"> <span>Show colors no longer available</span></label>
       </div>
     </div>
     <div id="catlines"></div>

@@ -24,6 +24,7 @@ LOCALES = ROOT / "locales"
 
 # Texts that are not literals in the code (values from the database or the printer)
 EXTRA = [
+    "Print file of {0} could not be read: amounts unknown. Add them in Statistics › Recent prints.",
     "{0} {1} · slot {2}", "Level", "Rod", "No reader found",
     "(switch set to HSU/UART?)", "Error {0}", "Labels", "Network backup:", "No response from the printer", "PN532 not responding ({0})", "Reserve", "Tag not readable (not a Bambu tag, or slipped)", "The place has been taken in the meantime", "all", "{0} g · {1} g left", "{0} labels · QR opens {1}", "{0} products from {1}",
     "stored", "deleted", "taken out", "put back", "empty", "moved", "swapped", "to reserve", "to live stock", "into AMS", "out of AMS",

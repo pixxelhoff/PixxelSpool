@@ -115,21 +115,6 @@ label.check { display: flex; gap: 8px; align-items: center; margin-top: 10px; fo
          padding: 10px 18px; border-radius: 99px; font-size: 14px; z-index: 70; }   /* above the wizard and the camera zoom */
 [hidden] { display: none !important; }
 body.booting > :not(#toast):not(#boot) { visibility: hidden; }   /* until the first data arrived (see refresh) */
-/* beta.2: grey placeholder tiles while PixxelSpool starts or loads, instead of an empty page */
-#boot { display: none; }
-body.booting > #boot { display: block; position: fixed; inset: 0; z-index: 50; padding: 12px 20px; background: var(--bg, transparent); }
-#boot .bk { display: block; border-radius: 14px; background: color-mix(in srgb, var(--quiet) 14%, transparent);
-  background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--card) 60%, transparent), transparent);
-  background-size: 200% 100%; animation: bkshine 1.4s ease-in-out infinite; }
-#boot .bkhead { height: 44px; border-radius: 99px; margin-bottom: 20px; }
-#boot .bkmain { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
-#boot .bkside { display: flex; flex-direction: column; gap: 14px; }
-#boot .bkside .bk { height: 56px; } #boot .bkside .bk.tall { height: 220px; }
-#boot .bkgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; align-content: start; }
-#boot .bkgrid .bk { height: 70px; border-radius: 10px; }
-@media (max-width: 700px) { #boot .bkmain { grid-template-columns: 1fr; } #boot .bkside .bk.tall { display: none; } }
-@media (prefers-reduced-motion: reduce) { #boot .bk { animation: none; } }
-@keyframes bkshine { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 .grid { max-width: calc(28px + var(--cols) * 104px); }
 .tabs, .lang { display: flex; gap: 0; }
 .tabs button, .lang button { padding: 6px 12px; font-size: 14px; border-radius: 0; }
@@ -2015,3 +2000,58 @@ ul.prints li.pdet .pproj input { flex: 0 1 240px; font: inherit; font-size: 14px
 .slot[draggable="true"] { cursor: grab; }
 .slot.dragging { opacity: .45; }
 body.dnd .slot.dropok { outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+/* beta.2: no visible scrollbars anywhere (scrolling with wheel, trackpad and touch still works) */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.color .cname .discmark { display: inline; padding: 0; background: none; border-radius: 0; font-size: 12px; font-style: italic; white-space: normal; }
+/* #23 sort mode: dragging only after "Sort", changes are planned until "Apply" */
+.sortbar { position: sticky; top: calc(var(--headh, 64px) + 8px); z-index: 4; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center;
+  background: var(--card); border: 1px solid var(--accent); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+.sortbar .grow { flex: 1 1 220px; }
+.sortbtn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+body.sorting .slot[draggable] { cursor: grab; }
+body.sorting .slot.sorted { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* F12: amounts of a print entered by hand */
+.ueditor { margin: 8px 0 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 8px; }
+.ueditor .urows { display: grid; gap: 6px; }
+.ueditor .urow { display: flex; gap: 6px; align-items: center; }
+.ueditor .urow select { flex: 1 1 auto; min-width: 0; }
+.ueditor .urow input { width: 90px; flex: none; }
+.ueditor .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ueditor .row .grow { flex: 1; }
+
+/* #24 loading screen: a spool winding up in Bambu colours, fades into the app once the first data arrived */
+#boot { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--bg, #fff);
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .35s ease, visibility 0s linear .35s; }
+body.booting > #boot { opacity: 1; visibility: visible; transition: none; }
+#boot .bootbox { display: grid; justify-items: center; gap: 18px; }
+#boot .bootspool { width: 132px; height: 132px; overflow: visible; }
+#boot .flange { fill: none; stroke: color-mix(in srgb, var(--quiet) 35%, transparent); stroke-width: 3; }
+#boot .ring { fill: none; stroke: var(--c); stroke-width: 4.6; opacity: 0; animation: bootwind 2.6s ease-out infinite; animation-delay: var(--d); }
+#boot .hub { animation: bootspin 1.6s linear infinite; }
+#boot .hub circle { fill: color-mix(in srgb, var(--quiet) 25%, var(--card, #fff)); }
+#boot .hub .hole { fill: var(--bg, #fff); }
+#boot .thread { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 6 5; animation: bootthread .6s linear infinite; }
+#boot .bootname { font-weight: 700; font-size: 22px; letter-spacing: .2px; color: var(--ink); }
+#boot .bootname .xx { color: var(--accent); }
+@keyframes bootwind { 0% { opacity: 0; } 10% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes bootspin { to { transform: rotate(360deg); } }
+@keyframes bootthread { to { stroke-dashoffset: -11; } }
+@media (prefers-reduced-motion: reduce) { #boot .ring { animation: none; opacity: 1; } #boot .hub, #boot .thread { animation: none; } }
+/* F11: number of spools per item on the shopping list */
+ul.shop .qty { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+ul.shop .qty b { min-width: 1.6em; text-align: center; font-variant-numeric: tabular-nums; }
+ul.shop .qty button { min-width: 30px; padding-left: 0; padding-right: 0; }
+/* F13: refills as a second, dashed line in the price history */
+:root { --phrefill: #d9730d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --phrefill: #de8420; } }
+:root[data-theme="dark"] { --phrefill: #de8420; }
+.phsvg .ph-refill .phline { stroke: var(--phrefill); stroke-dasharray: 6 4; }
+.phsvg .ph-refill .phdot { fill: var(--phrefill); }
+.phlegend { display: flex; gap: 14px; font-size: 13px; color: var(--quiet); margin: 4px 0 2px; }
+.phlegend span { display: inline-flex; align-items: center; gap: 6px; }
+.phlegend i { display: inline-block; width: 18px; border-top: 2px solid var(--accent); }
+.phlegend .ph-refill i { border-top: 2px dashed var(--phrefill); }
+.rfbtn { padding: 1px 8px; font-size: 12px; margin-left: 4px; color: var(--quiet); }
+.rfbtn.on { background: var(--phrefill); border-color: var(--phrefill); color: #fff; }

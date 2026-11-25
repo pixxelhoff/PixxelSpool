@@ -8,6 +8,27 @@ get the current version plus `-patch.N` (e.g. 1.0.0-patch.1); the Pi does not of
 
 The German changelog is [CHANGELOG.de.md](CHANGELOG.de.md).
 
+## [1.0.0-beta.3] – 2026-11-25
+
+Second bundled release: everything reported on beta.2.
+
+### Fixed
+- A restart (e.g. after an update) no longer books the printer's last finished print a second time.
+- If the print file can't be read from the printer, a notice says so and the print is marked, also after a restart.
+- A spool on the external holder shows "External spool" (translated) instead of "in AMS: External spool".
+- Catalog: the note on colours Bambu Lab no longer sells now reads "no longer available" and no longer runs into the next tile. The switch to show them moved from Options › Appearance into the catalog filters ("Show colors no longer available").
+- No visible scrollbars; scrolling works as before.
+- Check 3MF: the note now says to export the sliced plate (.gcode.3mf) from Bambu Studio for exact values.
+
+### Changed
+- Sorting storage by dragging was too easy to trigger by accident: it now only works after "Sort", and changes are only planned until "Apply".
+- New loading screen: a spool winding up in Bambu colours instead of grey placeholder tiles.
+
+### Added
+- Recent prints: amounts of a print whose file couldn't be read can be added by hand or taken from the exported .gcode.3mf.
+- Shopping list: choose how many spools of a color you want (− / +). The entry stays until that many new spools were added.
+- Prices per delivery: mark a delivery as refills. The price history shows spools and refills as two lines; free spools (0) are left out.
+
 ## [1.0.0-beta.2] – 2026-11-25
 
 First bundled release of the beta: all fixes reported since beta.1, plus a few small additions that make reporting

@@ -294,8 +294,8 @@ def store_new(conn: sqlite3.Connection, tag: dict, product_id: int, slot_id: str
         raise InventoryError("This spool is already registered")
     in_cab = _check_target(conn, product_id, slot_id, None)
     cur = conn.execute(
-        "INSERT INTO spools (product_id, is_refill, slot_id, in_cabinet, price, manual_place) VALUES (?, ?, ?, ?, ?, ?)",
-        (product_id, 1 if is_refill else 0, slot_id, in_cab, price, 1 if manual else 0))
+        "INSERT INTO spools (product_id, is_refill, bought_refill, slot_id, in_cabinet, price, manual_place) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (product_id, 1 if is_refill else 0, 1 if is_refill else 0, slot_id, in_cab, price, 1 if manual else 0))
     _apply_tag(conn, cur.lastrowid, tag)
     log(conn, cur.lastrowid, "stored", slot_id)
     return get_spool(conn, cur.lastrowid)

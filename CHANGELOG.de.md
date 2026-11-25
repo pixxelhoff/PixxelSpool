@@ -8,6 +8,27 @@ nur für die Apps bekommen die Nummer der aktuellen Version mit dem Zusatz `-pat
 
 Der englische Changelog ist [CHANGELOG.md](CHANGELOG.md).
 
+## [1.0.0-beta.3] – 2026-11-25
+
+Zweite Sammelversion: alles, was zu beta.2 gemeldet wurde.
+
+### Behoben
+- Ein Neustart (z. B. nach einem Update) bucht den letzten fertigen Druck des Druckers nicht mehr ein zweites Mal.
+- Kann die Druckdatei nicht vom Drucker gelesen werden, erscheint ein Hinweis und der Druck wird markiert, auch nach einem Neustart.
+- Eine Rolle am externen Halter zeigt "Externe Spule" statt "im AMS: External spool".
+- Katalog: Der Hinweis bei Farben, die Bambu Lab nicht mehr verkauft, heißt jetzt "nicht mehr erhältlich" und ragt nicht mehr in die Nachbarkachel. Der Schalter zum Einblenden ist von Optionen › Darstellung in die Katalog-Filter gewandert ("Nicht mehr erhältliche zeigen").
+- Keine sichtbaren Scrollbalken mehr; Scrollen geht wie bisher.
+- 3MF prüfen: Der Hinweis sagt jetzt, dass man für exakte Werte die geslicte Druckplatte (.gcode.3mf) aus Bambu Studio exportiert.
+
+### Geändert
+- Sortieren durch Ziehen ging zu leicht aus Versehen: Es geht jetzt nur nach "Sortieren", und die Änderungen sind nur vorgemerkt, bis du "übernehmen" klickst.
+- Neuer Ladebildschirm: eine Spule, die sich in Bambu-Farben aufwickelt, statt grauer Platzhalter.
+
+### Neu
+- Letzte Drucke: Bei einem Druck, dessen Datei nicht gelesen werden konnte, lassen sich die Mengen von Hand nachtragen oder aus der exportierten .gcode.3mf übernehmen.
+- Einkaufsliste: Anzahl je Farbe wählbar (− / +). Der Eintrag bleibt, bis so viele neue Rollen eingelagert sind.
+- Preise je Lieferung: Lieferung als Refills markieren. Der Preisverlauf zeigt Spulen und Refills als zwei Linien; Gratis-Rollen (0 €) zählen nicht mit.
+
 ## [1.0.0-beta.2] – 2026-11-25
 
 Erste Sammelversion der Beta: alle seit beta.1 gemeldeten Fehler, dazu einige kleine Ergänzungen, die das Melden von

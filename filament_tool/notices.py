@@ -131,7 +131,9 @@ class Watcher(threading.Thread):
         new = False
         prev, self._job_state[pid] = self._job_state.get(pid), st
         if prev is not None and prev != st:
-            if st in ("finish", "failed"):
+            # only a print PixxelSpool saw running is booked: after a restart (e.g. an update) the printer still
+            # reports the last finished job, which must not be booked a second time
+            if st in ("finish", "failed") and prev in ("prepare", "slicing", "running", "pause"):
                 self._record(pid, task, name, st, j.get("progress") or 0)
             if st == "finish":
                 new |= add("print", f"finish:{task}", on("Print finished: {0}"), args, "ok")
@@ -159,8 +161,11 @@ class Watcher(threading.Thread):
             rows = [{"slot": r.get("slot"), "spool_id": (r.get("spool") or {}).get("id"), "grams": r.get("need_g")}
                     for r in jv.get("rows") or []]
             with db.session() as conn:
-                stats.record_print(conn, f"{task}|{date.today().isoformat()}", name, state, rows, progress,
-                                   bambu.name_of(pid))
+                new = stats.record_print(conn, f"{task}|{date.today().isoformat()}", name, state, rows, progress,
+                                         bambu.name_of(pid), "" if rows else "file")
+            if new and not rows:
+                add("print", f"nofile:{task}", "Print file of {0} could not be read: amounts unknown. "
+                    "Add them in Statistics › Recent prints.", [name], "warn", "view:statsview")
         except Exception as e:
             log.warning("Print not recorded for statistics: %s", e)
 

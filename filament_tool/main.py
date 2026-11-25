@@ -690,7 +690,13 @@ def deliveries_get():
 @app.put("/api/deliveries")
 def deliveries_put(payload: dict = Body(...)):
     with db.session() as conn:
-        n = brands.set_delivery_price(conn, payload.get("day"), payload.get("line_id"), payload.get("price"))
+        if "set_refill" in payload:
+            n = brands.set_delivery_refill(conn, payload.get("day"), payload.get("line_id"), bool(payload.get("refill")),
+                                           bool(payload.get("set_refill")))
+        else:
+            rf = payload.get("refill")
+            n = brands.set_delivery_price(conn, payload.get("day"), payload.get("line_id"), payload.get("price"),
+                                          None if rf is None else bool(rf))
         out = brands.deliveries(conn)
     broadcast({"type": "changed"})
     return {"updated": n, "items": out}
@@ -730,6 +736,19 @@ def print_rename(print_id: int, payload: dict = Body(...)):
         if "name" in payload and not stats.rename_print(conn, print_id, payload.get("name")):
             raise logic.InventoryError("Print not found")
         if "project" in payload and not stats.set_project(conn, print_id, payload.get("project")):
+            raise logic.InventoryError("Print not found")
+    return {"ok": True}
+
+
+@app.put("/api/prints/{print_id}/usage")
+def print_usage(print_id: int, payload: dict = Body(...)):
+    """Amounts per spool for a print whose print file could not be read: entered by hand or taken from a .gcode.3mf."""
+    with db.session() as conn:
+        try:
+            ok = stats.set_usage(conn, print_id, payload.get("rows") or [])
+        except (ValueError, KeyError, TypeError):
+            raise logic.InventoryError("Invalid amounts")
+        if not ok:
             raise logic.InventoryError("Print not found")
     return {"ok": True}
 
@@ -1840,7 +1859,8 @@ def shoplist_toggle(payload: dict = Body(...)):
         raise logic.InventoryError("Color not found")
     with db.session() as conn:
         try:
-            insights.toggle_noted(conn, pid, bool(payload.get("on", True)))
+            q = payload.get("qty")
+            insights.toggle_noted(conn, pid, bool(payload.get("on", True)), int(q) if q is not None else None)
         except ValueError as e:
             raise logic.InventoryError(str(e))
         res = insights.all_insights(conn)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from typing import Optional
 from datetime import date, datetime, timedelta
 
 from . import db, settings
@@ -89,21 +90,36 @@ def noted(conn: sqlite3.Connection, st: dict) -> list:
     for e in st.get("shop_list") or []:
         p = conn.execute("SELECT p.*, l.name AS line, l.brand, l.shop_url FROM products p JOIN lines l ON l.id = p.line_id "
                          "WHERE p.id = ?", (e["id"],)).fetchone()
-        if not p or conn.execute("SELECT 1 FROM spools WHERE product_id = ? AND created_at > ?", (e["id"], e["since"])).fetchone():
+        if not p:
+            continue
+        # an entry is done once as many new spools of that color were added as were wanted (F11: count per item)
+        got = conn.execute("SELECT COUNT(*) FROM spools WHERE product_id = ? AND created_at > ?", (e["id"], e["since"])).fetchone()[0]
+        want = int(e.get("qty") or 1)
+        if got >= want:
             continue
         keep.append(e)
-        out.append(dict(p))
+        out.append({**dict(p), "qty": want - got, "qty_total": want})
     if len(keep) != len(st.get("shop_list") or []):
         settings.save({"shop_list": keep})
     return out
 
 
-def toggle_noted(conn: sqlite3.Connection, product_id: int, on: bool) -> None:
+def toggle_noted(conn: sqlite3.Connection, product_id: int, on: bool, qty: Optional[int] = None) -> None:
+    """Put a color on the shopping list (qty spools, default 1) or take it off. With qty on a listed color only the
+    number changes; spools added since it was listed still count."""
     if not conn.execute("SELECT 1 FROM products WHERE id = ?", (product_id,)).fetchone():
         raise ValueError("Color not found")
-    lst = [e for e in settings.load().get("shop_list") or [] if e["id"] != product_id]
-    if on:
-        lst.append({"id": product_id, "since": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+    cur = settings.load().get("shop_list") or []
+    old = next((e for e in cur if e["id"] == product_id), None)
+    lst = [e for e in cur if e["id"] != product_id]
+    if on and (qty is None or qty > 0):
+        e = dict(old) if old and qty is not None else {"id": product_id, "since": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        if qty is not None and old:
+            got = conn.execute("SELECT COUNT(*) FROM spools WHERE product_id = ? AND created_at > ?", (product_id, old["since"])).fetchone()[0]
+            e["qty"] = min(99, qty + got)       # qty is what is still to buy
+        else:
+            e["qty"] = min(99, qty or 1)
+        lst.append(e)
     settings.save({"shop_list": lst})
 
 

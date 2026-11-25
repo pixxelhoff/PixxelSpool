@@ -209,29 +209,43 @@ def last_price(conn: sqlite3.Connection, product_id: int) -> Optional[float]:
 
 
 def deliveries(conn: sqlite3.Connection, limit: int = 40) -> list:
-    """Spools grouped by day received and line, so the price of a delivery can be entered once."""
+    """Spools grouped by day received, line and spool/refill, so the price of a delivery can be entered once."""
     out = []
     for r in conn.execute(
-            "SELECT s.received_at AS day, l.id AS line_id, l.name AS line, COUNT(*) AS spools, COUNT(s.price) AS priced, "
-            "  MIN(s.price) AS pmin, MAX(s.price) AS pmax, l.price AS line_price "
+            "SELECT s.received_at AS day, l.id AS line_id, l.name AS line, s.bought_refill AS refill, COUNT(*) AS spools, "
+            "  COUNT(s.price) AS priced, MIN(s.price) AS pmin, MAX(s.price) AS pmax, l.price AS line_price "
             "FROM spools s JOIN products p ON p.id = s.product_id JOIN lines l ON l.id = p.line_id "
-            "WHERE s.received_at IS NOT NULL GROUP BY s.received_at, l.id "
-            "ORDER BY s.received_at DESC, l.name LIMIT ?", (limit,)):
+            "WHERE s.received_at IS NOT NULL GROUP BY s.received_at, l.id, s.bought_refill "
+            "ORDER BY s.received_at DESC, l.name, s.bought_refill LIMIT ?", (limit,)):
         d = dict(r)
+        d["refill"] = bool(d["refill"])
         d["price"] = d["pmin"] if d["priced"] == d["spools"] and d["pmin"] == d["pmax"] else None
         d["mixed"] = d["priced"] > 0 and d["price"] is None
         out.append(d)
     return out
 
 
-def set_delivery_price(conn: sqlite3.Connection, day: str, line_id: int, price) -> int:
-    """Set the price of all spools of a line received on that day (empty = remove the price)."""
+def _delivery(day: str, line_id) -> tuple:
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", str(day or "")):
         raise InventoryError("Invalid date")
-    cur = conn.execute(
-        "UPDATE spools SET price = ? WHERE received_at = ? AND product_id IN (SELECT id FROM products WHERE line_id = ?)",
-        (_price(price), day, int(line_id)))
-    return cur.rowcount
+    return "received_at = ? AND product_id IN (SELECT id FROM products WHERE line_id = ?)", [day, int(line_id)]
+
+
+def set_delivery_price(conn: sqlite3.Connection, day: str, line_id: int, price, refill=None) -> int:
+    """Set the price of all spools of a line received on that day (empty = remove the price).
+    refill True/False: only the refills / only the spools of that delivery."""
+    where, args = _delivery(day, line_id)
+    if refill is not None:
+        where += " AND bought_refill = ?"
+        args.append(1 if refill else 0)
+    return conn.execute(f"UPDATE spools SET price = ? WHERE {where}", [_price(price)] + args).rowcount
+
+
+def set_delivery_refill(conn: sqlite3.Connection, day: str, line_id: int, was: bool, now: bool) -> int:
+    """F13: mark the spools of a delivery as bought as refills (or as spools), so price comparisons don't mix them."""
+    where, args = _delivery(day, line_id)
+    return conn.execute(f"UPDATE spools SET bought_refill = ? WHERE {where} AND bought_refill = ?",
+                        [1 if now else 0] + args + [1 if was else 0]).rowcount
 
 
 def set_spool_price(conn: sqlite3.Connection, spool_id: int, price) -> dict:

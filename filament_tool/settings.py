@@ -45,7 +45,7 @@ DEFAULTS = {
     "date_fmt": "auto",       # auto (by language) | dmy. | dmy/ | mdy/ | ymd-
     "time_fmt": "auto",       # auto (by language) | 24 | 12
     "collect_lines": [],      # lines to collect completely: their missing colors go on the shopping list
-    "shop_list": [],          # colors put on the shopping list by hand: [{"id": product id, "since": "YYYY-MM-DD HH:MM:SS"}]
+    "shop_list": [],          # colors put on the shopping list by hand: [{"id": product id, "since": "YYYY-MM-DD HH:MM:SS", "qty": n}]
     "min_stock": {},          # minimum number of spools per color: {"product id": n}; below it the color goes on the shopping list
     "shop_prices": "",        # date of the Bambu shop prices filled in as standard prices ("" = not yet)
     "use_minutes": 0,         # minutes the app was open and visible (counted until the donation note was shown)
@@ -227,9 +227,13 @@ def save(patch: dict) -> dict:
                     pid, since = int(e["id"]), str(e.get("since") or "")[:19]
                 except (TypeError, ValueError, KeyError):
                     continue
+                try:
+                    qty = max(1, min(99, int(e.get("qty") or 1)))
+                except (TypeError, ValueError):
+                    qty = 1
                 if pid not in seen and re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d", since):
                     seen.add(pid)
-                    clean.append({"id": pid, "since": since})
+                    clean.append({"id": pid, "since": since, "qty": qty})
             cur["shop_list"] = clean[:300]
         if isinstance(patch.get("min_stock"), dict):
             ms = {}

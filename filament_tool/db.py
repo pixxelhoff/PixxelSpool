@@ -464,11 +464,16 @@ def _migrate(conn: sqlite3.Connection) -> None:
                       ("ams_prev", "TEXT")]:                            # status before that assignment (for "undo")
         if name not in scols:
             conn.execute(f"ALTER TABLE spools ADD COLUMN {name} {typ}")
+    if "bought_refill" not in scols:     # beta.2: bought as a refill (stays when the refill later sits on a spool), for prices
+        conn.execute("ALTER TABLE spools ADD COLUMN bought_refill INTEGER NOT NULL DEFAULT 0")
+        conn.execute("UPDATE spools SET bought_refill = is_refill")
     pcols = {r["name"] for r in conn.execute("PRAGMA table_info(prints)")}
     if "printer" not in pcols:
         conn.execute("ALTER TABLE prints ADD COLUMN printer TEXT")
     if "project" not in pcols:          # beta.2: prints grouped into projects ("Evee for Alex") with total cost
         conn.execute("ALTER TABLE prints ADD COLUMN project TEXT")
+    if "note" not in pcols:             # beta.2: "file" = the print file could not be read (amounts can be added by hand)
+        conn.execute("ALTER TABLE prints ADD COLUMN note TEXT")
     # spools scanned before: received = day of the first scan
     conn.execute("UPDATE spools SET received_at = date(updated_at) "
                  "WHERE tray_uid IS NOT NULL AND received_at IS NULL")

@@ -34,15 +34,8 @@ def per_gram(conn: sqlite3.Connection, spool_id: int):
     return p / _net(sp) if p is not None else None
 
 
-def record_print(conn: sqlite3.Connection, task: str, name: str, state: str, rows: list, progress: float = 100,
-                 printer: str = "") -> bool:
-    """Record a finished or failed print once per task.
-
-    rows: [{spool_id, slot, grams}] with the full amount from the print file; a failed print is scaled by progress.
-    """
-    if not task or conn.execute("SELECT 1 FROM prints WHERE task = ?", (task,)).fetchone():
-        return False
-    share = 1.0 if state == "finish" else max(0.0, min(1.0, (progress or 0) / 100))
+def _book(conn: sqlite3.Connection, rows: list, share: float = 1.0) -> tuple:
+    """Detail rows, grams and cost (None while a spool has no price) for [{spool_id, slot, grams}]."""
     detail, grams, cost, known = [], 0.0, 0.0, True
     for r in rows:
         g = round(float(r.get("grams") or 0) * share, 1)
@@ -52,15 +45,68 @@ def record_print(conn: sqlite3.Connection, task: str, name: str, state: str, row
         grams += g
         cost += c or 0
         detail.append({"slot": r.get("slot"), "spool_id": r.get("spool_id"), "grams": g, "cost": c})
-    conn.execute("INSERT INTO prints (task, name, state, grams, cost, detail, printer) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                 (task, name, state, round(grams, 1), round(cost, 2) if known and rows else None, json.dumps(detail),
-                  printer or None))
-    # spools assigned by hand to the AMS (no Bambu tag): the AMS doesn't measure them, so the print uses them up here
+    return detail, round(grams, 1), (round(cost, 2) if known and rows else None)
+
+
+def _use_bound(conn: sqlite3.Connection, detail: list, sign: int = 1) -> None:
+    """Spools assigned by hand to the AMS (no Bambu tag): the AMS doesn't measure them, so the print uses them up here."""
     from .logic import use_grams
     for d in detail:
-        if d["spool_id"] and d["grams"] > 0 and conn.execute(
+        if d.get("spool_id") and (d.get("grams") or 0) > 0 and conn.execute(
                 "SELECT 1 FROM spools WHERE id = ? AND ams_bound = 1", (d["spool_id"],)).fetchone():
-            use_grams(conn, d["spool_id"], d["grams"])
+            if sign > 0:
+                use_grams(conn, d["spool_id"], d["grams"])
+            else:   # amounts changed by hand: give back what was booked before
+                s = conn.execute("SELECT remain_pct, weight_g, (SELECT net_g FROM products WHERE id = product_id) AS net_g "
+                                 "FROM spools WHERE id = ?", (d["spool_id"],)).fetchone()
+                if s and s["remain_pct"] is not None:
+                    net = float(s["weight_g"] or s["net_g"] or 1000)
+                    conn.execute("UPDATE spools SET remain_pct = ? WHERE id = ?",
+                                 (round(min(100.0, float(s["remain_pct"]) + d["grams"] * 100 / net), 1), d["spool_id"]))
+
+
+def record_print(conn: sqlite3.Connection, task: str, name: str, state: str, rows: list, progress: float = 100,
+                 printer: str = "", note: str = "") -> bool:
+    """Record a finished or failed print once per task.
+
+    rows: [{spool_id, slot, grams}] with the full amount from the print file; a failed print is scaled by progress.
+    note: "file" when the print file could not be read (no amounts).
+    """
+    if not task or conn.execute("SELECT 1 FROM prints WHERE task = ?", (task,)).fetchone():
+        return False
+    share = 1.0 if state == "finish" else max(0.0, min(1.0, (progress or 0) / 100))
+    detail, grams, cost = _book(conn, rows, share)
+    conn.execute("INSERT INTO prints (task, name, state, grams, cost, detail, printer, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                 (task, name, state, grams, cost, json.dumps(detail), printer or None, note or None))
+    _use_bound(conn, detail)
+    return True
+
+
+def set_usage(conn: sqlite3.Connection, print_id: int, rows: list) -> bool:
+    """Amounts entered by hand (or taken from a .gcode.3mf) for a print whose file could not be read.
+    rows: [{spool_id, grams}]. Hand-assigned AMS spools are used up by the difference to what was booked before."""
+    r = conn.execute("SELECT detail FROM prints WHERE id = ?", (print_id,)).fetchone()
+    if not r:
+        return False
+    try:
+        old = json.loads(r["detail"] or "[]")
+    except ValueError:
+        old = []
+    clean = []
+    for x in rows or []:
+        g = float(x.get("grams") or 0)
+        if g < 0 or g > 100000:
+            raise ValueError()
+        sid = int(x["spool_id"]) if x.get("spool_id") not in (None, "") else None
+        if sid is not None and not conn.execute("SELECT 1 FROM spools WHERE id = ?", (sid,)).fetchone():
+            raise ValueError()
+        if g > 0:
+            clean.append({"spool_id": sid, "grams": g, "slot": x.get("slot")})
+    _use_bound(conn, old, -1)
+    detail, grams, cost = _book(conn, clean)
+    conn.execute("UPDATE prints SET detail = ?, grams = ?, cost = ?, note = ? WHERE id = ?",
+                 (json.dumps(detail), grams, cost, "hand" if clean else None, print_id))
+    _use_bound(conn, detail)
     return True
 
 
@@ -108,7 +154,7 @@ def prints_of(conn: sqlite3.Connection, month: str) -> list:
         return []
     out = []
     for r in conn.execute("SELECT * FROM prints WHERE substr(ts, 1, 7) = ? ORDER BY ts DESC, id DESC", (month,)).fetchall():
-        p = {k: r[k] for k in ("id", "ts", "name", "state", "grams", "cost", "project")}
+        p = {k: r[k] for k in ("id", "ts", "name", "state", "grams", "cost", "project", "note")}
         try:
             p["detail"] = _named(conn, json.loads(r["detail"] or "[]"))
         except ValueError:
@@ -130,14 +176,17 @@ def set_project(conn: sqlite3.Connection, print_id: int, project: str) -> bool:
 
 
 def price_history(conn: sqlite3.Connection) -> list:
-    """Paid price per spool by delivery day, per line (only lines with at least two deliveries with a price)."""
+    """Paid price per spool by delivery day, per line, spools and refills apart (F13). Free spools (0) are left out.
+    Only lines with at least two deliveries with a price."""
     by: dict = {}
-    for r in conn.execute("SELECT l.id AS line_id, l.name AS line, l.price AS line_price, s.received_at AS day, AVG(s.price) AS price, "
-                          "COUNT(*) AS n FROM spools s JOIN products p ON p.id = s.product_id JOIN lines l ON l.id = p.line_id "
-                          "WHERE s.price IS NOT NULL AND s.received_at IS NOT NULL GROUP BY l.id, s.received_at ORDER BY s.received_at"):
-        b = by.setdefault(r["line_id"], {"line": r["line"], "line_price": r["line_price"], "points": []})
-        b["points"].append({"day": r["day"], "price": round(r["price"], 2), "spools": r["n"]})
-    return sorted((b for b in by.values() if len(b["points"]) >= 2), key=lambda b: -len(b["points"]))
+    for r in conn.execute("SELECT l.id AS line_id, l.name AS line, l.price AS line_price, s.received_at AS day, s.bought_refill AS rf, "
+                          "AVG(s.price) AS price, COUNT(*) AS n FROM spools s JOIN products p ON p.id = s.product_id "
+                          "JOIN lines l ON l.id = p.line_id WHERE s.price > 0 AND s.received_at IS NOT NULL "
+                          "GROUP BY l.id, s.received_at, s.bought_refill ORDER BY s.received_at"):
+        b = by.setdefault(r["line_id"], {"line": r["line"], "line_price": r["line_price"], "points": [], "refill_points": []})
+        b["refill_points" if r["rf"] else "points"].append({"day": r["day"], "price": round(r["price"], 2), "spools": r["n"]})
+    return sorted((b for b in by.values() if len(b["points"]) + len(b["refill_points"]) >= 2),
+                  key=lambda b: -(len(b["points"]) + len(b["refill_points"])))
 
 
 def projects(conn: sqlite3.Connection) -> list:
