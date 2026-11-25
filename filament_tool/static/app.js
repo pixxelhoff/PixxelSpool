@@ -1619,7 +1619,9 @@ function drawHost() {
   if (intro && h.kind !== "pi") delete intro.dataset.t;
   if (intro && h.kind !== "pi") intro.textContent = L("A restart helps when the reader or the printer stops responding.");
   const upd = $("#updintro");
-  if (upd && h.self_update === false) upd.textContent = L("New versions come straight from GitHub. PixxelSpool tells you about them and links to the download; install it over the old version. Your data stays unchanged.");
+  if (upd && h.self_update === false) upd.textContent = h.kind === "docker"
+    ? L("New versions come as a new Docker image. PixxelSpool tells you about them; your data in the volume stays unchanged.")
+    : L("New versions come straight from GitHub. PixxelSpool tells you about them and links to the download; install it over the old version. Your data stays unchanged.");
 }
 function tagDetails(t) {
   if (!t) return "";
@@ -2878,59 +2880,117 @@ function tmfPrice(f, m) {
   return null;
 }
 const gText = (g) => (g > 0 && g < 1 ? L("under 1 g") : `${Math.round(g)} g`);   // tiny parts (a logo inlay) must not read "0 g"
+// One line per filament, a summary on top. Hex codes and the estimate explanation stay out of sight (title / ⓘ),
+// only the single best replacement is shown, further ones fold out.
 function drawTmf() {
   const out = $("#tmfout");
   $("#tmfremove").hidden = !tmf;
   if (!tmf) { out.innerHTML = ""; return; }
   const used = tmf.filaments.filter((f) => f.used);
-  const src = L(tmf.sliced ? "from the sliced file (exact)" : "estimated before slicing");
-  let total = 0, totalG = 0, costKnown = true;
+  let total = 0, totalG = 0, costKnown = true, inStock = 0;
   const srcs = new Set();
   const rows = used.map((f) => {
     const need = f.exact_g ?? f.est_g, m = tmfMatch(f);
     const have = m.own.reduce((s, sp) => s + (gramsLeft(sp) ?? 0), 0), unknown = m.own.some((sp) => gramsLeft(sp) == null);
     const ri = refillInfo(m.own), ok = m.own.length && (have >= need * 1.1 || unknown) && !ri.blocked;
+    if (ok) inStock++;
     const status = !m.own.length ? `<span class="bad">${L("not in storage")}</span>` : ri.blocked ? `<span class="warnc">⚠︎ ${ri.text}</span>` : ok ? `<span class="okc">✓ ${L("in storage")}</span>` : `<span class="warnc">⚠︎ ${L("may not be enough")}</span>`;
-    const where = m.own.map((sp) => `<b>${esc(amsWhere(sp) || sp.slot_id || "–")}</b>${gramsLeft(sp) != null ? ` (~${gramsLeft(sp)} g)` : ""}`).join(", ");
-    const alt = !ok && m.alts.length ? `<div class="sub tmfalt">${L("Alternatives from storage:")} ${m.alts.map(({ p, d }) => { const sp = spoolsOf(p.id)[0];
-      return `<span class="altchip" data-spool="${sp.id}">${sw(p)} ${esc(p.line)} ${esc(cname(p))} · ${esc(amsWhere(sp) || sp.slot_id || "–")} · ${dEText(d)}</span>`; }).join(" ")}</div>` : "";
+    const sp0 = m.own.find((sp) => sp.ams_slot) || m.own[0];
+    const where = sp0 ? ` · <span class="tmfwhere" data-spool="${sp0.id}">${esc(amsWhere(sp0) || sp0.slot_id || "–")}${gramsLeft(sp0) != null ? ` (~${gramsLeft(sp0)} g)` : ""}</span>${m.own.length > 1 ? ` <span class="sub">+${m.own.length - 1}</span>` : ""}` : "";
+    const chip = ({ p, d }) => { const sp = spoolsOf(p.id)[0];
+      return `<span class="altchip" data-spool="${sp.id}" title="${esc(dEText(d))}">${sw(p)} ${esc(cname(p))} · ${esc(amsWhere(sp) || sp.slot_id || "–")}</span>`; };
+    const alt = !ok && m.alts.length ? `<div class="tmfalt"><span class="sub">${L("Replacement:")}</span> ${chip(m.alts[0])}${m.alts.length > 1
+      ? `<details class="tmfmore"><summary>${L("{0} more", m.alts.length - 1)}</summary>${m.alts.slice(1).map(chip).join(" ")}</details>` : ""}</div>` : "";
     const pr = need > 0 ? tmfPrice(f, m) : null, cost = pr ? need * pr.pg : null;
     if (need > 0) { totalG += need; if (cost != null) { total += cost; srcs.add(pr.src); } else costKnown = false; }
-    const name = m.exact ? `${esc(m.exact.line)} <span class="tmfcol">${esc(cname(m.exact))}</span>${m.exact.bambu_no ? ` <span class="sub">${esc(m.exact.bambu_no)}</span>` : ""}`
-      : `${esc(f.profile || f.type)} <span class="sub">${esc(f.hex)}</span>`;
-    const nearTxt = m.near ? `<div class="sub tmfnear">${L("Own colour from the file, not a Bambu colour. Closest: {0} ({1})", `${sw(m.near.p)} <b>${esc(cname(m.near.p))}</b>`, dEText(m.near.d))}</div>` : "";
-    const amount = f.support && !(need > 0) ? L("supports only, amount known after slicing")
-      : `${tmf.sliced || need < 1 ? "" : L("approx.") + " "}${gText(need)}${f.support ? " " + L("+ supports") : ""}${f.exact_m ? ` · ${f.exact_m} m` : ""}${f.painted ? ` · <span title="${esc(L("Painted in the file"))}">🖌︎ ${L("painted")}</span>` : ""}`;
-    return `<li><span class="tmfidx">${f.idx}</span>${sw(f.hex)}<span class="grow"><span class="tmfname">${name}</span>${nearTxt}
-      <span class="sub tmfline">${amount} · ${status}${where ? ` · ${where}` : ""}${ri.blocked ? "" : refillHtml(ri)}</span>${alt}</span>
-      <span class="tmfcost">${cost != null ? `${need < 1 || !tmf.sliced ? "~" : ""}${esc(money(cost))}` : need > 0 ? `<span class="sub">${L("no price")}</span>` : ""}</span>
-      ${!m.own.length && (m.exact || m.near) && !(m.exact || m.near.p).discontinued ? `<a class="btn small" href="${shopUrl(m.exact || m.near.p)}" target="_blank" rel="noopener">${L("Shop")}</a>` : ""}</li>`;
+    const name = m.exact ? `${esc(m.exact.line)} <span class="tmfcol">${esc(cname(m.exact))}</span>`
+      : m.near ? `${esc(m.near.p.line)} <span class="tmfcol">${L("own colour")}</span> <span class="sub">≈ ${esc(cname(m.near.p))}</span>`
+      : `${esc(f.profile || f.type)} <span class="tmfcol">${L("own colour")}</span>`;
+    const amount = f.support && !(need > 0) ? L("supports only") : `${tmf.sliced || need < 1 ? "" : "~"}${gText(need)}${f.support ? " " + L("+ supports") : ""}`;
+    const shop = !m.own.length && (m.exact || m.near) && !(m.exact || m.near.p).discontinued ? ` <a class="tmfshop" href="${shopUrl(m.exact || m.near.p)}" target="_blank" rel="noopener">${L("Shop")}</a>` : "";
+    return `<li><span class="tmfidx">${f.idx}</span><span title="${esc(f.hex)}">${sw(f.hex)}</span><span class="grow"><span class="tmfname">${name}</span>
+      <span class="sub tmfline">${status}${where}${ri.blocked ? "" : refillHtml(ri)}${shop}</span>${alt}</span>
+      <span class="tmfamt">${amount}</span>
+      <span class="tmfcost">${cost != null ? `${need < 1 || !tmf.sliced ? "~" : ""}${esc(money(cost))}` : need > 0 ? `<span class="sub">–</span>` : ""}</span></li>`;
   });
   const srcTxt = [...srcs].map((x) => L({ stock: "spool prices", line: "line prices", file: "prices from the file" }[x])).join(", ");
-  out.innerHTML = `<p class="sub">${Lp(used.length, "{0} filament used", "{0} filaments used")} · ${L("amount {0}", src)}${tmf.printer ? ` · ${esc(tmf.printer)}` : ""}</p>
-    <ul class="shop tmflist">${rows.join("") || `<li class="sub">${L("No printable objects found.")}</li>`}</ul>
-    ${totalG > 0 ? `<div class="tmftotal"><span class="grow"><b>${L("Total")}</b><span class="sub">${srcTxt ? L("Cost from {0}", srcTxt) : L("No prices known yet")}${!costKnown && srcs.size ? " · " + L("not every filament has a price") : ""}</span></span>
-      <b>${tmf.sliced ? "" : "~"}${gText(totalG)}</b><b class="tmfcost">${srcs.size ? `${tmf.sliced && costKnown ? "" : "~"}${esc(money(total))}` : "–"}</b></div>` : ""}
-    ${tmf.sliced ? "" : `<p class="tmfnote"><b>${L("Estimate before slicing")}</b> ${L("from {0} cm³ model volume, {1} walls, {2} % infill and {3} mm layer height. It is usually within a few percent of the “Model” value in Bambu Studio.", tmf.total_volume_cm3, tmf.settings.walls, tmf.settings.infill_pct, tmf.settings.layer_height)}
-      ${L("Not included: supports, brim and purge.")}${tmf.multicolor ? " " + L("Multi-colour prints often add 20–40 % for the prime tower and purging.") : ""}
-      ${L("Exact values: slice in Bambu Studio, then File › Export › Export plate sliced file, and load the .gcode.3mf here.")}${tmf.painted ? " " + L("The file contains painted areas: their colours are listed, the amounts are a rough estimate from the painted surface.") : ""}</p>`}
-    <details class="tmfobj"><summary>${Lp(tmf.objects.length, "{0} object", "{0} objects")}</summary><ul>${tmf.objects.map((o) => `<li>${esc(o.name)}${o.filament ? ` · Filament ${(o.paint_filaments?.length > 1 ? o.paint_filaments : [o.filament]).join(", ")}` : ""}${o.volume_cm3 != null ? ` · ${o.volume_cm3 > 0 && o.volume_cm3 < 0.1 ? "< 0.1" : o.volume_cm3} cm³` : ""}${o.est_g != null ? ` · ${o.est_g < 1 ? "" : L("approx.") + " "}${gText(o.est_g)}` : ""}</li>`).join("")}</ul></details>`;
+  const est = tmf.sliced ? "" : "~";
+  const info = tmf.sliced ? `<span class="sub">${L("exact amounts from the sliced file")}</span>`
+    : `<details class="tmfinfo"><summary>${L("Amounts estimated")} ⓘ</summary><p>${L("from {0} cm³ model volume, {1} walls, {2} % infill and {3} mm layer height. It is usually within a few percent of the “Model” value in Bambu Studio.", tmf.total_volume_cm3, tmf.settings.walls, tmf.settings.infill_pct, tmf.settings.layer_height)}
+      ${L("Not included: supports, brim and purge.")}${tmf.multicolor ? " " + L("Multi-colour prints often add 20–40 % for the prime tower and purging.") : ""}${tmf.painted ? " " + L("The file contains painted areas: their colours are listed, the amounts are a rough estimate from the painted surface.") : ""}</p>
+      <p><b>${L("Exact values: slice in Bambu Studio, then File › Export › Export plate sliced file, and load the .gcode.3mf here.")}</b></p></details>`;
+  const allIn = used.length && inStock === used.length;
+  out.innerHTML = used.length ? `<div class="tmfhead">
+      <div class="tmfbig"><b>${est}${gText(totalG)}</b>${srcs.size ? `<b>${tmf.sliced && costKnown ? "" : "~"}${esc(money(total))}</b>` : ""}</div>
+      <div class="tmfsum"><span class="${allIn ? "okc" : "warnc"}">${allIn ? "✓ " : ""}${L("{0} of {1} colours in storage", inStock, used.length)}</span>${tmf.printer ? ` <span class="sub">· ${esc(tmf.printer)}</span>` : ""}</div>
+      <div class="tmfsum">${info}${srcs.size ? `<span class="sub" title="${esc(srcTxt)}">${!costKnown ? L("not every filament has a price") : ""}</span>` : `<span class="sub">${L("No prices known yet")}</span>`}</div>
+    </div>
+    <ul class="shop tmflist">${rows.join("")}</ul>` : `<p class="sub">${L("No printable objects found.")}</p>`;
+  out.innerHTML += `<details class="tmfobj"><summary>${Lp(tmf.objects.length, "{0} object", "{0} objects")}</summary><ul>${tmf.objects.map((o) => `<li>${esc(o.name)}${o.filament ? ` · Filament ${(o.paint_filaments?.length > 1 ? o.paint_filaments : [o.filament]).join(", ")}` : ""}${o.volume_cm3 != null ? ` · ${o.volume_cm3 > 0 && o.volume_cm3 < 0.1 ? "< 0.1" : o.volume_cm3} cm³` : ""}${o.est_g != null ? ` · ${o.est_g < 1 ? "" : "~"}${gText(o.est_g)}` : ""}</li>`).join("")}</ul></details>`;
   out.querySelectorAll("[data-spool]").forEach((el) => (el.onclick = async () => showSpool(await api(`/api/spools/${el.dataset.spool}`))));
+}
+// Analyse a 3MF on the server: upload with progress, then the analysis runs as a job with progress.
+// onProg(phase, fraction) with phase "upload" or "analyze"; ctl.cancel() stops it (the promise then rejects with ctl.cancelled set).
+function analyze3mf(file, onProg = () => {}, ctl = {}) {
+  return new Promise((resolve, reject) => {
+    let jid = null, timer = null;
+    const xhr = new XMLHttpRequest();
+    const fail = (msg) => { clearTimeout(timer); reject(new Error(tr(msg))); };
+    ctl.cancel = () => {
+      ctl.cancelled = true; xhr.abort(); clearTimeout(timer);
+      if (jid) fetch(`/api/3mf/jobs/${jid}`, { method: "DELETE" }).catch(() => {});
+      reject(new Error(L("Cancelled")));
+    };
+    const poll = async () => {
+      if (ctl.cancelled) return;
+      try {
+        const j = await api(`/api/3mf/jobs/${jid}`);
+        if (ctl.cancelled) return;
+        if (j.done) return j.error ? fail(j.error) : resolve(j.result);
+        onProg("analyze", j.progress);
+      } catch (e) { return fail(e.message); }
+      timer = setTimeout(poll, 400);
+    };
+    xhr.open("POST", "/api/3mf/jobs");
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProg("upload", e.loaded / e.total);
+    xhr.onerror = () => !ctl.cancelled && fail("Upload failed");
+    xhr.onload = () => {
+      let d = {}; try { d = JSON.parse(xhr.responseText); } catch (e) { /* not JSON */ }
+      if (xhr.status === 401 && d.login) { showLogin(); return; }
+      if (xhr.status >= 300) return fail(d.error || d.detail || xhr.statusText);
+      jid = d.id; onProg("analyze", 0); poll();
+    };
+    onProg("upload", 0);
+    xhr.send(file);
+  });
 }
 // only .3mf files; iOS greys out unknown types, so it keeps the broad list and the name is checked instead
 if (!(/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1))) $("#tmffile").accept = ".3mf,model/3mf";
 $("#tmfremove").onclick = () => { tmf = null; $("#tmfname").textContent = ""; drawTmf(); };
+let tmfCtl = null;
 $("#tmffile").onchange = async () => {
-  const f = $("#tmffile").files[0]; if (!f) return;
-  if (!/\.3mf$/i.test(f.name)) { $("#tmffile").value = ""; return toast(L("Please choose a .3mf file (from Bambu Studio or Orca Slicer).")); }
-  $("#tmfname").textContent = L("Analyzing {0} …", f.name); $("#tmfout").innerHTML = "";
+  const f = $("#tmffile").files[0]; $("#tmffile").value = ""; if (!f) return;
+  if (!/\.3mf$/i.test(f.name)) return toast(L("Please choose a .3mf file (from Bambu Studio or Orca Slicer)."));
+  tmfCtl?.cancel?.();
+  const ctl = tmfCtl = {}, nameEl = $("#tmfname");
+  tmf = null; drawTmf();
+  nameEl.innerHTML = `<span class="tmfprog"><span class="tmfptxt"></span><progress max="1" value="0"></progress><button class="small" type="button">${L("Cancel")}</button></span>`;
+  const txt = nameEl.querySelector(".tmfptxt"), bar = nameEl.querySelector("progress");
+  nameEl.querySelector("button").onclick = () => ctl.cancel?.();
   try {
-    const res = await fetch("/api/3mf", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: f });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(tr(data.error || data.detail || res.statusText));
-    tmf = data; $("#tmfname").textContent = f.name; drawTmf();
-  } catch (e) { tmf = null; $("#tmfname").textContent = ""; drawTmf(); toast(e.message); }
-  $("#tmffile").value = "";
+    const data = await analyze3mf(f, (ph, x) => {
+      bar.value = x;
+      txt.textContent = ph === "upload" ? L("Uploading {0} … {1} %", f.name, Math.round(x * 100)) : L("Analyzing {0} … {1} %", f.name, Math.round(x * 100));
+    }, ctl);
+    if (tmfCtl !== ctl) return;
+    tmf = data; nameEl.textContent = f.name; drawTmf();
+  } catch (e) {
+    if (tmfCtl !== ctl) return;
+    tmf = null; nameEl.textContent = ""; drawTmf();
+    if (!ctl.cancelled) toast(e.message);
+  }
+  tmfCtl = null;
 };
 
 let products = null, manLines = [];
@@ -3913,11 +3973,8 @@ function usageEditor(det, p, list) {
   box.querySelector("[data-ufile]").onchange = async (e) => {
     const f = e.target.files[0]; e.target.value = ""; if (!f) return;
     let data;
-    try {
-      const res = await fetch("/api/3mf", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: f });
-      data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(tr(data.error || data.detail || res.statusText));
-    } catch (err) { toast(err.message); return; }
+    toast(L("Analyzing {0} …", f.name));
+    try { data = await analyze3mf(f); } catch (err) { toast(err.message); return; }
     if (!products) await loadProducts().catch(() => {});
     const used = (data.filaments || []).filter((x) => x.used && (x.exact_g || x.est_g) > 0);
     if (!used.length) { toast(L("No filament amounts in this file.")); return; }
@@ -4248,7 +4305,10 @@ function drawUpdate() {
     if (c && c.available && (u.self_update !== false || c.download))
       h += `<div class="actions">` + (u.self_update !== false ? `<button class="primary" data-ua="install">${L("Install update to {0}", esc(c.latest))}</button>` : "") +
         // Windows / Mac app: download the new installer or disk image instead
-        (c.download ? `<a class="btn primary" href="${esc(c.download)}" target="_blank" rel="noopener">${L(overview?.host?.kind === "mac" ? "Download version {0}" : "Download installer for {0}", esc(c.latest))}</a>` : "") + `</div>`;
+        (c.download ? `<a class="btn primary" href="${esc(c.download)}" target="_blank" rel="noopener">${overview?.host?.kind === "mac" ? L("Download version {0}", esc(c.latest)) : L("Download installer for {0}", esc(c.latest))}</a>` : "") + `</div>`;
+    // Docker: the image is replaced from outside
+    if (c && c.available && overview?.host?.kind === "docker")
+      h += `<p class="sub">${L("Update in the folder with your docker-compose.yml:")}</p><code class="cmd">docker compose pull && docker compose up -d</code>`;
     if (u.self_update !== false && u.rollback && u.rollback.length)
       h += `<div class="optrow"><span>${L("Go back to an earlier version")}</span><span class="inline"><select id="uprb">${u.rollback.map((v) => `<option>${esc(v)}</option>`).join("")}</select><button class="small" data-ua="rollback">${L("Back")}</button></span></div>`;
   }

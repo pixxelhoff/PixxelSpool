@@ -46,6 +46,7 @@
   - [Raspberry Pi](#raspberry-pi)
   - [Windows app](#windows-app)
   - [Mac app](#mac-app)
+  - [Docker](#docker)
 - [First start](#first-start)
 - [Password](#password)
 - [Remote access and push notifications](#remote-access-and-push-notifications)
@@ -135,12 +136,12 @@
 
 ## What you need
 
-| | Raspberry Pi | Windows app | Mac app |
-| --- | --- | --- | --- |
-| Computer | Raspberry Pi (see below) | PC with Windows 10/11, 64-bit | Mac with Apple silicon (M1 or later), macOS 12 or newer |
-| NFC reader | USB or GPIO (PN532) | USB | USB |
-| Runs | around the clock, low power | while the PC is on | while the Mac is awake |
-| Status | main platform, tested the most | preview | preview |
+| | Raspberry Pi | Windows app | Mac app | Docker |
+| --- | --- | --- | --- | --- |
+| Computer | Raspberry Pi (see below) | PC with Windows 10/11, 64-bit | Mac with Apple silicon (M1 or later), macOS 12 or newer | Linux server or NAS (amd64 or arm64) |
+| NFC reader | USB or GPIO (PN532) | USB | USB | USB, PN532 (devices passed in) |
+| Runs | around the clock, low power | while the PC is on | while the Mac is awake | around the clock |
+| Status | main platform, tested the most | preview | preview | new, preview |
 
 A Raspberry Pi is the best choice if PixxelSpool should always be reachable (push notifications, print recording,
 nightly backup). The Windows and Mac apps are handy to try PixxelSpool or if your computer is on anyway.
@@ -152,8 +153,8 @@ Status: ✅ tested by us · ⏳ test in progress · ⚪ should work, not tested 
 | Part | Part number | Status |
 | --- | --- | --- |
 | Raspberry Pi 3 Model B+ (1 GB) | SC0073 | ✅ tested |
-| Raspberry Pi 4 Model B (1 GB) | SC0192 | ⏳ arriving soon |
-| Raspberry Pi 5 (4 GB) | SC1111 | ⏳ planned |
+| Raspberry Pi 4 Model B (1 GB) | SC0192 | ✅ tested |
+| Raspberry Pi 5 (4 GB) | SC1111 | ✅ tested |
 | Raspberry Pi 4 / 5 with more memory | – | ⚪ should work |
 
 Also needed:
@@ -179,8 +180,8 @@ Choose your reader in the setup assistant or under **Options › NFC reader**.
 | PN532 board with USB-C ("PN532 V2.0 USB-C") | – | USB (serial) | ✅ tested | [Amazon](https://www.amazon.de/dp/B0H3GKGDRG) |
 | ACS ACR1552U | ACR1552U-M1 | USB | ⚪ same commands as the ACR1252U | – |
 | Identiv uTrust 3700 F, HID Omnikey 5022 / 5427 CK | – | USB | ⚪ should work | – |
-| Waveshare PN532 NFC HAT | – | GPIO (I2C) | ⏳ test pending | – |
-| PN532 module V3 (Elechouse, Hailege …) | – | GPIO (I2C) | ⏳ test pending | – |
+| Waveshare PN532 NFC HAT | – | GPIO (I2C) | ✅ tested | – |
+| PN532 module V3 (Elechouse, Hailege …) | – | GPIO (I2C) | ✅ tested, good range | – |
 
 The Amazon links are examples (Amazon Germany) to show which product we tested, not a recommendation of a
 specific seller, and they contain no affiliate code. The same PN532 USB-C board is sold under many brand names;
@@ -195,11 +196,16 @@ Tested another reader or computer? Please let us know in an issue or pull reques
 **PN532 board with USB-C:** set the switches to HSU/UART (usually both OFF) and plug it in. PixxelSpool finds the
 port by itself (setting `pn532_port` to force one).
 
-**Waveshare PN532 NFC HAT:** plugs straight onto the GPIO header, no soldering, no cables. Set the jumpers to
-I2C: **I0 = H, I1 = L**.
+**Waveshare PN532 NFC HAT:** plugs straight onto the GPIO header, no soldering, no cables. Two settings for I2C:
+
+- Yellow jumpers (top left): **I0 = H, I1 = L** (the table printed on the board shows the same).
+- Small switch block (1–8): **5 (SCL) and 6 (SDA) ON**, all others OFF.
+
+With its jumpers the HAT is about 11 mm high above its board, so a lid over it has to sit that much higher.
 
 **PN532 module V3:** easiest with the pin header already soldered on; then four female-to-female jumper wires are
-all you need. Set the switches to I2C: **1 = ON, 2 = OFF**.
+all you need. Set the switches to I2C: **1 = ON, 2 = OFF** (table "I2C 1 0" on the board). Without a soldered pin
+header the wires do not hold; push them in at an angle only for a quick test.
 
 | PN532 | Raspberry Pi |
 | --- | --- |
@@ -233,7 +239,7 @@ spool holder.
 
 ## Installation
 
-Choose your platform. All three have the same interface, the same setup assistant and share one version number.
+Choose your platform. All four have the same interface, the same setup assistant and share one version number.
 
 ### Raspberry Pi
 
@@ -327,6 +333,38 @@ Good to know:
 - Menu bar icon: open, phone address, GitHub, check for updates, reset password, open at login, restart, quit.
 - To remove PixxelSpool, quit it in the menu bar and move the app to the Trash. Your data stays in
   `~/Library/Application Support/PixxelSpool` (delete that folder too if you want to remove everything).
+
+### Docker
+
+PixxelSpool also runs as a Docker image for amd64 and arm64: on a home server, a NAS or a Raspberry Pi that runs Docker
+anyway. Like the apps it is a preview.
+
+1. **Get the compose file:** download [docker-compose.yml](docker-compose.yml) into a new folder, e.g. `~/pixxelspool`.
+2. **NFC reader (optional):** in `docker-compose.yml`, remove the `#` in front of `devices:` and the line of your reader
+   (USB reader, PN532 with USB-C or PN532 on the Pi pins).
+3. **Start:**
+
+   ```bash
+   cd ~/pixxelspool
+   docker compose up -d
+   ```
+
+4. **Open** `http://<address of the computer>:8000` in the browser. The setup assistant guides you through the rest.
+
+Good to know:
+
+- All data lives in the `data` folder next to `docker-compose.yml` (mounted as `/data`). Keep it when you update or
+  move; a backup ZIP from another platform can be restored there too.
+- The compose file uses the host network (Linux), so PixxelSpool finds the printer and your phone reaches it directly.
+  On Docker Desktop (Mac/Windows) remove `network_mode: host` and use the `ports` lines instead.
+- **Updating:** `docker compose pull && docker compose up -d`. PixxelSpool tells you about new versions in the bell;
+  the image tags are the version (e.g. `1.0.0-beta.4`), `beta` for the newest pre-release and later `latest`.
+- **Restart** under Options › System works through the restart policy (`restart: unless-stopped`).
+- USB readers (ACR122U, ACR1252U): the image brings its own PC/SC service. If the computer itself runs `pcscd`, stop it
+  (`sudo systemctl disable --now pcscd.socket pcscd`), and on Linux block the kernel driver that grabs the ACR122U:
+  `echo "blacklist pn533_usb" | sudo tee /etc/modprobe.d/no-pn533.conf` (then reboot).
+- Not in the Docker version: shutting down the computer, Tailscale setup, the power-loss notice and installing updates
+  from the interface.
 
 ## First start
 
@@ -424,6 +462,7 @@ Your data is kept with every update.
 - **Windows app:** the app links to the new installer; download it and run it over the old version.
 - **Mac app:** the app links to the new `.dmg`; open it and drag PixxelSpool into Applications again (replace).
   Allow the first start again as described [above](#mac-app).
+- **Docker:** `docker compose pull && docker compose up -d` in the folder with your `docker-compose.yml`.
 
 ### Security updates
 
@@ -463,6 +502,7 @@ Your data is kept with every update.
   | Raspberry Pi | `~/pixxelspool/data` (excluded from the repository) |
   | Windows app | `%APPDATA%\PixxelSpool` |
   | Mac app | `~/Library/Application Support/PixxelSpool` |
+  | Docker | `data` next to `docker-compose.yml` (`/data` in the container) |
 
 - Every night at 3:30 PixxelSpool saves a backup to `backups/` in the data folder (kept 30 days, adjustable). It
   also saves a copy before updates and before risky actions such as deleting a spool or changing the storage. In the
@@ -517,7 +557,7 @@ FILAMENT_MOCK=1 .venv/bin/python run.py      # without a reader, opens http://lo
 | `filament_tool/settings.py` | settings including shelves and reader |
 | `filament_tool/notices.py` | notification bell: printer, print job, stock and climate checks |
 | `filament_tool/push.py` | Web Push to phones (RFC 8291 encryption, VAPID) |
-| `filament_tool/host.py` | platform: Pi service, Windows app, Mac app or desktop (data folder, restart, features) |
+| `filament_tool/host.py` | platform: Pi service, Windows app, Mac app, Docker or desktop (data folder, restart, features) |
 | `filament_tool/winapp.py` | Windows and Mac app: tray / menu bar icon, single instance, autostart |
 | `windows/` | PyInstaller spec and Inno Setup script; built by `.github/workflows/windows.yml` |
 | `macos/` | PyInstaller spec (PixxelSpool.app) and disk image script; built by `.github/workflows/macos.yml` |
@@ -531,6 +571,7 @@ FILAMENT_MOCK=1 .venv/bin/python run.py      # without a reader, opens http://lo
 | `filament_tool/guard.py` | goes back to the previous version when an update does not start (Pi) |
 | `tools/dev/update_test.py` | offline test of the updater and the update guard against a fake GitHub |
 | `.github/workflows/pi.yml` | package and checksum for the Pi's updater, for every tag |
+| `Dockerfile`, `docker-compose.yml`, `docker/` | Docker image; built for amd64 and arm64 and pushed to ghcr.io by `.github/workflows/docker.yml` |
 | `.github/workflows/dependabot-security.yml` | tests, merges and releases Dependabot security updates by itself |
 | `filament_tool/static/` | user interface (HTML, JavaScript, CSS), no build step |
 | `filament_tool/locales/` | translations (`de.json`, `es.json`; key = English source text) |

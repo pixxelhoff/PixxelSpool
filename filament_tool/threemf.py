@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import re
 import zipfile
 import xml.etree.ElementTree as ET
+from array import array
 from typing import Optional
 
 NS_CORE = "{http://schemas.microsoft.com/3dmanufacturing/core/2015/02}"
@@ -61,50 +63,121 @@ def _paint(code: str) -> dict:
     return out
 
 
-def _mesh_stats(data: bytes) -> dict:
+class Cancelled(ThreeMFError):
+    pass
+
+
+_TAG = re.compile(rb'<(/?)(object|vertex|triangle|component|item)\b([^>]*)>')
+_XYZ = re.compile(rb'x="([^"]*)"\s+y="([^"]*)"\s+z="([^"]*)"')
+_ATTR = re.compile(rb'([\w:]+)="([^"]*)"')
+_V123 = re.compile(rb'v1="(\d+)"\s+v2="(\d+)"\s+v3="(\d+)"')
+_PAINT = re.compile(rb'(?:paint_color|mmu_segmentation)="([^"]*)"')
+_ID = re.compile(rb'\bid="([^"]*)"')
+CHUNK = 4 * 1024 * 1024
+
+
+def _mesh_stats(f, progress=None, struct=None) -> dict:
     """{object_id: (volume_mm3, (side, top, bottom) area_mm2, painted)} for all mesh objects of a .model file.
     painted is {} for an unpainted object, otherwise {state: painted area mm2} (state 0 = the object's own filament).
-    The area is split by the face normal: steep faces get walls, faces looking up/down get top/bottom shells."""
-    out, verts, vol, area, painted, cur = {}, [], 0.0, [0.0, 0.0, 0.0], {}, None
-    for ev, el in ET.iterparse(io.BytesIO(data), events=("start", "end")):
-        tag = el.tag.rsplit("}", 1)[-1]
-        if ev == "start":
-            if tag == "object":
-                cur, verts, vol, area, painted = el.get("id"), [], 0.0, [0.0, 0.0, 0.0], {}
-            continue
-        if tag == "vertex":
-            verts.append((float(el.get("x")), float(el.get("y")), float(el.get("z"))))
-        elif tag == "triangle":
-            try:
-                a, b, c = verts[int(el.get("v1"))], verts[int(el.get("v2"))], verts[int(el.get("v3"))]
-            except (IndexError, TypeError, ValueError):
-                el.clear()
-                continue
-            vol += (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0])
-                    + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6.0
-            ux, uy, uz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
-            vx, vy, vz = c[0] - a[0], c[1] - a[1], c[2] - a[2]
-            nx, ny, nz = uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx
-            dbl = (nx * nx + ny * ny + nz * nz) ** 0.5
-            if dbl > 0:
-                # within 45° of horizontal counts as top (normal up) or bottom (normal down)
-                k = 0 if abs(nz) < 0.7071 * dbl else (1 if nz > 0 else 2)
-                area[k] += 0.5 * dbl
-            code = el.get("paint_color") or el.get("{http://schemas.slic3r.org/3mf/2017/06}mmu_segmentation")
-            if code:
-                for st, share in _paint(code).items():
-                    painted[st] = painted.get(st, 0.0) + share * 0.5 * dbl
-            elif painted is not None and dbl > 0:
-                painted[0] = painted.get(0, 0.0) + 0.5 * dbl
-        elif tag == "object":
-            if verts:
-                if vol < 0:          # inverted winding: up and down are swapped
-                    area[1], area[2] = area[2], area[1]
-                out[cur] = (abs(vol), tuple(area), painted if any(k for k in painted) else {})
-            verts = []
-        if tag in ("vertex", "triangle"):
-            el.clear()
+    The area is split by the face normal: steep faces get walls, faces looking up/down get top/bottom shells.
+    f is a binary file object (or bytes); it is read in chunks with a regex instead of an XML tree, so a model of
+    several hundred MB needs little memory: the points of one object are kept in a flat array of doubles.
+    progress(n) is called with the number of bytes read so far and may raise Cancelled.
+    struct (a dict) receives the structure of the file: "comps" {object id: [(path, component id, transform)]}
+    and "items" [(object id, transform, printable)], so the main model never has to be held as an XML tree."""
+    if struct is not None:
+        struct.setdefault("comps", {})
+        struct.setdefault("items", [])
+    if isinstance(f, (bytes, bytearray)):
+        f = io.BytesIO(f)
+    out: dict = {}
+    verts = array("d")
+    vol, area, painted, cur = 0.0, [0.0, 0.0, 0.0], {}, None
+    rest, done = b"", 0
+    sqrt = math.sqrt
+    while True:
+        chunk = f.read(CHUNK)
+        if not chunk and not rest:
+            break
+        buf = rest + chunk
+        last = 0
+        for mt in _TAG.finditer(buf):
+            last = mt.end()
+            close, tag, attrs = mt.group(1), mt.group(2), mt.group(3)
+            if tag == b"vertex":
+                m = _XYZ.search(attrs)
+                if m:
+                    verts.extend((float(m.group(1)), float(m.group(2)), float(m.group(3))))
+                else:
+                    d = dict(_ATTR.findall(attrs))
+                    try:
+                        verts.extend((float(d[b"x"]), float(d[b"y"]), float(d[b"z"])))
+                    except (KeyError, ValueError):
+                        verts.extend((0.0, 0.0, 0.0))
+            elif tag == b"triangle":
+                m = _V123.search(attrs)
+                if not m:
+                    continue
+                i, j, k = int(m.group(1)) * 3, int(m.group(2)) * 3, int(m.group(3)) * 3
+                try:
+                    ax, ay, az = verts[i], verts[i + 1], verts[i + 2]
+                    bx, by, bz = verts[j], verts[j + 1], verts[j + 2]
+                    cx, cy, cz = verts[k], verts[k + 1], verts[k + 2]
+                except IndexError:
+                    continue
+                vol += (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6.0
+                ux, uy, uz = bx - ax, by - ay, bz - az
+                vx, vy, vz = cx - ax, cy - ay, cz - az
+                nx, ny, nz = uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx
+                dbl = sqrt(nx * nx + ny * ny + nz * nz)
+                if dbl > 0:
+                    # within 45° of horizontal counts as top (normal up) or bottom (normal down)
+                    area[0 if abs(nz) < 0.7071 * dbl else (1 if nz > 0 else 2)] += 0.5 * dbl
+                pm = _PAINT.search(attrs) if (b"paint" in attrs or b"mmu" in attrs) else None
+                if pm and pm.group(1):
+                    for st, share in _paint(pm.group(1).decode("ascii", "replace")).items():
+                        painted[st] = painted.get(st, 0.0) + share * 0.5 * dbl
+                elif dbl > 0:
+                    painted[0] = painted.get(0, 0.0) + 0.5 * dbl
+            elif tag == b"component":
+                if struct is not None and cur is not None:
+                    d = {k.decode().rsplit(":", 1)[-1]: v.decode() for k, v in _ATTR.findall(attrs)}
+                    struct["comps"].setdefault(cur, []).append((d.get("path") or "3D/3dmodel.model", d.get("objectid"), d.get("transform")))
+            elif tag == b"item":
+                if struct is not None and not close:
+                    d = {k.decode().rsplit(":", 1)[-1]: v.decode() for k, v in _ATTR.findall(attrs)}
+                    struct["items"].append((d.get("objectid"), d.get("transform"), d.get("printable")))
+            elif not close:          # <object ...>
+                m = _ID.search(attrs)
+                cur, vol, area, painted = (m.group(1).decode() if m else None), 0.0, [0.0, 0.0, 0.0], {}
+                verts = array("d")
+            else:                    # </object>
+                if len(verts):
+                    if vol < 0:      # inverted winding: up and down are swapped
+                        area[1], area[2] = area[2], area[1]
+                    out[cur] = (abs(vol), tuple(area), painted if any(k for k in painted) else {})
+                verts = array("d")
+        # keep an unfinished tag at the end of the buffer for the next round
+        lt = buf.rfind(b"<", last)
+        rest = buf[lt:] if lt >= 0 and buf.find(b">", lt) < 0 else b""
+        if not chunk:
+            break
+        done += len(chunk)
+        if progress:
+            progress(done)
     return out
+
+
+def _mem_free_mb() -> Optional[float]:
+    """Free memory in MB (Linux: MemAvailable), None where it cannot be told."""
+    try:
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) / 1024
+    except (OSError, ValueError):
+        pass
+    return None
 
 
 def _settings(z: zipfile.ZipFile) -> dict:
@@ -139,8 +212,9 @@ def _lst(v) -> list:
     return v if isinstance(v, list) else [v]
 
 
-def analyze(blob: bytes) -> dict:
-    """Analyse a 3MF file: filaments with color, type and grams (exact if sliced, otherwise estimated)."""
+def analyze(blob: bytes, progress=None) -> dict:
+    """Analyse a 3MF file: filaments with color, type and grams (exact if sliced, otherwise estimated).
+    progress(fraction 0..1) is called while the models are read; it may raise Cancelled."""
     try:
         z = zipfile.ZipFile(io.BytesIO(blob))
     except zipfile.BadZipFile:
@@ -150,6 +224,15 @@ def analyze(blob: bytes) -> dict:
     names = set(z.namelist())
     if "3D/3dmodel.model" not in names:
         raise ThreeMFError("The 3D model is missing from the file (3D/3dmodel.model).")
+    models = {i.filename: i.file_size for i in z.infolist() if i.filename.lower().endswith(".model")}
+    total_bytes = sum(models.values()) or 1
+    # the points of the largest object are kept in memory (about a fifth of its text); refuse kindly if that does not fit
+    free = _mem_free_mb()
+    need = max(models.values(), default=0) * 0.22 / 1e6 + 60
+    if free is not None and free < need:
+        raise ThreeMFError("Not enough free memory on this device for such a large model. "
+                           "Slice it in Bambu Studio and load the .gcode.3mf instead: it is much smaller.")
+    read_before = [0]
 
     st = _settings(z)
     colors = _lst(st.get("filament_colour"))
@@ -211,13 +294,21 @@ def analyze(blob: bytes) -> dict:
     def stats(path: str) -> dict:
         path = path.lstrip("/")
         if path not in cache:
-            cache[path] = _mesh_stats(z.read(path)) if path in names else {}
+            if path not in names:
+                cache[path] = {}
+            else:
+                base = read_before[0]
+                cb = (lambda n: progress(min(1.0, (base + n) / total_bytes))) if progress else None
+                with z.open(path) as fh:
+                    cache[path] = _mesh_stats(fh, cb)
+                read_before[0] += models.get(path, 0)
         return cache[path]
 
-    main = ET.fromstring(z.read("3D/3dmodel.model"))
-    res = main.find(f"{NS_CORE}resources")
-    objects = {o.get("id"): o for o in (res.findall(f"{NS_CORE}object") if res is not None else [])}
-    main_stats = stats("3D/3dmodel.model")
+    struct: dict = {}
+    with z.open("3D/3dmodel.model") as fh:
+        main_stats = _mesh_stats(fh, (lambda n: progress(min(1.0, n / total_bytes))) if progress else None, struct)
+    cache["3D/3dmodel.model"] = main_stats
+    read_before[0] += models.get("3D/3dmodel.model", 0)
 
     lw = _num(st.get("inner_wall_line_width") or st.get("line_width"), 0.45)
     walls = _num(st.get("wall_loops"), 2)
@@ -234,25 +325,19 @@ def analyze(blob: bytes) -> dict:
 
     parts_out = []
     total_vol = 0.0
-    build = main.find(f"{NS_CORE}build")
-    for item in (build.findall(f"{NS_CORE}item") if build is not None else []):
-        if item.get("printable") == "0":
+    for oid, item_tf, printable in struct["items"]:
+        if printable == "0":
             continue
-        oid = item.get("objectid")
-        o = objects.get(oid)
-        if o is None:
+        comps = struct["comps"].get(oid)
+        if not comps and oid not in main_stats:
             continue
-        s_item = _det(_mat(item.get("transform")))
-        comps = o.find(f"{NS_CORE}components")
+        s_item = _det(_mat(item_tf))
         pieces = []
-        if comps is not None:
-            for c in comps.findall(f"{NS_CORE}component"):
-                path = c.get(f"{NS_PROD}path") or "3D/3dmodel.model"
-                cid = c.get("objectid")
+        if comps:
+            for path, cid, tf in comps:
                 ms = stats(path).get(cid)
                 if ms:
-                    pieces.append((ms, s_item * _det(_mat(c.get("transform"))),
-                                   part_ext.get((oid, cid), obj_ext.get(oid, 1))))
+                    pieces.append((ms, s_item * _det(_mat(tf)), part_ext.get((oid, cid), obj_ext.get(oid, 1))))
         elif oid in main_stats:
             pieces.append((main_stats[oid], s_item, obj_ext.get(oid, 1)))
         for (vol, (a_side, a_top, a_bot), painted), scale, ext in pieces:

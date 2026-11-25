@@ -8,6 +8,26 @@ get the current version plus `-patch.N` (e.g. 1.0.0-patch.1); the Pi does not of
 
 The German changelog is [CHANGELOG.de.md](CHANGELOG.de.md).
 
+## [1.0.0-beta.4] – 2026-11-25
+
+Third bundled release, plus a Docker version.
+
+### Fixed
+- Labels: Safari no longer cuts off rows at the page break. A hint explains how to turn off Safari's page header and footer.
+- Labels without a QR code: the text now fills the label instead of shrinking to a tiny size.
+- Labels: the info line above the sheet is translated.
+- Check 3MF: large models (e.g. 50 MB) are read much faster and with a fraction of the memory. If a device still has too little memory, a clear message says so instead of crashing.
+- Raspberry Pi without a clock chip: pulling the power plug is now detected reliably and shows the power-loss notice on the next start.
+
+### Changed
+- Check 3MF: the result is redesigned. A summary on top (weight, cost, colours in storage), one clear row per filament, and the explanation of the estimate folded away.
+
+### Added
+- Docker: PixxelSpool runs as a container (amd64 and arm64). See the README section "Docker".
+- Labels: choose which address the QR code opens, including the `.local` name that keeps working when the router hands out a new IP address.
+- Check 3MF: progress bar for upload and analysis, with a Cancel button.
+- README: Waveshare PN532 HAT and PN532 V3 tested, with switch and jumper settings; Raspberry Pi 4 and 5 tested.
+
 ## [1.0.0-beta.3] – 2026-11-25
 
 Second bundled release: everything reported on beta.2.

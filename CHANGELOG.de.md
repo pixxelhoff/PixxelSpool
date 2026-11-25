@@ -8,6 +8,26 @@ nur für die Apps bekommen die Nummer der aktuellen Version mit dem Zusatz `-pat
 
 Der englische Changelog ist [CHANGELOG.md](CHANGELOG.md).
 
+## [1.0.0-beta.4] – 2026-11-25
+
+Drittes Sammelrelease, dazu eine Docker-Version.
+
+### Behoben
+- Etiketten: Safari schneidet am Seitenumbruch keine Reihen mehr ab. Ein Hinweis erklärt, wie man Kopf- und Fußzeile in Safari ausschaltet.
+- Etiketten ohne QR-Code: der Text füllt das Etikett, statt winzig zu werden.
+- Etiketten: die Infozeile über dem Bogen ist übersetzt.
+- 3MF prüfen: große Modelle (z. B. 50 MB) werden viel schneller und mit einem Bruchteil des Speichers gelesen. Reicht der Speicher trotzdem nicht, kommt eine klare Meldung statt eines Absturzes.
+- Raspberry Pi ohne Uhren-Chip: ein gezogener Stecker wird jetzt sicher erkannt, der Stromausfall-Hinweis erscheint beim nächsten Start.
+
+### Geändert
+- 3MF prüfen: neues Ergebnis. Oben eine Zusammenfassung (Gewicht, Kosten, Farben im Lager), darunter pro Filament eine klare Zeile, die Erklärung zur Schätzung ist eingeklappt.
+
+### Neu
+- Docker: PixxelSpool läuft als Container (amd64 und arm64). Siehe README-Abschnitt „Docker“.
+- Etiketten: wählbar, welche Adresse der QR-Code öffnet, auch der `.local`-Name, der bei einer neuen IP-Adresse vom Router weiter funktioniert.
+- 3MF prüfen: Fortschrittsbalken für Hochladen und Auswerten, mit Abbrechen-Knopf.
+- README: Waveshare PN532 HAT und PN532 V3 getestet, mit Schalter- und Jumper-Einstellungen; Raspberry Pi 4 und 5 getestet.
+
 ## [1.0.0-beta.3] – 2026-11-25
 
 Zweite Sammelversion: alles, was zu beta.2 gemeldet wurde.

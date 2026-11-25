@@ -1,0 +1,64 @@
+# Docker image for every version tag (v*): built for amd64 and arm64 and pushed to the GitHub Container Registry
+# (ghcr.io/pixxelhoff/pixxelspool). Tags: the version (1.0.0-beta.4), "beta" for pre-releases, "latest" for final
+# releases. A push to main only builds (amd64, nothing is pushed) to catch a broken Dockerfile early.
+name: Docker image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tags
+        id: tags
+        run: |
+          img=ghcr.io/$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')/pixxelspool
+          ver=$(tr -d '[:space:]' < VERSION)
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            [ "v$ver" = "${{ github.ref_name }}" ] || { echo "VERSION ($ver) does not match the tag (${{ github.ref_name }})"; exit 1; }
+            tags="$img:$ver"
+            case "$ver" in
+              *-*) tags="$tags,$img:beta" ;;
+              *)   tags="$tags,$img:latest,$img:beta" ;;
+            esac
+            echo "push=true" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
+          else
+            tags="$img:dev"
+            echo "push=false" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to the GitHub Container Registry
+        if: steps.tags.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build (and push for a tag)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ steps.tags.outputs.platforms }}
+          push: ${{ steps.tags.outputs.push == 'true' }}
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: org.opencontainers.image.version=${{ steps.tags.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

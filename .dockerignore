@@ -1,0 +1,11 @@
+.git
+.github
+data
+.devdata
+.devenv
+**/__pycache__
+docs
+windows
+macos
+tools
+*.db

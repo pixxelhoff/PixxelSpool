@@ -478,20 +478,28 @@ LABEL_TEXTS = ["Labels", "Labels for your storage slots. The QR code opens the s
                "Gap between labels", "Page margin", "Skip fields at the start",
                "For a sheet that is already partly used: the first fields stay empty.", "Print",
                "In the print dialog choose: paper A4, scale 100 % (not “fit to page”), margins “none” and no headers and footers.",
-               "Reset settings", "{0} labels · {1} per page · QR opens {2}"]
+               "Reset settings", "{0} labels · {1} per page · {2} pages · QR opens {3}",
+               "Safari: switch off “Print headers and footers” in the print dialog, otherwise the labels do not fit on the page.",
+               "QR code opens", "The .local name keeps working when the router gives PixxelSpool a new IP address."]
 
 
 @app.get("/labels")
-def labels(request: Request, cab: str = "", logo: int = 1):
+def labels(request: Request, cab: str = "", logo: int = 1, addr: str = ""):
     """Printable slot labels: a label designer with an A4 preview (static/labels.html), the QR codes come from here."""
     from fastapi.responses import HTMLResponse
     from html import escape
+    addr_choice = addr
     addr = request.headers.get("host") or "pixxelspool.local:8000"
     scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
     name, _, port = addr.partition(":") if addr.count(":") <= 1 else (addr, "", "")
     if name in ("localhost", "127.0.0.1"):   # opened on the PC or Mac itself: a phone can't reach that address
         addr = host.lan_ip() + (f":{port}" if port else "")
-    base = f"{scheme}://{addr}/"
+    here = f"{scheme}://{addr}/"
+    # the QR code may also open the device's .local name: it stays valid when the router hands out a new IP address
+    mdns = host.mdns_name()
+    local = f"{scheme}://{mdns}" + (f":{port}" if port else "") + "/" if mdns and name != mdns else ""
+    bases = [{"key": "", "url": here}] + ([{"key": "local", "url": local}] if local else [])
+    base = local if addr_choice == "local" and local else here
     cabs = {c["key"]: c for c in settings.load()["cabinets"]}
     with db.session() as conn:
         rows = [dict(r) for r in conn.execute("SELECT * FROM slots ORDER BY cabinet, kind, row, pos")]
@@ -507,7 +515,7 @@ def labels(request: Request, cab: str = "", logo: int = 1):
         items.append({"id": r["id"], "cab": r["cabinet"], "cabName": str(c.get("name") or r["cabinet"]),
                       "purpose": str(c.get("label") or ""), "where": where, "res": r["kind"] != "cabinet",
                       "qr": remote.qr_label_svg(base + "#slot=" + r["id"], logo=bool(logo), accent="currentColor")})
-    data = {"base": base, "logo": bool(logo), "cab": cab if cab in cabs else "", "items": items,
+    data = {"base": base, "bases": bases, "addr": "local" if base == local and local else "", "logo": bool(logo), "cab": cab if cab in cabs else "", "items": items,
             "cabs": [{"key": k, "name": str(c.get("name") or k)} for k, c in cabs.items()],
             "T": {k: _t(k) for k in LABEL_TEXTS}}
     page = (Path(__file__).parent / "static" / "labels.html").read_text(encoding="utf-8")
@@ -1335,6 +1343,72 @@ async def threemf_analyze(request: Request):
         raise logic.InventoryError(str(e))
     except Exception as e:  # broken or unusual file
         raise logic.InventoryError(f"Could not read the file ({type(e).__name__})")
+
+
+# --- 3MF analysis as a background job with progress (large models take a while, above all on a Pi)
+_tmf_jobs: dict = {}
+_tmf_lock = threading.Lock()
+
+
+def _tmf_run(job: dict, blob: bytes) -> None:
+    from . import threemf
+
+    def prog(frac: float) -> None:
+        if job["cancel"]:
+            raise threemf.Cancelled("Cancelled")
+        job["progress"] = round(frac, 3)
+    try:
+        job["result"] = threemf.analyze(blob, prog)
+    except threemf.Cancelled:
+        job["error"] = "Cancelled"
+    except threemf.ThreeMFError as e:
+        job["error"] = str(e)
+    except MemoryError:
+        job["error"] = "Not enough free memory on this device for such a large model. Slice it in Bambu Studio and load the .gcode.3mf instead: it is much smaller."
+    except Exception as e:  # broken or unusual file
+        logging.getLogger("3mf").warning("3MF analysis failed: %r", e)
+        job["error"] = f"Could not read the file ({type(e).__name__})"
+    finally:
+        job["progress"], job["done"], job["ended"] = 1.0, True, time.time()
+
+
+@app.post("/api/3mf/jobs")
+async def threemf_job_start(request: Request):
+    blob = await request.body()
+    if not blob:
+        raise logic.InventoryError("No file received")
+    if len(blob) > 150 * 1024 * 1024:
+        raise logic.InventoryError("The file is too large (max. 150 MB)")
+    with _tmf_lock:
+        for jid, j in list(_tmf_jobs.items()):
+            if not j["done"]:
+                j["cancel"] = True        # one analysis at a time: a new file replaces the running one
+            elif time.time() - j["ended"] > 600:
+                _tmf_jobs.pop(jid, None)
+        jid = secrets.token_hex(8)
+        job = _tmf_jobs[jid] = {"progress": 0.0, "done": False, "cancel": False, "result": None, "error": None, "ended": 0}
+    threading.Thread(target=_tmf_run, args=(job, blob), daemon=True, name="3mf").start()
+    return {"id": jid}
+
+
+@app.get("/api/3mf/jobs/{jid}")
+def threemf_job_get(jid: str):
+    job = _tmf_jobs.get(jid)
+    if not job:
+        raise logic.InventoryError("Unknown job")
+    out = {"progress": job["progress"], "done": job["done"]}
+    if job["done"]:
+        out["error"], out["result"] = job["error"], job["result"]
+        _tmf_jobs.pop(jid, None)
+    return out
+
+
+@app.delete("/api/3mf/jobs/{jid}")
+def threemf_job_cancel(jid: str):
+    job = _tmf_jobs.pop(jid, None)
+    if job:
+        job["cancel"] = True
+    return {"ok": True}
 
 
 @app.get("/api/audit")

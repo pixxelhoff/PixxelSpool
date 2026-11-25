@@ -5,6 +5,8 @@
              updates by downloading the new installer, data in %APPDATA%\\PixxelSpool
     mac      the Mac app (same winapp.py, packaged as PixxelSpool.app): menu bar icon, updates by downloading the
              new .dmg, data in ~/Library/Application Support/PixxelSpool
+    docker   the Docker image (PIXXELSPOOL_DOCKER=1): data in the /data volume, restart = the container restarts
+             (restart policy), updates by pulling the new image
     desktop  anything else (python run.py on a Mac or PC for development)
 
 The data folder can always be overridden with the environment variable PIXXELSPOOL_DATA.
@@ -25,9 +27,11 @@ IS_LINUX = sys.platform.startswith("linux")
 IS_MAC = sys.platform == "darwin"
 SERVICE = bool(os.environ.get("INVOCATION_ID"))        # started by systemd
 APP = os.environ.get("PIXXELSPOOL_APP") == "1"         # started by winapp.py
-KIND = ("pi" if IS_LINUX and SERVICE else "windows" if IS_WINDOWS and (APP or FROZEN)
+DOCKER = os.environ.get("PIXXELSPOOL_DOCKER") == "1"   # the Docker image
+KIND = ("docker" if DOCKER else "pi" if IS_LINUX and SERVICE else "windows" if IS_WINDOWS and (APP or FROZEN)
         else "mac" if IS_MAC and (APP or FROZEN) else "desktop")
 DESKTOP_APP = KIND in ("windows", "mac")               # packaged app: updates come as a new installer / disk image
+SELF_UPDATE = KIND in ("pi", "desktop")                # can replace its own files (Docker: a new image instead)
 
 # Level of the system setup that install.sh does (packages, rights, services). Raise it when a new version needs a
 # new system step on existing installations: the Pi then asks once to run ./install.sh again ("refresh the setup").
@@ -48,7 +52,7 @@ def data_dir() -> Path:
 
 
 def can_restart() -> bool:
-    return SERVICE or APP
+    return SERVICE or APP or DOCKER      # Docker: the container's restart policy starts it again
 
 
 def restart() -> None:
@@ -60,6 +64,15 @@ def restart() -> None:
         flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
         subprocess.Popen(args, creationflags=flags, close_fds=True, start_new_session=not IS_WINDOWS)
     os._exit(0)
+
+
+def mdns_name() -> str:
+    """The device's name on the local network ("pixxelspool.local"), where it answers to one: the Pi (avahi), the Mac
+    (Bonjour) and Linux with avahi. Empty where it is not reliable (Windows, Docker)."""
+    if KIND not in ("pi", "mac") and not (IS_LINUX and Path("/run/avahi-daemon").exists()):
+        return ""
+    name = socket.gethostname().split(".")[0].strip().lower()
+    return f"{name}.local" if name and name != "localhost" else ""
 
 
 def lan_ip() -> str:
@@ -179,4 +192,4 @@ def secure_data_dir() -> None:
 def info() -> dict:
     """For the UI: which platform features exist here."""
     return {"kind": KIND, "power": KIND == "pi", "restart": can_restart(), "pn532": IS_LINUX,   # PN532 over I2C (Pi); USB boards run as "USB reader"
-            "tailscale_setup": KIND == "pi", "self_update": not DESKTOP_APP}
+            "tailscale_setup": KIND == "pi", "self_update": SELF_UPDATE}

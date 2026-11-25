@@ -37,8 +37,10 @@ body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
 .info { color: var(--quiet); font-size: 13px; margin: 0 0 14px; }
 .pages { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .sheet { width: 210mm; height: 297mm; background: #fff; box-shadow: 0 2px 14px #0002; position: relative; overflow: hidden; flex: none; }
-.sheet .grid { position: absolute; display: grid; align-content: start; }
+.sheet .grid { position: absolute; display: flex; flex-direction: column; }
+.sheet .lrow { display: flex; flex: none; }
 .sheet .pno { position: absolute; right: 6mm; bottom: 3mm; font-size: 9px; color: #bbb; }
+.lrow > div > .lab { flex: 1; }
 .lab { position: relative; display: flex; align-items: center; justify-content: space-between; background: #fff; overflow: hidden;
   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .lab.empty { background: repeating-linear-gradient(45deg, #fafafa 0 2mm, #f1f1f1 2mm 4mm); }
@@ -66,7 +68,8 @@ body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
   .sheet { width: auto; height: auto; box-shadow: none; overflow: visible; break-after: page; page-break-after: always; }
   .sheet:last-child { break-after: auto; page-break-after: auto; }
   .sheet .grid { position: static; margin: 0 auto; width: max-content; }
-  .lab { break-inside: avoid; page-break-inside: avoid; }
+  /* rows are plain blocks: Safari ignores break-inside on grid items, so a page break could cut a label in half */
+  .sheet .lrow, .lab { break-inside: avoid; page-break-inside: avoid; }
 }
 @media screen and (max-width: 800px) { .app { grid-template-columns: 1fr; } .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
   .main { padding: 12px; } .sheet { zoom: .45; } }
@@ -103,7 +106,9 @@ function drawSide() {
       ${S.size === "c" ? `<div class="custom"><input type="number" data-n="w" min="25" max="100" step="1" value="${S.w}"> × <input type="number" data-n="h" min="12" max="70" step="1" value="${S.h}"> mm</div>` : ""}</div>
     <div class="grp"><b>${esc(T("Content"))}</b>
       ${sw("head", T("Storage name"))}${sw("purpose", T("Purpose / label"), !S.head)}${sw("pos", T("Position (level and slot)"))}
-      ${sw("qr", T("QR code"))}${D.logo !== null ? `<label class="row"><span>${esc(T("Logo in the QR code"))}</span><span class="sw"><input type="checkbox" id="logo" ${D.logo ? "checked" : ""} ${S.qr ? "" : "disabled"}><i></i></span></label>` : ""}</div>
+      ${sw("qr", T("QR code"))}${S.qr && D.bases.length > 1 ? `<div class="row qraddr"><span>${esc(T("QR code opens"))}</span></div>
+        <div class="chips">${D.bases.map((b) => `<button class="chip ${D.addr === b.key ? "on" : ""}" data-addr="${esc(b.key)}" title="${esc(b.url)}">${esc(b.url.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</button>`).join("")}</div>
+        <p class="hint">${esc(T("The .local name keeps working when the router gives PixxelSpool a new IP address."))}</p>` : ""}${D.logo !== null ? `<label class="row"><span>${esc(T("Logo in the QR code"))}</span><span class="sw"><input type="checkbox" id="logo" ${D.logo ? "checked" : ""} ${S.qr ? "" : "disabled"}><i></i></span></label>` : ""}</div>
     <div class="grp"><b>${esc(T("Look"))}</b>
       ${sw("strip", T("Colored strip"))}
       <label class="row"><span>${esc(T("Color"))}</span><input type="color" data-c="color" value="${esc(S.color)}"></label>
@@ -114,6 +119,7 @@ function drawSide() {
       <p class="hint">${esc(T("For a sheet that is already partly used: the first fields stay empty."))}</p></div>
     <button class="printbtn" id="print">${esc(T("Print"))}</button>
     <p class="hint">${esc(T("In the print dialog choose: paper A4, scale 100 % (not “fit to page”), margins “none” and no headers and footers."))}</p>
+    ${/^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent) ? `<p class="hint"><b>${esc(T("Safari: switch off “Print headers and footers” in the print dialog, otherwise the labels do not fit on the page."))}</b></p>` : ""}
     <button class="reset" id="reset">${esc(T("Reset settings"))}</button>`;
   $side.querySelectorAll("[data-cab]").forEach((b) => (b.onclick = () => {
     const k = b.dataset.cab;
@@ -128,6 +134,7 @@ function drawSide() {
     S[k] = clamp(i.value, ...r); if (k === "skip") S.skip = Math.round(S.skip); i.value = S[k]; upd(false);
   }));
   $side.querySelectorAll("[data-c]").forEach((i) => (i.oninput = () => { S.color = i.value; upd(false); }));
+  $side.querySelectorAll("[data-addr]").forEach((b) => (b.onclick = () => { save(); const u = new URL(location.href); u.searchParams.set("addr", b.dataset.addr); location.href = u; }));
   const lg = $side.querySelector("#logo");
   if (lg) lg.onchange = () => { save(); const u = new URL(location.href); u.searchParams.set("logo", lg.checked ? 1 : 0); location.href = u; };
   $side.querySelector("#print").onclick = () => print();
@@ -138,11 +145,12 @@ function upd(side) { save(); if (side) drawSide(); drawPages(); }
 function label(it) {
   if (!it) return `<div class="lab empty"></div>`;
   const w = S.w, h = S.h, pad = h * 0.09, strip = S.strip ? Math.max(1, h * 0.05) : 0;
-  const qrs = S.qr ? h - 2 * pad : 0, avail = w - qrs - 3 * pad - strip;
+  const qrs = S.qr ? h - 2 * pad : 0, avail = w - qrs - (S.qr ? 3 : 2) * pad - strip;
   const head = S.head ? [it.cabName, S.purpose ? it.purpose : ""].filter(Boolean).join(" · ") : "";
   const lines = 1 + (head ? 1 : 0) + (S.pos ? 1 : 0);
   const fs = Math.min(h * (lines === 1 ? 0.55 : lines === 2 ? 0.45 : 0.40), avail / (Math.max(it.id.length, 4) * 0.62));
-  const small = Math.max(1.4, Math.min(h * 0.13, avail / (Math.max(it.where.length, 12) * 0.54)));
+  // without a QR code the text gets the whole label: the small lines may grow too
+  const small = Math.max(1.4, Math.min(h * (S.qr ? 0.13 : 0.17), avail / (Math.max(it.where.length, 12) * 0.54)));
   const headFs = Math.max(1.3, Math.min(small, avail / (Math.max(head.length, 6) * 0.74)));
   return `<div class="lab${it.res ? " res" : ""}${S.qr ? "" : " center"}" style="padding:${pad}mm ${pad}mm ${pad}mm ${pad + strip}mm;gap:${pad}mm">
     ${strip ? `<span class="strip" style="width:${strip}mm"></span>` : ""}
@@ -164,16 +172,18 @@ function drawPages() {
   for (let i = 0; i < cells.length; i += per) pages.push(cells.slice(i, i + per));
   if (!pages.length) pages.push([]);
   const left = (210 - (cols * w + (cols - 1) * g)) / 2;      // centered horizontally, so the margins are even
-  $pages.innerHTML = pages.map((pg, i) => `<div class="sheet"><div class="grid" style="left:${left}mm;top:${m}mm;grid-template-columns:repeat(${cols},${w}mm);grid-auto-rows:${h}mm;gap:${g}mm">
-    ${pg.map(label).join("")}</div><span class="pno">${i + 1} / ${pages.length}</span></div>`).join("");
+  const rowsOf = (pg) => { const out = []; for (let i = 0; i < pg.length; i += cols) out.push(pg.slice(i, i + cols)); return out; };
+  $pages.innerHTML = pages.map((pg, i) => `<div class="sheet"><div class="grid" style="left:${left}mm;top:${m}mm;gap:${g}mm">
+    ${rowsOf(pg).map((r) => `<div class="lrow" style="gap:${g}mm;height:${h}mm">${r.map((it) => `<div style="width:${w}mm;height:${h}mm;display:flex">${label(it)}</div>`).join("")}</div>`).join("")}</div><span class="pno">${i + 1} / ${pages.length}</span></div>`).join("");
   $info.textContent = T("{0} labels · {1} per page · {2} pages · QR opens {3}", items.length, per, pages.length, D.base);
   fit();
 }
 function fit() {   // shrink texts that would be cut off until they fit (down to 1 mm)
   document.querySelectorAll(".lab .cab, .lab .pos, .lab b").forEach((e) => {
     let fs = parseFloat(e.style.fontSize);
-    const r = document.createRange(); r.selectNodeContents(e);
-    while (r.getBoundingClientRect().width > e.clientWidth * 0.94 && fs > 1) { fs -= 0.1; e.style.fontSize = fs.toFixed(2) + "mm"; }
+    // measure against the text column: centred lines (no QR code) are only as wide as their text
+    const r = document.createRange(), max = e.parentElement.clientWidth * 0.94; r.selectNodeContents(e);
+    while (r.getBoundingClientRect().width > max && fs > 1) { fs -= 0.1; e.style.fontSize = fs.toFixed(2) + "mm"; }
   });
 }
 const $side = document.getElementById("side"), $pages = document.getElementById("pages"), $info = document.getElementById("info");

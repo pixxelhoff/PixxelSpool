@@ -1,0 +1,22 @@
+# PixxelSpool with Docker Compose.  Start: docker compose up -d   ·   Update: docker compose pull && docker compose up -d
+# Then open http://<address of this computer>:8000
+services:
+  pixxelspool:
+    image: ghcr.io/pixxelhoff/pixxelspool:beta   # ":latest" from the first final release on
+    container_name: pixxelspool
+    restart: unless-stopped        # also needed for "Restart" in Options › System
+    # Host network: the printer is found in the home network and the phone reaches PixxelSpool directly.
+    # (Linux only. On Docker Desktop for Mac/Windows remove this line and use the "ports" lines below.)
+    network_mode: host
+    # ports:
+    #   - "8000:8000"
+    environment:
+      - TZ=Europe/Berlin
+      # - PIXXELSPOOL_PORT=8000
+    volumes:
+      - ./data:/data               # database, settings, backups: keep this folder
+    # NFC reader (optional): pass in what you use and remove the "#"
+    # devices:
+    #   - /dev/bus/usb:/dev/bus/usb   # USB reader (ACR122U, ACR1252U …)
+    #   - /dev/ttyUSB0:/dev/ttyUSB0   # PN532 board with USB-C (serial)
+    #   - /dev/i2c-1:/dev/i2c-1       # PN532 on the Raspberry Pi pins (I2C)

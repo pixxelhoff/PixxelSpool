@@ -316,7 +316,7 @@ def status() -> dict:
     out["rollback"] = local_versions()
     out["git"] = git_checkout()
     out["service"] = host.can_restart()
-    out["self_update"] = not host.DESKTOP_APP
+    out["self_update"] = host.SELF_UPDATE
     return out
 
 
@@ -490,6 +490,8 @@ def start(target: str, restart, auto: bool = False) -> dict:
         raise ValueError("On Windows please download and run the new installer")
     if host.KIND == "mac":
         raise ValueError("On the Mac please download the new version and replace the app")
+    if host.KIND == "docker":
+        raise ValueError("In Docker please pull the new image: docker compose pull && docker compose up -d")
     if target == "latest":
         info = check(force=True)
         if info.get("error"):
