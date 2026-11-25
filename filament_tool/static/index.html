@@ -19,6 +19,8 @@
 <link rel="stylesheet" href="/static/style.css?v=VERSION">
 </head>
 <body class="booting">
+<div id="boot" aria-hidden="true"><div class="bk bkhead"></div><div class="bkmain"><div class="bkside"><div class="bk"></div><div class="bk tall"></div></div>
+  <div class="bkgrid"><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i><i class="bk"></i></div></div></div>
 <header>
   <img class="logo" src="/static/logo.svg?v=5" alt=""><h1><span class="wordmark" translate="no">Pi<span class="xx"><span>x</span><span>x</span></span>elSpool</span></h1>
   <span id="reader" class="pill">…</span>
@@ -26,6 +28,7 @@
   <div class="search">
     <svg class="sico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
     <input id="q" type="search" autocomplete="off">
+    <button id="qclear" class="qclear" type="button" hidden aria-label="Clear search" title="Clear search"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg></button>
     <ul id="results" hidden></ul>
   </div>
   <div id="bell" class="bell"><button class="bellbtn" aria-label="Notifications" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg><i class="badge" hidden></i></button><div class="bellbody"></div></div>
@@ -46,6 +49,7 @@
   <section id="storage">
     <div id="pickhint" class="pickhint" hidden></div>
     <div id="selbar" class="selbar" hidden></div>
+    <div id="today" class="today" hidden></div>
     <div id="returns" class="returns" hidden></div>
     <div id="jobnote" class="returns jobnote" hidden></div>
     <div id="drynote" class="returns drynote" hidden></div>
@@ -75,7 +79,7 @@
         <span class="sub">Line</span><select id="manLine"></select>
         <span class="sub">Color</span><select id="manColor"></select>
         <span class="sub">Where</span><select id="manWhere"><option value="auto">Automatic (rod, if the color isn't hanging yet)</option><option value="reserve">Reserve (shelf)</option></select>
-        <span class="sub">Price (optional)</span><span class="inline"><input id="manPrice" inputmode="decimal" placeholder="e.g. 15.99" style="width:110px"> €</span>
+        <span class="sub">Price (optional)</span><span class="inline"><input id="manPrice" inputmode="decimal" data-money placeholder="e.g. 15.99" style="width:110px"> €</span>
       </div>
       <div class="actions"><button class="primary" id="manAdd">Add</button></div>
     </div>
@@ -249,6 +253,7 @@
       <div class="optrow"><span title="Automatic: on phones, iPhone Duo and tablets in landscape; on a PC the bar at the top"><span class="beta" title="Experimental">β</span>Side menu <span class="sub">Experimental</span></span><div class="seg on-always" id="railseg"><button data-rail-opt="auto">Automatic</button><button data-rail-opt="on">On</button><button data-rail-opt="off">Off</button></div></div>
       <div class="optrow"><span>Sound when scanning</span><span class="inline"><button class="small" id="soundtest">Run test</button><span class="seg on-always"><button data-sound="on">On</button><button data-sound="off">Off</button></span></span></div>
       <p class="sub" id="soundinfo"></p>
+      <div class="optrow"><span title="Colors Bambu Lab no longer sells. They are marked in the catalog, do not count as missing and get no shop link.">Discontinued colors in the catalog</span><div class="seg on-always" id="discseg"><button data-disc="1">Show</button><button data-disc="0">Hide</button></div></div>
       <div class="optrow"><span>Entries in history</span><span><input id="setLogRows" type="number" min="1" max="50" inputmode="numeric"></span></div>
       <div class="optrow"><span>Storage view on iPhone</span><div class="seg on-always"><button data-mode="compact">Compact</button><button data-mode="detail">Detail</button></div></div>
       <p class="sub">Color scheme, sound and storage view apply to this device only, everything else to all devices.</p>
@@ -279,6 +284,7 @@
       <div class="actions"><a class="btn primary" id="bkdl" href="/api/backup/download" download>Download backup</a>
         <button id="bkrestore">Restore backup …</button><input type="file" id="bkfile" accept=".zip,.db,.pspbackup,application/zip" hidden></div>
       <p class="sub">Before restoring, PixxelSpool backs up the current state automatically.</p>
+      <div class="optrow"><span>Export as table <span class="sub">CSV for Excel, Numbers or LibreOffice</span></span><span class="inline"><a class="btn small" href="/api/export/spools.csv" download>Spools</a><a class="btn small" href="/api/export/prints.csv" download>Prints</a></span></div>
       <div class="optsub" id="offsitetool">
         <h4>Network backup</h4>
         <p class="sub">Also stores the nightly backup on a network share. Credentials are only stored locally in PixxelSpool.</p>
@@ -308,7 +314,8 @@
       <p class="sub">PixxelSpool messages for troubleshooting, newest first. Access codes, tokens and passwords are redacted, in the export too.</p>
       <div class="optrow"><span>Detailed log <span class="sub">For troubleshooting: also records printer data, reader scans and every change. Switch it off again afterwards.</span></span><div class="seg on-always"><button data-logdet="1">On</button><button data-logdet="0">Off</button></div></div>
       <div class="logbar"><div class="seg on-always" id="loglvl"><button data-lvl="">All</button><button data-lvl="WARNING">Warnings and up</button><button data-lvl="ERROR">Error</button></div>
-        <input id="logq" type="search" placeholder="Filter…" autocomplete="off"><button class="small" id="logreload">Refresh</button><a class="btn small" id="logdl" href="/api/logs/download" download>Export</a></div>
+        <input id="logq" type="search" placeholder="Filter…" autocomplete="off"><button class="small" id="logreload">Refresh</button><a class="btn small" id="logdl" href="/api/logs/download" download>Export</a><a class="btn small bugbtn" href="https://github.com/__PM_REPO__/issues/new?template=bug_report.yml" target="_blank" rel="noopener">Report a bug</a></div>
+      <p class="sub">Report a bug: opens a form on GitHub with version, platform and printer already filled in. Attach the exported log if it helps.</p>
       <div id="logbox" class="logbox"></div>
     </div>
     <div class="tool" id="systool">
@@ -337,7 +344,7 @@
         <button type="button" class="btn" id="donatebtn"><span class="ico" data-ico="heart"></span>Support PixxelSpool</button>
         <a class="btn" href="https://github.com/__PM_REPO__" target="_blank" rel="noopener"><span class="ico" data-ico="code"></span>Project on GitHub</a>
         <a class="btn" href="https://github.com/__PM_REPO__/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span class="ico" data-ico="list"></span>Changelog</a>
-        <a class="btn" href="https://github.com/__PM_REPO__/issues" target="_blank" rel="noopener"><span class="ico" data-ico="bug"></span>Report a bug</a>
+        <a class="btn bugbtn" href="https://github.com/__PM_REPO__/issues/new?template=bug_report.yml" target="_blank" rel="noopener"><span class="ico" data-ico="bug"></span>Report a bug</a>
         <a class="btn" href="https://github.com/pixxelhoff" target="_blank" rel="noopener"><span class="ico" data-ico="user"></span>pixxelhoff on GitHub</a>
       </div>
       <details class="legal"><summary><span class="ico" data-ico="scale"></span>Legal notice</summary>

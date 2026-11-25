@@ -446,13 +446,16 @@ async function loadCatalog() { catalogData = await api("/api/catalog"); drawCata
 function drawCatalog() {
   if (!catalogData) return;
   const onlyMissing = $("#onlymissing").checked, onlyOwned = $("#onlyowned").checked;
+  const showDisc = !!SET().show_discontinued;
   $("#catlines").innerHTML = catalogData.filter((l) => !onlyOwned || l.owned).map((l) => {
-    const prods = l.products.filter((p) => !onlyMissing || !p.owned);
+    // discontinued colours: hidden unless switched on (or you still have a spool of them)
+    const prods = l.products.filter((p) => (!onlyMissing || !p.owned) && (!p.discontinued || showDisc || p.owned));
+    if (!prods.length) return "";
     return `<div class="catline"><h3>${esc(l.line)} <span class="sub">${T("colorsOf", l.owned, l.total)}${l.complete ? " · ✓ " + T("complete") : ""}</span></h3>
       <div class="bar"><i style="width:${(100 * l.owned / l.total).toFixed(0)}%"></i></div>
-      <div class="colors">${prods.map((p) => `<div class="color ${p.owned ? "" : "missing"}" data-cat="${p.id}" data-slot-ref="${esc(p.cabinet_slot ?? "")}">
+      <div class="colors">${prods.map((p) => `<div class="color ${p.owned ? "" : "missing"}${p.discontinued ? " disc" : ""}" data-cat="${p.id}" data-slot-ref="${esc(p.cabinet_slot ?? "")}">
         ${sw(p)}<span class="cname">${esc(cname(p))}<br><span class="sub">${esc(p.bambu_no ?? "")}</span></span>
-        <span class="meta">${p.owned ? `<b>${esc(p.cabinet_slot ?? "")}</b><br>${T("spools", p.owned)}` : isNoted(p.id) ? "" : T("missing")}${isNoted(p.id) ? `${p.owned ? "<br>" : ""}<span class="notedmark">${L("on the list")}</span>` : ""}</span></div>`).join("")}</div></div>`;
+        <span class="meta">${p.owned ? `<b>${esc(p.cabinet_slot ?? "")}</b><br>${T("spools", p.owned)}${p.discontinued ? `<br><span class="discmark" title="${esc(L("Bambu Lab no longer sells this color"))}">${L("discontinued")}</span>` : ""}` : p.discontinued ? `<span class="discmark" title="${esc(L("Bambu Lab no longer sells this color"))}">${L("discontinued")}</span>` : isNoted(p.id) ? "" : T("missing")}${isNoted(p.id) ? `${p.owned ? "<br>" : ""}<span class="notedmark">${L("on the list")}</span>` : ""}</span></div>`).join("")}</div></div>`;
   }).join("");
 }
 $("#onlymissing").onchange = drawCatalog; $("#onlyowned").onchange = drawCatalog;
@@ -467,10 +470,12 @@ $("#catlines").addEventListener("click", async (e) => {
   const body = `<div class="catpop"><div class="catpophead">${sw(p, "big")}<div><b>${esc(p.line)} ${esc(cname(p))}</b><br><span class="sub">${esc(p.bambu_no ?? "")}</span></div></div>
     ${sps.length ? `<ul class="shop">${sps.map((s) => `<li>${sw(s)}<span class="grow"><b>${where(s)}</b>${s.remain_pct != null ? ` · ${shownPct(s)} %` : ""}${s.is_refill ? " · " + T("refill") : ""}</span></li>`).join("")}</ul>`
       : `<p class="sub">${L(p.owned ? "In use or in the AMS." : "Not in your storage.")}</p>`}
+    ${p.discontinued ? `<p class="sub discmark">${L("Bambu Lab no longer sells this color.")}</p>` : ""}
     ${noted ? `<p class="sub">${L("This color is already on your shopping list.")}</p>` : ""}
     <p class="sub">${L("Minimum stock")}: ${minStock(pid) ? esc(Lp(minStock(pid), "{0} spool", "{0} spools")) : L("none")}</p></div>`;
   const extra = [{ label: L("Minimum stock"), value: "min" }].concat(sps.length ? [{ label: L("Show in storage"), value: "show" }] : []);
-  const r = await ask(body, { block: true, extra, cancel: L("Close"), ok: L(noted ? "Remove from shopping list" : "Add to shopping list") });
+  const r = await ask(body, { block: true, extra, cancel: L("Close"), ...(p.discontinued && !noted ? { ok: L("Close"), noCancel: true } : { ok: L(noted ? "Remove from shopping list" : "Add to shopping list") }) });
+  if (r === true && p.discontinued && !noted) return;
   if (r === "show") { const sp = sps.find((s) => s.in_cabinet) || sps[0]; showView("storage"); showSpool(await api(`/api/spools/${sp.id}`)); }
   else if (r === "min") { await askMinStock(pid, `${p.line} ${cname(p)}`); drawCatalog(); }
   else if (r === true) setNoted(pid, !noted);
@@ -583,7 +588,7 @@ async function refresh() {
   loadPrinter(); loadClimate(); drawClimWarn();
   if (haSensors === null && overview.ha?.status === "connected") loadSensors();
   setBell(overview.notices);
-  drawStorage(); drawStats(); drawReturns(); drawAms(); setReader(overview.reader); setHa(overview.ha); drawLog(); loadReorg(); wizSync();
+  drawStorage(); drawStats(); drawReturns(); drawToday(); drawAms(); setReader(overview.reader); setHa(overview.ha); drawLog(); loadReorg(); wizSync();
   if (view === "catalog") loadCatalog();
   if ($("#usedtool")?.classList.contains("open")) loadUsedUp();   // a spool put back leaves the used-up list right away
   let resume = null;
@@ -827,6 +832,22 @@ function drawBell() {
     if (k === "opt") openOpt(v);
   }));
 }
+// "Report a bug": the GitHub form with version, platform, browser and printer models filled in (no names or addresses)
+document.addEventListener("click", async (e) => {
+  const a = e.target.closest("a.bugbtn"); if (!a) return;
+  e.preventDefault();
+  const w = window.open("about:blank", "_blank");     // opened right away: Safari blocks windows opened after an await
+  let d = {}; try { d = await api("/api/diag"); } catch (err) {}
+  const plat = { pi: "Raspberry Pi", windows: "Windows app / Windows-App", mac: "Mac app / Mac-App" }[d.platform] || "Other / Andere";
+  const ua = navigator.userAgent, br = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Browser";
+  const os = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "";
+  const dev = [`${br}${os ? " (" + os + ")" : ""}`, ...(d.printers || []).map((m) => "Bambu Lab " + m), d.reader ? "Reader: " + d.reader : ""].filter(Boolean).join(", ");
+  const u = new URL(a.href);
+  u.searchParams.set("version", d.version || "");
+  u.searchParams.set("platform", plat);
+  u.searchParams.set("device", dev);
+  if (w) w.location = u.toString(); else location.href = u.toString();
+});
 // keep a dropdown inside the screen: it hangs from the right edge of its button, which is not always at the screen edge
 function fitPop(el) {
   if (!el) return;
@@ -915,7 +936,8 @@ function amsWhere(sp) {
 }
 // external holder without a tag: the printer only reports the selected profile, not a real spool
 const isExt = (t) => !/^AMS /.test(t.name);
-const isEmptyTray = (t) => !t.tray_uuid && (isExt(t) || t.state === "Empty" || t.type === "Empty" || !t.type);
+// a spool assigned by hand is there; an AMS slot the AMS reports as occupied (no material set) is not empty
+const isEmptyTray = (t) => !t.tray_uuid && !t.spool && (isExt(t) || (t.occupied !== true && (t.state === "Empty" || t.type === "Empty" || !t.type)));
 // external spools belong to the printer: shown in its card when that printer has one
 const extInCard = (t) => isExt(t) && printersShown().some((p) => p.id === t.printer && p.connected);
 // one AMS or external-holder row (AMS card and printer card)
@@ -973,7 +995,7 @@ document.addEventListener("click", async (e) => {
   } else if (em) {
     e.stopPropagation();
     const sp = (overview?.ams || []).find((t) => t.spool && String(t.spool.id) === em.dataset.emptyspool)?.spool;
-    if (sp && await askConfirm(esc(L("Mark {0} as empty?", `${sp.line} ${cname(sp)}`)) + emptyHint(), { ok: L("Empty"), danger: true, html: true })) spoolAction(sp, "empty", true);
+    if (sp) spoolAction(sp, "empty", true);      // no question: the message offers "Undo"
   } else if (ad) {
     e.stopPropagation(); ad.disabled = true;
     const t = (overview?.ams || []).find((x) => x.entity === ad.dataset.adopt && (!ad.dataset.printer || x.printer === ad.dataset.printer));
@@ -1011,6 +1033,7 @@ async function assignTray(t) {
   const html = `<p><span class="amscol" style="background:${esc(col)}"></span>${L("In <b>{0}</b> is a spool without a Bambu tag ({1}). Which of your spools is it?", esc(tr(t.name)), esc(t.type || "?"))}</p>
     <div class="field"><select id="assignpick">${grp(L("Same material"), same)}${grp(T("allOthers"), other)}${grp(L("With Bambu tag"), chip)}</select></div>
     <p class="sub">${esc(L("PixxelSpool then counts it as in the AMS until the slot is empty, and subtracts what finished prints use. Its storage slot stays free for it."))}</p>
+    ${isExt(t) ? `<p class="sub">${esc(L("The printer can't tell when a spool is taken off the external holder. When you change it, put it back in PixxelSpool."))}</p>` : ""}
     <p class="sub expnote">${esc(L("Experimental: the AMS can't measure spools without a tag, so the remaining amount is an estimate from the print files. Weigh the spool now and then."))}</p>`;
   const ok = await ask(html, { block: true, html: true, title: L("Assign spool"), ok: L("Assign") });
   const sel = document.getElementById("assignpick");
@@ -1068,7 +1091,8 @@ let refillAsking = false;
 async function askRefillAms() {
   if (refillAsking || amsAsking || document.body.classList.contains("wizopen") || document.body.classList.contains("locked")) return;
   if (document.querySelector(".dlgwrap, .wnwrap")) { setTimeout(askRefillAms, 3000); return; }
-  const sp = allSpools().find((x) => x.refill_ask && x.ams_slot);
+  // any refill in the AMS (also one marked as refill while it was already there) is asked about once
+  const sp = allSpools().find((x) => (x.refill_ask || x.is_refill) && x.ams_slot);
   if (!sp) return;
   refillAsking = true;
   try {
@@ -1081,6 +1105,28 @@ async function askRefillAms() {
     await refresh();
   } catch (e) { toast(e.message); } finally { refillAsking = false; }
 }
+// beta.2: "Today" bar on top of the storage: what needs doing, each chip leads there
+function drawToday() {
+  const el = $("#today"); if (!el || !overview) return;
+  const ret = overview.slots.flatMap((sl) => sl.spools).filter((sp) => sp.needs_return).length;
+  const sh = insights?.shopping, low = sh ? sh.low.length + (sh.below_min || []).length : 0;
+  const list = sh ? (sh.noted || []).length + (sh.below_min || []).length : 0, dry = insights?.drying?.length || 0;
+  const chips = [
+    ret && ["returns", "undo", Lp(ret, "{0} spool to put back", "{0} spools to put back")],
+    low && ["shop", "low", Lp(low, "{0} color almost used up", "{0} colors almost used up")],
+    dry && ["dry", "dry", Lp(dry, "{0} spool to dry", "{0} spools to dry")],
+    list && ["shop", "cart", Lp(list, "{0} item on the shopping list", "{0} items on the shopping list")],
+  ].filter(Boolean);
+  el.hidden = !chips.length;
+  el.innerHTML = chips.length ? `<b>${L("Today")}</b>` + chips.map(([go, ic, t]) => `<button class="tchip t-${ic}" data-today="${go}">${t}</button>`).join("") : "";
+}
+$("#today").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-today]"); if (!b) return;
+  const go = b.dataset.today;
+  if (go === "returns") $("#returns").scrollIntoView({ behavior: "smooth", block: "center" });
+  if (go === "dry") { dryOpen = true; drawInsights(); $("#drynote").scrollIntoView({ behavior: "smooth", block: "center" }); }
+  if (go === "shop") { shopOpen = true; setPref("shopFold", "1"); showView("catalog"); drawInsights(); setTimeout(() => $("#shopping").scrollIntoView({ behavior: "smooth", block: "start" }), 200); }
+});
 function drawReturns() {
   const list = overview.slots.flatMap((sl) => sl.spools).filter((sp) => sp.needs_return);
   const el = $("#returns"); el.hidden = !list.length;
@@ -1090,13 +1136,44 @@ function drawReturns() {
 function matTag(line) {
   return line ? `<span class="mat">${esc(line)}</span>` : "";
 }
+// beta.2: on a computer (mouse) spools can be dragged onto another slot: free slot = move, taken slot = swap
+const DRAG = matchMedia("(hover: hover) and (pointer: fine)");
+let dragId = null;
+document.addEventListener("dragstart", (e) => {
+  const el = e.target.closest?.(".slot[data-spool][draggable]"); if (!el) return;
+  dragId = +el.dataset.spool; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(dragId));
+  el.classList.add("dragging"); document.body.classList.add("dnd");
+});
+document.addEventListener("dragend", () => { dragId = null; document.body.classList.remove("dnd");
+  document.querySelectorAll(".slot.dragging, .slot.dropok").forEach((x) => x.classList.remove("dragging", "dropok")); });
+document.addEventListener("dragover", (e) => {
+  if (dragId == null) return;
+  const t = e.target.closest?.(".slot[data-slot]"); document.querySelectorAll(".slot.dropok").forEach((x) => x !== t && x.classList.remove("dropok"));
+  if (!t || +t.dataset.spool === dragId) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = "move"; t.classList.add("dropok");
+});
+document.addEventListener("drop", async (e) => {
+  const t = e.target.closest?.(".slot[data-slot]"); if (dragId == null || !t) return;
+  e.preventDefault();
+  const id = dragId, other = t.dataset.spool ? +t.dataset.spool : null, slot = t.dataset.slot;
+  try {
+    if (other && other !== id) {
+      const r = await api(`/api/spools/${id}/swapwith`, { method: "POST", body: { other } });
+      await refresh(); toast(L("Swapped: this spool now belongs on <b>{0}</b>, the other one on <b>{1}</b>.", r.spool.slot_id, r.other.slot_id).replace(/<\/?b>/g, ""));
+    } else if (!other) {
+      await api(`/api/spools/${id}/move`, { method: "POST", body: { slot_id: slot, manual: true } });
+      await refresh(); toast(T("movedTo", slot));
+    }
+  } catch (err) { toast(tr(err.message)); }
+});
 function slotHtml(sl) {
   const sp = sl.spools[0];
   if (!sp) return `<div class="slot free" data-slot="${sl.id}"><span class="id">${sl.id}</span><span class="nm"></span></div>`;
   const cls = ["slot", sp.status === "in_use" ? "inuse" : "", sp.tray_uid ? "" : "unscanned",
 sp.ams_slot ? "ams" : "", sp.needs_return ? "toreturn" : "", sp.is_refill ? "refill" : ""].join(" ");
   const style = sp.hex ? `${swBg(sp)};color:${textOn(sp.hex)}` : "";
-  return `<div class="${cls}" style="${style}" data-slot="${sl.id}" data-spool="${sp.id}"
+  // a spool on the external holder is marked "Ext." instead of "AMS"
+  return `<div class="${cls}" style="${style}" data-slot="${sl.id}" data-spool="${sp.id}"${DRAG.matches ? ' draggable="true"' : ""}${sp.ams_slot ? ` data-ams="${/^AMS /.test(sp.ams_slot) ? "AMS" : esc(L("Ext."))}"` : ""}
     title="${title(sp)} (${sp.bambu_no ?? "–"}) · ${STATUS[sp.status]}${sp.ams_slot ? " · " + esc(T("inAms", amsWhere(sp))) : ""}${sp.needs_return ? " · " + T("toReturn") : ""}${sp.is_refill ? " · " + L("Refill (no spool)") : ""}">
     ${sp.is_refill ? `<span class="hatch"></span>` : ""}<span class="id">${sl.id}</span><span class="no">${esc(sp.bambu_no ?? "")}</span>
     ${matTag(sp.line)}<span class="nm">${esc(cname(sp))}</span></div>`;
@@ -1308,7 +1385,7 @@ async function bulkAct(act) {
   if (act === "cab") { overview.slots.forEach((sl) => sl.spools.forEach((sp) => sel.add(String(sp.id)))); return markSel(); }
   const n = sel.size, body = { ids: [...sel].map(Number), action: act };
   if (act === "price") {
-    const v = await ask(L("Price per spool for {0} (empty = remove price):", Lp(n, "{0} spool", "{0} spools")), { input: { inputmode: "decimal", suffix: SET().currency || "€" }, ok: L("Save") });
+    const v = await ask(L("Price per spool for {0} (empty = remove price):", Lp(n, "{0} spool", "{0} spools")), { input: { inputmode: "decimal", money: true, suffix: SET().currency || "€" }, ok: L("Save") });
     if (v === null) return;
     body.price = v.trim();
   }
@@ -1415,7 +1492,7 @@ function ask(text, o = {}) {
   return new Promise((resolve) => {
     const prev = document.activeElement;
     const wrap = document.createElement("div"); wrap.className = "dlgwrap";
-    const inp = o.input ? `<div class="dlgin"><input id="dlginput" type="${o.input.type || "text"}" ${o.input.inputmode ? `inputmode="${o.input.inputmode}"` : ""} value="${esc(o.input.value ?? "")}" placeholder="${esc(o.input.placeholder ?? "")}" autocomplete="${o.input.type === "password" ? "current-password" : "off"}">${o.input.suffix ? `<span>${esc(o.input.suffix)}</span>` : ""}</div>` : "";
+    const inp = o.input ? `<div class="dlgin"><input id="dlginput" type="${o.input.type || "text"}" ${o.input.inputmode ? `inputmode="${o.input.inputmode}"` : ""}${o.input.money ? " data-money" : ""} value="${esc(o.input.value ?? "")}" placeholder="${esc(o.input.placeholder ?? "")}" autocomplete="${o.input.type === "password" ? "current-password" : "off"}">${o.input.suffix ? `<span>${esc(o.input.suffix)}</span>` : ""}</div>` : "";
     const warnIco = o.warn ? `<span class="dlgwarn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18.5A2 2 0 0 0 3.5 21.5h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5"/><path d="M12 17.5h.01"/></svg></span>` : "";
     wrap.innerHTML = `<div class="dlg${o.warn ? " warn" : ""}${o.red ? " red" : ""}" role="dialog" aria-modal="true">${warnIco}${o.title ? `<h3>${esc(o.title)}</h3>` : ""}${o.block ? text : `<p>${o.html ? text : esc(text)}</p>`}${inp}
       <div class="actions">${(o.extra || []).map((x, i) => `<button data-dx="${i}">${esc(x.label)}</button>`).join("")}<span class="grow"></span>
@@ -1510,6 +1587,14 @@ function serialFold(uid) {
 const money = (v) => v == null ? "–" : Number(v).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + (SET().currency || "€");
 const dateShort = (v) => v ? new Date(String(v).replace(" ", "T")).toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric" }) : "";
 const dateTimeShort = (v) => v ? new Date(String(v).replace(" ", "T")).toLocaleString(LOCALE, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+// "lasts about …": filament left of this color (all spools) divided by the usage per day of the recent prints
+function reachText(pid) {
+  const rate = insights?.usage?.rate?.[pid]; if (!rate) return "";
+  const left = spoolsOf(pid).reduce((a, sp) => a + (gramsLeft(sp) ?? 0), 0); if (!left) return "";
+  const d = left / rate;
+  return d < 1.5 ? L("less than 2 days") : d < 14 ? Lp(Math.round(d), "about {0} day", "about {0} days")
+    : d < 60 ? Lp(Math.round(d / 7), "about {0} week", "about {0} weeks") : d < 730 ? Lp(Math.round(d / 30), "about {0} month", "about {0} months") : L("more than 2 years");
+}
 function spoolFacts(s) {
   const price = s.price ?? s.line_price;
   // remaining filament: grams of the full weight and percent; colors as in the list (remainCls)
@@ -1518,13 +1603,14 @@ function spoolFacts(s) {
   const wnet = s.measured_g != null ? Math.max(0, s.measured_g - (s.spool_g ?? SET().spool_g_default ?? 250)) : null;
   const restG = wnet != null && pct === Math.max(0, Math.min(100, Math.round(wnet * 100 / full))) ? wnet : Math.round(full * pct / 100);
   const rest = pct != null && s.status !== "empty" ? `<dt>${L("Remaining")}</dt><dd><b class="restnow ${remainCls(pct)}">${restG} g</b> / ${full} g · ${pct} %</dd>` : "";
-  return `<dl class="facts">${rest}${s.measured_at && wnet != null ? `<dt>${L("Weighed")}</dt><dd>${wnet} g · ${esc(dateShort(s.measured_at))}</dd>` : ""}
+  const reach = s.status !== "empty" ? reachText(s.product_id) : "";
+  return `<dl class="facts">${rest}${reach ? `<dt>${L("Lasts")}</dt><dd>${esc(reach)} <span class="sub" title="${esc(L("All spools of this color, at your usage of the last {0} days", insights.usage.rate_days))}">(${esc(L("this color"))})</span></dd>` : ""}${s.measured_at && wnet != null ? `<dt>${L("Weighed")}</dt><dd>${wnet} g · ${esc(dateShort(s.measured_at))}</dd>` : ""}
     <dt>${L("Price")}</dt><dd>${price != null ? money(price) + (s.price == null ? ` <span class="sub">(${L("estimate")})</span>` : "") : `<span class="sub">${L("not set")}</span>`}
       <button class="linkbtn" data-act="price">${L("change")}</button></dd>
     <dt>${L("Minimum stock")}</dt><dd>${minStock(s.product_id) ? esc(Lp(minStock(s.product_id), "{0} spool", "{0} spools")) : `<span class="sub">${L("none")}</span>`}
       <button class="linkbtn" data-act="minstock">${L("change")}</button></dd></dl>
     ${panel?.priceEdit ? `<div class="dateedit"><b>${L("Price of this spool")}</b>
-      <div class="pricefield"><input id="pricein" inputmode="decimal" value="${esc(panel.priceEdit.value)}" placeholder="${esc(s.line_price != null ? L("Line: {0}", money(s.line_price)) : L("e.g. 19.99"))}" autocomplete="off"><span class="cur">${esc(SET().currency || "€")}</span></div>
+      <div class="pricefield"><input id="pricein" inputmode="decimal" data-money value="${esc(panel.priceEdit.value)}" placeholder="${esc(s.line_price != null ? L("Line: {0}", money(s.line_price)) : L("e.g. 19.99"))}" autocomplete="off"><span class="cur">${esc(SET().currency || "€")}</span></div>
       ${s.price != null ? `<button class="linkbtn" id="priceline">${L("Use the line price")}</button>` : ""}
       <div class="actions"><button class="small" id="pricecancel">${L("Cancel")}</button><button class="small primary" id="pricesave1">${L("Save")}</button></div></div>` : ""}
     <dl class="facts">${s.brand ? `<dt>${L("Brand")}</dt><dd>${esc(s.brand)}${s.sku ? ` · ${esc(s.sku)}` : ""}</dd>` : ""}
@@ -1566,7 +1652,7 @@ function renderSpool(el, p) {
     <div class="sub">${s.brand ? esc(s.brand) + (s.sku ? " " + esc(s.sku) : "") : "Bambu " + esc(s.bambu_no ?? "–")}${other && other !== cname(s) ? ` · ${esc(other)}` : ""}</div></div></div>
     <div class="where" title="${esc(T("slot"))}">${esc(where)}</div>${badges}
     <div class="actions">${acts.join("")}</div>
-    <div class="spoolopts">${refillSwitch(s.is_refill)}${links.join("")}</div>
+    <div class="spoolopts">${s.opened_at && !s.is_refill ? "" : refillSwitch(s.is_refill)}${links.join("")}</div>
     ${s.status !== "empty" && s.remain_pct === 0 ? `<div class="msg">${L("According to the AMS the spool is empty.")} <div class="actions"><button class="danger" data-act="empty">${L("Empty – remove")}</button></div></div>`
       : s.status !== "empty" && s.remain_pct != null && s.remain_pct <= SET().low_remain_pct ? `<div class="msg">${T("lowRemain")}</div>` : ""}
     ${(insights?.drying || []).some((d) => d.id === s.id) ? `<div class="msg">${L("Open for {0} days – drying recommended.", insights.drying.find((d) => d.id === s.id).open_days)} <div class="actions"><button data-act="dried">${L("Dried")}</button></div></div>` : ""}
@@ -1576,7 +1662,7 @@ function renderSpool(el, p) {
       <button class="delspool" data-act="delete" aria-label="${esc(L("Delete spool"))}" title="${esc(L("Delete spool"))} – ${esc(L("Removes the spool for good, without counting an empty spool"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
   highlight(s.slot_id, true, s.id);
   el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => spoolAction(s, b.dataset.act)));
-  $("#refill").onchange = async (e) => {
+  if ($("#refill")) $("#refill").onchange = async (e) => {
     const on = e.target.checked, body = { is_refill: on ? 1 : 0 };
     // marking a spool as refill only corrects the entry. Only the way back (the refill now sits on
     // an empty spool from the stock) uses up an empty spool, and only if the user says so.
@@ -1628,8 +1714,7 @@ function renderSpool(el, p) {
   if (p.after) p.after();
 }
 async function spoolAction(s, act, sure = false) {
-  // marking empty frees the slot: always ask first (unless the caller already did)
-  if (act === "empty" && !sure && !await askConfirm(esc(L("Mark {0} ({1}) as empty? The place becomes free.", `${s.line} ${cname(s)}`, s.slot_id || "–")) + emptyHint(), { ok: L("Empty"), danger: true, html: true })) return;
+  // beta.2: marking empty happens right away; the message offers "Undo" for a few seconds instead of asking first
   try {
     if (act === "card") return shareCard(s);
     if (act === "minstock") { if (await askMinStock(s.product_id, `${s.line} ${cname(s)}`)) render(); return; }
@@ -1708,6 +1793,16 @@ async function spoolAction(s, act, sure = false) {
     if (act === "live") { await refresh(); showSpool(res.spool, null, L("To live stock: hang the spool on <b>{0}</b>.", esc(res.spool.slot_id)) + (res.other ? " " + L("The spool that was there goes to <b>{0}</b>.", esc(res.other.slot_id)) : "")); return; }
     if (act === "swap") { await refresh(); showSpool(res.spool, null, L("Swapped: this spool now belongs on <b>{0}</b>, the other one on <b>{1}</b>.", esc(res.spool.slot_id), esc(res.other.slot_id))); return; }
     if (act === "empty") {
+      const before = { slot: s.in_cabinet ? s.slot_id : null };
+      toast(L("{0} marked as empty", `${s.line} ${cname(s)}`), { label: L("Undo"), run: async () => {
+        try {
+          // back onto its old slot if that is still free, otherwise PixxelSpool proposes one (like "Put back")
+          const sp = before.slot && !overview.slots.find((x) => x.id === before.slot)?.spools.length
+            ? await api(`/api/spools/${s.id}/move`, { method: "POST", body: { slot_id: before.slot } })
+            : await api(`/api/spools/${s.id}/return`, { method: "POST" });
+          await refresh(); showSpool(sp); toast(L("Undone"));
+        } catch (e) { toast(tr(e.message)); }
+      } });
       const msg = () => T("emptied") + " " + (res.successor
         ? `${esc(T("successor", res.successor.slot_id))}<div class="actions"><button class="primary" id="promote">${esc(T("promote", res.freed_slot))}</button></div>`
         : res.freed_slot ? esc(T("freed", res.freed_slot)) : "");
@@ -1732,7 +1827,7 @@ function renderNew(el, p) {
     <div class="sub">${p.in_cabinet ? T("proposeCab") : T("proposeOverflow")}</div>
     <div class="where">${esc(slot)}</div>
     <div class="spoolopts">${refillSwitch(false)}</div>
-    <label class="pricein"><span class="sub">${L("Price (optional)")}</span><input id="newprice" inputmode="decimal" value="${esc(lastTyped[pr.line] || "")}" placeholder="${esc(p.lastPrice != null ? L("last {0}", priceStr(p.lastPrice)) : "–")}"> ${esc(SET().currency || "€")}</label>
+    <label class="pricein"><span class="sub">${L("Price (optional)")}</span><input id="newprice" inputmode="decimal" data-money value="${esc(lastTyped[pr.line] || "")}" placeholder="${esc(p.lastPrice != null ? L("last {0}", priceStr(p.lastPrice)) : "–")}"> ${esc(SET().currency || "€")}</label>
     <div class="actions"><button class="primary" id="store">${T("storeHere")}</button>
       <button id="other">${T("otherSlot")}</button></div>
     ${p.msg ? `<div class="msg err">${esc(p.msg)}</div>` : ""}${tagDetails(t)}`;
@@ -1879,9 +1974,33 @@ function sizeSearch() {
 }
 addEventListener("resize", () => sizeSearch());
 $("#q").addEventListener("blur", () => { $("#q").placeholder = T("search"); });
-$("#q").addEventListener("keydown", (e) => { if (e.key === "Escape") { e.target.value = ""; $("#results").hidden = true; e.target.blur(); } });
-// Cmd/Ctrl+K opens the search from anywhere
-document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("#q").focus(); } });
+// clearing the search (× button or Esc): empty field, no results, no highlighted slot, field closed
+function clearSearch() {
+  clearTimeout(searchT); $("#q").value = ""; $("#results").hidden = true; $("#qclear").hidden = true; highlight(null); $("#q").blur();
+}
+$("#q").addEventListener("keydown", (e) => { if (e.key === "Escape") clearSearch(); });
+$("#q").addEventListener("input", () => { $("#qclear").hidden = !$("#q").value; });
+$("#qclear").addEventListener("pointerdown", (e) => e.preventDefault());   // keep the focus until the click (the field would collapse first)
+$("#qclear").onclick = clearSearch;
+// Cmd/Ctrl+K or "/" opens the search from anywhere ("/" only when not typing in a field)
+const typing = (el) => el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("#q").focus(); return; }
+  if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !typing(document.activeElement) && !document.querySelector(".dlgwrap")) {
+    e.preventDefault(); $("#q").focus();
+  }
+});
+// arrow keys move through the search results, Enter opens the marked one
+$("#q").addEventListener("keydown", (e) => {
+  const ul = $("#results"); if (ul.hidden || !["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) return;
+  const items = [...ul.querySelectorAll("li[data-id], li.miss")]; if (!items.length) return;
+  let i = items.findIndex((li) => li.classList.contains("kbd"));
+  if (e.key === "Enter") { if (i >= 0 && items[i].dataset.id) { e.preventDefault(); items[i].click(); } return; }
+  e.preventDefault();
+  i = e.key === "ArrowDown" ? (i + 1) % items.length : (i <= 0 ? items.length - 1 : i - 1);
+  items.forEach((li, k) => li.classList.toggle("kbd", k === i));
+  items[i].scrollIntoView({ block: "nearest" });
+});
 
 function setReader(r) {
   const el = $("#reader"), cls = { ready: "ok", disconnected: "bad", missing: "bad" }[r.status] || "";
@@ -1992,7 +2111,7 @@ const shopUrl = (p) => p.brand
   ? (p.shop_url || "https://www.google.com/search?q=" + encodeURIComponent(`${p.line} ${p.color_name || ""} filament`))
   : "https://eu.store.bambulab.com/search?q=" + encodeURIComponent(`${p.line} ${p.name_en || p.color_name || ""}`);
 const chipP = (p, extra = "", unnote = false, note = false) => `<li>${sw(p)}<span class="grow">${esc(p.line)} ${esc(cname(p))} <span class="sub">${esc(p.bambu_no ?? "")}${extra}</span></span>
-  <a class="btn small" href="${shopUrl(p)}" target="_blank" rel="noopener">${L("Shop")}</a>${unnote ? `<button class="small" data-unnote="${p.id}" title="${esc(L("Remove from shopping list"))}" aria-label="${esc(L("Remove from shopping list"))}">×</button>` : ""}${note ? `<button class="small" data-note="${p.id}" title="${esc(L("Add to shopping list"))}" aria-label="${esc(L("Add to shopping list"))}">+</button>` : ""}</li>`;
+  ${p.discontinued ? `<span class="discmark" title="${esc(L("Bambu Lab no longer sells this color"))}">${L("discontinued")}</span>` : `<a class="btn small" href="${shopUrl(p)}" target="_blank" rel="noopener">${L("Shop")}</a>`}${unnote ? `<button class="small" data-unnote="${p.id}" title="${esc(L("Remove from shopping list"))}" aria-label="${esc(L("Remove from shopping list"))}">×</button>` : ""}${note ? `<button class="small" data-note="${p.id}" title="${esc(L("Add to shopping list"))}" aria-label="${esc(L("Add to shopping list"))}">+</button>` : ""}</li>`;
 const isNoted = (pid) => !!insights?.shopping?.noted?.some((p) => p.id === pid);
 async function setNoted(pid, on) {
   try { insights = await api("/api/shoplist", { method: "POST", body: { product_id: pid, on } }); drawInsights(); drawCatalog();
@@ -2016,6 +2135,7 @@ function foldHead(id, title, sum, open) {
 }
 function drawInsights() {
   if (!insights) return;
+  drawToday();
   // drying (storage view)
   const dry = insights.drying, dn = $("#drynote");
   dn.hidden = !dry.length;
@@ -2031,7 +2151,7 @@ function drawInsights() {
     `<p class="sub">${L("{0} empty spools available – enough for that many refills.", SET().empty_spools ?? 0)}</p>` +
     (noted.length ? `<h4>${L("Noted by you")}</h4><ul class="shop">${noted.map((p) => chipP(p, "", true)).join("")}</ul>` : "") +
     (below.length ? `<h4>${L("Below your minimum stock")}</h4><ul class="shop">${below.map((p) => chipP(p, " · " + L("{0} of {1} in stock", p.have, p.want))).join("")}</ul>` : "") +
-    (sh.low.length ? `<h4>${L("Almost empty, no spare spool")}</h4><ul class="shop">${sh.low.map((p) => chipP(p, " · " + L("{0} % remaining", p.remain_pct))).join("")}</ul>` : "") +
+    (sh.low.length ? `<h4>${L("Almost empty, no spare spool")}</h4><ul class="shop">${sh.low.map((p) => chipP(p, " · " + L("{0} % remaining", p.remain_pct) + (reachText(p.product_id) ? " · " + L("lasts {0}", reachText(p.product_id)) : ""))).join("")}</ul>` : "") +
     (sh.used_up.length ? `<h4>${L("Used up")}</h4><ul class="shop">${sh.used_up.map((p) => chipP(p)).join("")}</ul>` : "") +
     (sh.missing.length ? `<div class="subfold ${missOpen ? "open" : ""}" id="missbox"><h4 class="fold" id="missfold">${L("Missing from your collection lines")} <span class="sub foldsum">${sh.missing.length}</span><span class="chev">›</span></h4>
       <ul class="shop">${sh.missing.map((p) => chipP(p, "", false, true)).join("")}</ul></div>` : "") +
@@ -2101,6 +2221,7 @@ function fillSettings() {
   document.querySelectorAll("[data-cam]").forEach((b) => b.classList.toggle("on", b.dataset.cam === (st.camera || "off")));
   $("#datefmt").value = st.date_fmt || "auto";
   document.querySelectorAll("[data-tf]").forEach((b) => b.classList.toggle("on", b.dataset.tf === String(st.time_fmt || "auto")));
+  document.querySelectorAll("[data-disc]").forEach((b) => b.classList.toggle("on", b.dataset.disc === (st.show_discontinued ? "1" : "0")));
   document.querySelectorAll("[data-haon]").forEach((b) => b.classList.toggle("on", (b.dataset.haon === "1") === (st.ha_on !== false)));
   let wizOpen = false; try { wizOpen = wiz.open; } catch (e) { /* wizard not set up yet */ }
   $("#haFields").hidden = st.ha_on === false && !wizOpen;   // switched off: no input fields (the wizard has no switch)
@@ -2443,9 +2564,12 @@ function auditMisplaced(sp, at, short) {
     : `<div class="msg">${L("{0} belongs on <b>{1}</b> according to PixxelSpool, but is here on <b>{2}</b>.", title(sp), esc(sp.slot_id ?? "–"), esc(at))}
         <div class="actions"><button class="small" data-arebook="${sp.id}">${L("Book here ({0})", esc(at))}</button></div></div>`;
 }
+// taken out for printing (e.g. on the external holder): not on its slot, but not missing either
+const auditOut = (sp) => !sp.ams_slot && sp.status === "in_use";
 function auditSpool(sp, here) {
   const st = audit.seen[sp.id];
   const mark = sp.ams_slot ? `<span class="badge info">${L("in AMS {0}", esc(amsWhere(sp)))}</span>`
+    : auditOut(sp) && !st ? `<span class="badge info">${esc(L("taken out"))}</span>`
     : st?.kind === "missing" ? `<span class="badge bad">${L("missing")}</span>`
     : st ? `<span class="badge ok">✓ ${st.kind === "misplaced" ? L("found on {0}", esc(st.found_at ?? "")) : L("here")}</span>` : "";
   const btn = sp.ams_slot ? "" : st ? `<button class="small" data-aundo="${sp.id}">${L("Undo")}</button>`
@@ -2467,7 +2591,7 @@ function drawAudit() {
   }
   const here = audit.order[audit.idx], n = audit.order.length, lastSlot = audit.idx >= n - 1;
   const exp = sps.filter((x) => x.slot_id === here);
-  const open = exp.filter((x) => !x.ams_slot && !audit.seen[x.id]);
+  const open = exp.filter((x) => !x.ams_slot && !auditOut(x) && !audit.seen[x.id]);
   const last = audit.last;
   const what = exp.length === 1 ? L("the spool") : L("the spools");
   const hint = open.length ? L("Place {0} from <b>{1}</b> on the reader or tap “Lies here”. If a spool is not there, tap “Missing”.", what, esc(here ?? "–"))
@@ -2506,10 +2630,10 @@ function drawAuditReport() {
   const skipped = new Set(audit.skipped || []);
   const visited = new Set(audit.order.slice(0, audit.idx + 1).filter((x) => !skipped.has(x)));
   // not found: marked "Missing", or not seen on a slot that was checked (not skipped)
-  const missing = sps.filter((x) => !x.ams_slot && (audit.seen[x.id]?.kind === "missing" || (visited.has(x.slot_id) && !audit.seen[x.id])));
+  const missing = sps.filter((x) => !x.ams_slot && (audit.seen[x.id]?.kind === "missing" || (visited.has(x.slot_id) && !auditOut(x) && !audit.seen[x.id])));
   const mis = sps.filter((x) => audit.seen[x.id]?.kind === "misplaced" && audit.seen[x.id].found_at !== x.slot_id);
   const ok = sps.filter((x) => audit.seen[x.id] && audit.seen[x.id].kind !== "missing" && !mis.includes(x)).length;
-  const unchecked = [...skipped].filter((sl) => sps.some((x) => x.slot_id === sl && !x.ams_slot && !audit.seen[x.id])).length;
+  const unchecked = [...skipped].filter((sl) => sps.some((x) => x.slot_id === sl && !x.ams_slot && !auditOut(x) && !audit.seen[x.id])).length;
   $("#auditbox").innerHTML = `<div class="auditnow">
     <div class="auditsum">
       <span class="${ok ? "ok" : ""}"><b>${ok}</b>${L("correct")}</span>
@@ -2685,11 +2809,22 @@ function tmfMatch(f) {
     .map((p) => ({ p, d: dE00(lab, rgb2lab(hex2rgb(p.hex))) }));
   const same = cands.filter((c) => f.filament_id && c.p.material_id === f.filament_id).sort((a, b) => a.d - b.d);
   const exact = same.length && same[0].d < 3 ? same[0].p : null;
+  // the file only has a colour code (the designer picked an own colour): name the closest colour of that line
+  const near = !exact && same.length ? same[0] : null;
   const own = exact ? spoolsOf(exact.id) : [];
   // only real look-alikes: beyond ΔE 20 (e.g. black for white) it is a different color, not an alternative
   const alts = cands.filter((c) => c.p !== exact && c.d < 20 && matOf(c.p.line) === (mat === "OTHER" ? matOf(f.type) : mat) && spoolsOf(c.p.id).length)
     .sort((a, b) => a.d - b.d).slice(0, 3);
-  return { exact, own, alts };
+  return { exact, near, own, alts };
+}
+// price per gram for a 3MF filament: own spools first, then the line price, then the price set in the slicer
+function tmfPrice(f, m) {
+  const sp = m.own.find((x) => spoolPrice(x) != null);
+  if (sp) return { pg: spoolPrice(sp) / (sp.weight_g || sp.net_g || FULL_G), src: "stock" };
+  const p = m.exact || m.near?.p;
+  if (p?.line_price != null) return { pg: p.line_price / (p.net_g || FULL_G), src: "line" };
+  if (f.cost_kg) return { pg: f.cost_kg / 1000, src: "file" };
+  return null;
 }
 const gText = (g) => (g > 0 && g < 1 ? L("under 1 g") : `${Math.round(g)} g`);   // tiny parts (a logo inlay) must not read "0 g"
 function drawTmf() {
@@ -2698,23 +2833,37 @@ function drawTmf() {
   if (!tmf) { out.innerHTML = ""; return; }
   const used = tmf.filaments.filter((f) => f.used);
   const src = L(tmf.sliced ? "from the sliced file (exact)" : "estimated before slicing");
+  let total = 0, totalG = 0, costKnown = true;
+  const srcs = new Set();
+  const rows = used.map((f) => {
+    const need = f.exact_g ?? f.est_g, m = tmfMatch(f);
+    const have = m.own.reduce((s, sp) => s + (gramsLeft(sp) ?? 0), 0), unknown = m.own.some((sp) => gramsLeft(sp) == null);
+    const ri = refillInfo(m.own), ok = m.own.length && (have >= need * 1.1 || unknown) && !ri.blocked;
+    const status = !m.own.length ? `<span class="bad">${L("not in storage")}</span>` : ri.blocked ? `<span class="warnc">⚠︎ ${ri.text}</span>` : ok ? `<span class="okc">✓ ${L("in storage")}</span>` : `<span class="warnc">⚠︎ ${L("may not be enough")}</span>`;
+    const where = m.own.map((sp) => `<b>${esc(amsWhere(sp) || sp.slot_id || "–")}</b>${gramsLeft(sp) != null ? ` (~${gramsLeft(sp)} g)` : ""}`).join(", ");
+    const alt = !ok && m.alts.length ? `<div class="sub tmfalt">${L("Alternatives from storage:")} ${m.alts.map(({ p, d }) => { const sp = spoolsOf(p.id)[0];
+      return `<span class="altchip" data-spool="${sp.id}">${sw(p)} ${esc(p.line)} ${esc(cname(p))} · ${esc(amsWhere(sp) || sp.slot_id || "–")} · ${dEText(d)}</span>`; }).join(" ")}</div>` : "";
+    const pr = need > 0 ? tmfPrice(f, m) : null, cost = pr ? need * pr.pg : null;
+    if (need > 0) { totalG += need; if (cost != null) { total += cost; srcs.add(pr.src); } else costKnown = false; }
+    const name = m.exact ? `${esc(m.exact.line)} <span class="tmfcol">${esc(cname(m.exact))}</span>${m.exact.bambu_no ? ` <span class="sub">${esc(m.exact.bambu_no)}</span>` : ""}`
+      : `${esc(f.profile || f.type)} <span class="sub">${esc(f.hex)}</span>`;
+    const nearTxt = m.near ? `<div class="sub tmfnear">${L("Own colour from the file, not a Bambu colour. Closest: {0} ({1})", `${sw(m.near.p)} <b>${esc(cname(m.near.p))}</b>`, dEText(m.near.d))}</div>` : "";
+    const amount = f.support && !(need > 0) ? L("supports only, amount known after slicing")
+      : `${tmf.sliced || need < 1 ? "" : L("approx.") + " "}${gText(need)}${f.support ? " " + L("+ supports") : ""}${f.exact_m ? ` · ${f.exact_m} m` : ""}${f.painted ? ` · <span title="${esc(L("Painted in the file"))}">🖌︎ ${L("painted")}</span>` : ""}`;
+    return `<li><span class="tmfidx">${f.idx}</span>${sw(f.hex)}<span class="grow"><span class="tmfname">${name}</span>${nearTxt}
+      <span class="sub tmfline">${amount} · ${status}${where ? ` · ${where}` : ""}${ri.blocked ? "" : refillHtml(ri)}</span>${alt}</span>
+      <span class="tmfcost">${cost != null ? `${need < 1 || !tmf.sliced ? "~" : ""}${esc(money(cost))}` : need > 0 ? `<span class="sub">${L("no price")}</span>` : ""}</span>
+      ${!m.own.length && (m.exact || m.near) && !(m.exact || m.near.p).discontinued ? `<a class="btn small" href="${shopUrl(m.exact || m.near.p)}" target="_blank" rel="noopener">${L("Shop")}</a>` : ""}</li>`;
+  });
+  const srcTxt = [...srcs].map((x) => L({ stock: "spool prices", line: "line prices", file: "prices from the file" }[x])).join(", ");
   out.innerHTML = `<p class="sub">${Lp(used.length, "{0} filament used", "{0} filaments used")} · ${L("amount {0}", src)}${tmf.printer ? ` · ${esc(tmf.printer)}` : ""}</p>
-    <ul class="shop tmflist">${used.map((f) => {
-      const need = f.exact_g ?? f.est_g, m = tmfMatch(f);
-      const have = m.own.reduce((s, sp) => s + (gramsLeft(sp) ?? 0), 0), unknown = m.own.some((sp) => gramsLeft(sp) == null);
-      const ri = refillInfo(m.own), ok = m.own.length && (have >= need * 1.1 || unknown) && !ri.blocked;
-      const status = !m.own.length ? `<span class="bad">${L("not in storage")}</span>` : ri.blocked ? `<span class="warnc">⚠︎ ${ri.text}</span>` : ok ? `<span class="okc">✓ ${L("in storage")}</span>` : `<span class="warnc">⚠︎ ${L("may not be enough")}</span>`;
-      const where = m.own.map((sp) => `<b>${esc(amsWhere(sp) || sp.slot_id || "–")}</b>${gramsLeft(sp) != null ? ` (~${gramsLeft(sp)} g)` : ""}`).join(", ");
-      const alt = !ok && m.alts.length ? `<div class="sub tmfalt">${L("Alternatives from storage:")} ${m.alts.map(({ p, d }) => { const sp = spoolsOf(p.id)[0];
-        return `<span class="altchip" data-spool="${sp.id}">${sw(p)} ${esc(p.line)} ${esc(cname(p))} · ${esc(amsWhere(sp) || sp.slot_id || "–")} · ${dEText(d)}</span>`; }).join(" ")}</div>` : "";
-      return `<li><span class="tmfidx">${f.idx}</span>${sw(f.hex)}<span class="grow"><b>${esc(f.profile || f.type)}</b> ${m.exact ? esc(cname(m.exact)) : `<span class="sub">${f.hex}</span>`}
-        <br><span class="sub">${f.support && !(need > 0) ? L("supports only, amount known after slicing") : `${tmf.sliced || need < 1 ? "" : L("approx.") + " "}${gText(need)}${f.support ? " " + L("+ supports") : ""}`}${f.exact_m ? ` · ${f.exact_m} m` : ""} · ${status}${where ? ` · ${where}` : ""}${ri.blocked ? "" : refillHtml(ri)}</span>${alt}</span>
-        ${!m.own.length && m.exact ? `<a class="btn small" href="${shopUrl(m.exact)}" target="_blank" rel="noopener">${L("Shop")}</a>` : ""}</li>`;
-    }).join("") || `<li class="sub">${L("No printable objects found.")}</li>`}</ul>
+    <ul class="shop tmflist">${rows.join("") || `<li class="sub">${L("No printable objects found.")}</li>`}</ul>
+    ${totalG > 0 ? `<div class="tmftotal"><span class="grow"><b>${L("Total")}</b><span class="sub">${srcTxt ? L("Cost from {0}", srcTxt) : L("No prices known yet")}${!costKnown && srcs.size ? " · " + L("not every filament has a price") : ""}</span></span>
+      <b>${tmf.sliced ? "" : "~"}${gText(totalG)}</b><b class="tmfcost">${srcs.size ? `${tmf.sliced && costKnown ? "" : "~"}${esc(money(total))}` : "–"}</b></div>` : ""}
     ${tmf.sliced ? "" : `<p class="tmfnote"><b>${L("Estimate before slicing")}</b> ${L("from {0} cm³ model volume, {1} walls, {2} % infill and {3} mm layer height. It is usually within a few percent of the “Model” value in Bambu Studio.", tmf.total_volume_cm3, tmf.settings.walls, tmf.settings.infill_pct, tmf.settings.layer_height)}
       ${L("Not included: supports, brim and purge.")}${tmf.multicolor ? " " + L("Multi-colour prints often add 20–40 % for the prime tower and purging.") : ""}
-      ${L("Exact values: slice in Bambu Studio, save the project and load the file here.")}${tmf.painted ? " " + L("The file contains painted areas; their share is counted towards the base filament.") : ""}</p>`}
-    <details class="tmfobj"><summary>${Lp(tmf.objects.length, "{0} object", "{0} objects")}</summary><ul>${tmf.objects.map((o) => `<li>${esc(o.name)} · Filament ${o.filament} · ${o.volume_cm3 > 0 && o.volume_cm3 < 0.1 ? "< 0.1" : o.volume_cm3} cm³ · ${o.est_g < 1 ? "" : L("approx.") + " "}${gText(o.est_g)}</li>`).join("")}</ul></details>`;
+      ${L("Exact values: slice in Bambu Studio, save the project and load the file here.")}${tmf.painted ? " " + L("The file contains painted areas: their colours are listed, the amounts are a rough estimate from the painted surface.") : ""}</p>`}
+    <details class="tmfobj"><summary>${Lp(tmf.objects.length, "{0} object", "{0} objects")}</summary><ul>${tmf.objects.map((o) => `<li>${esc(o.name)}${o.filament ? ` · Filament ${(o.paint_filaments?.length > 1 ? o.paint_filaments : [o.filament]).join(", ")}` : ""}${o.volume_cm3 != null ? ` · ${o.volume_cm3 > 0 && o.volume_cm3 < 0.1 ? "< 0.1" : o.volume_cm3} cm³` : ""}${o.est_g != null ? ` · ${o.est_g < 1 ? "" : L("approx.") + " "}${gText(o.est_g)}` : ""}</li>`).join("")}</ul></details>`;
   out.querySelectorAll("[data-spool]").forEach((el) => (el.onclick = async () => showSpool(await api(`/api/spools/${el.dataset.spool}`))));
 }
 // only .3mf files; iOS greys out unknown types, so it keeps the broad list and the name is checked instead
@@ -3505,7 +3654,7 @@ function drawBrands() {
         <span class="sub">${L("Suffix (optional)")}</span><input id="bfExtra" value="${esc(f.extra || "")}" placeholder="${esc(L("e.g. Silk, Matte, HS"))}">
         <span class="sub">${L("Filament per spool")}</span><span class="inline"><input id="bfNet" type="number" inputmode="numeric" value="${f.net_g ?? 1000}"> g</span>
         <span class="sub">${L("Empty spool weight")}</span><span class="inline"><input id="bfSpool" type="number" inputmode="numeric" value="${f.spool_g ?? ""}" placeholder="${esc(L("e.g. 180"))}"> g</span>
-        <span class="sub" title="${esc(L("Recommended retail price per spool"))}">${L("MSRP")}</span><span class="inline"><input id="bfPrice" inputmode="decimal" value="${f.price ?? ""}" placeholder="19,99"> ${esc(SET().currency || "€")}</span>
+        <span class="sub" title="${esc(L("Recommended retail price per spool"))}">${L("MSRP")}</span><span class="inline"><input id="bfPrice" inputmode="decimal" data-money value="${esc(priceStr(f.price))}" placeholder="19,99"> ${esc(SET().currency || "€")}</span>
         <span class="sub">${L("Drying")}</span><span class="inline"><input id="bfDryT" type="number" inputmode="numeric" value="${f.dry_temp ?? ""}" placeholder="55"> °C <input id="bfDryH" type="number" inputmode="numeric" value="${f.dry_hours ?? ""}" placeholder="8"> h</span>
         <span class="sub">${L("Shop link (optional)")}</span><input id="bfShop" value="${esc(f.shop_url || "")}" placeholder="https://…">
       </div>
@@ -3565,7 +3714,16 @@ function drawBrands() {
 
 // ------------------------------------------------------------ statistics
 let statsData = null, priceRows = null, delivRows = null, delivAll = false;
-const priceStr = (v) => v != null ? String(v).replace(".", LANG === "en" ? "." : ",") : "";
+const priceStr = (v) => v != null && v !== "" && isFinite(Number(v)) ? Number(v).toFixed(2).replace(".", LANG === "en" ? "." : ",") : (v ?? "");
+// price fields: a whole number like "9" becomes "9,00" when the field is left (inputs marked with data-money)
+document.addEventListener("focusout", (e) => {
+  const i = e.target;
+  if (!(i instanceof HTMLInputElement) || !i.hasAttribute("data-money")) return;
+  const t = i.value.trim().replace(/\s|€/g, "");
+  if (!/^\d+([.,]\d{0,2})?$/.test(t)) return;
+  const f = priceStr(Number(t.replace(",", ".")));
+  if (f !== i.value) { i.value = f; i.dispatchEvent(new Event("input", { bubbles: true })); }
+});
 async function loadStatsView() {
   try { statsData = await api("/api/stats"); } catch (e) { toast(e.message); return; }
   drawStatsView();
@@ -3591,9 +3749,14 @@ function drawStatsView() {
       <p class="sub">${L("Filament used times the spool price.")}</p>
       <h4>${L("Spending on spools")}</h4>${bars(d.months, "spent", (v) => Math.round(v) + " " + (SET().currency || "€"))}
       <p class="sub">${L("Spool prices by month received.")}</p></div>
+    ${(d.price_history || []).length ? `<div class="tool" id="pricehist"><h3>${L("Price history")}</h3>
+      <div class="phhead"><select id="phline" aria-label="${esc(L("Line"))}">${d.price_history.map((h, i) => `<option value="${i}" ${i === phSel ? "selected" : ""}>${esc(h.line)}</option>`).join("")}</select>
+      <span class="sub">${L("Paid per spool, by delivery day.")}</span></div><div id="phchart"></div></div>` : ""}
     <div class="tool"><h3>${L("Stock by material")}</h3><ul class="matbars">${st.materials.map((m) => `<li><span>${esc(m.material)}</span><span class="mb"><i style="width:${(100 * m.grams / maxMat).toFixed(0)}%"></i></span><b>${kg(m.grams)}</b><span class="sub">${Lp(m.spools, "{0} spool", "{0} spools")}</span></li>`).join("")}</ul></div>
     ${d.by_printer.length ? `<div class="tool"><h3>${L("By printer")}</h3><ul class="shop">${d.by_printer.map((b) => `<li><span class="grow">${esc(b.printer)}<span class="sub">${Lp(b.count, "{0} print", "{0} prints")}</span></span><b>${kg(b.grams)}</b><span class="pcost">${b.cost != null ? money(b.cost) : "–"}</span></li>`).join("")}</ul></div>` : ""}
-    <div class="tool"><h3>${L("Recent prints")}</h3>${d.prints.length ? `<p class="sub costnote">${L("Costs are estimates from the information available (filament used and spool prices). Electricity, purge waste (flushing) and the prime tower are not included.")}</p>` : ""}${d.prints.length ? `<ul class="shop prints">${d.prints.map((p) => `<li data-print="${p.id}"><span class="grow">${esc(p.name || L("Print job"))}<span class="sub">${esc(dateShort(p.ts))}${d.by_printer.length && p.printer ? " · " + esc(p.printer) : ""}${p.state === "failed" ? " · " + L("cancelled") : ""}</span></span><b>${gkg(p.grams)}</b><span class="pcost">${p.cost != null ? money(p.cost) : "–"}</span>${prenBtn()}${pdelBtn()}</li>`).join("")}</ul>`
+    ${(d.projects || []).length ? `<div class="tool"><h3>${L("Projects")}</h3><p class="sub">${L("Prints you put into a project (open a print below), added up.")}</p>
+      <ul class="shop projects">${d.projects.map((x) => `<li><span class="grow">${esc(x.name)}<span class="sub">${Lp(x.count, "{0} print", "{0} prints")} · ${esc(dateShort(x.first))}${x.first.slice(0, 10) !== x.last.slice(0, 10) ? " – " + esc(dateShort(x.last)) : ""}</span></span><b>${gkg(x.grams)}</b><span class="pcost">${x.cost != null ? money(x.cost) : "–"}</span></li>`).join("")}</ul></div>` : ""}
+    <div class="tool"><h3>${L("Recent prints")}</h3>${d.prints.length ? `<p class="sub costnote">${L("Costs are estimates from the information available (filament used and spool prices). Electricity, purge waste (flushing) and the prime tower are not included.")}</p>` : ""}${d.prints.length ? `<ul class="shop prints">${d.prints.map((p) => printLi(p, d.by_printer.length)).join("")}</ul>`
       : `<p class="sub">${L("From now on every finished print is recorded with usage and cost (needs the direct printer connection).")}</p>`}</div>`;
   box.querySelectorAll(".months.pick [data-month]").forEach((b) => (b.onclick = b.onkeydown = (e) => {
     if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
@@ -3601,6 +3764,68 @@ function drawStatsView() {
   }));
   box.querySelectorAll("ul.prints [data-pdel]").forEach((b) => (b.onclick = () => delPrint(b.closest("li"))));
   box.querySelectorAll("ul.prints [data-pren]").forEach((b) => (b.onclick = () => renamePrint(b.closest("li"))));
+  bindPrintRows(box);
+  if ($("#phline")) { $("#phline").onchange = () => { phSel = +$("#phline").value; drawPriceChart(); }; drawPriceChart(); }
+}
+// price history of one line: one line through the delivery prices, the line price as a dashed reference
+let phSel = 0;
+function drawPriceChart() {
+  const h = statsData?.price_history?.[phSel] || statsData?.price_history?.[0], el = $("#phchart"); if (!h || !el) return;
+  const pts = h.points, W = 640, H = 200, pl = 48, pr = 12, pt = 12, pb = 28;
+  const t = (d) => new Date(d + "T12:00").getTime(), t0 = t(pts[0].day), t1 = t(pts[pts.length - 1].day);
+  const vals = pts.map((p) => p.price).concat(h.line_price != null ? [h.line_price] : []);
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = Math.max(1, (hi - lo) * 0.15); lo = Math.max(0, Math.floor(lo - pad)); hi = Math.ceil(hi + pad);
+  const x = (d) => pl + (t1 === t0 ? (W - pl - pr) / 2 : (t(d) - t0) / (t1 - t0) * (W - pl - pr)), y = (v) => pt + (hi - v) / (hi - lo || 1) * (H - pt - pb);
+  const ticks = [lo, (lo + hi) / 2, hi];
+  const cur = SET().currency || "€";
+  el.innerHTML = `<svg class="phsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(L("Price history"))} ${esc(h.line)}">
+    ${ticks.map((v) => `<line class="phgrid" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text class="phax" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v)} ${esc(cur)}</text>`).join("")}
+    ${h.line_price != null ? `<line class="phref" x1="${pl}" x2="${W - pr}" y1="${y(h.line_price)}" y2="${y(h.line_price)}"/><text class="phax" x="${W - pr}" y="${y(h.line_price) - 5}" text-anchor="end">${esc(L("Line price"))} ${esc(money(h.line_price))}</text>` : ""}
+    <polyline class="phline" points="${pts.map((p) => `${x(p.day)},${y(p.price)}`).join(" ")}"/>
+    ${pts.map((p, i) => `<g class="phpt" data-i="${i}"><circle class="phhit" cx="${x(p.day)}" cy="${y(p.price)}" r="14"/><circle class="phdot" cx="${x(p.day)}" cy="${y(p.price)}" r="4.5"/></g>`).join("")}
+    <text class="phax" x="${pl}" y="${H - 8}">${esc(dateShort(pts[0].day))}</text><text class="phax" x="${W - pr}" y="${H - 8}" text-anchor="end">${esc(dateShort(pts[pts.length - 1].day))}</text>
+  </svg><div class="phtip" hidden></div>
+  <details class="phtable"><summary>${L("As a table")}</summary><table><tr><th>${L("Delivery")}</th><th>${L("Spools")}</th><th>${L("Price")}</th></tr>${pts.map((p) => `<tr><td>${esc(dateShort(p.day))}</td><td>${p.spools}</td><td>${esc(money(p.price))}</td></tr>`).join("")}</table></details>`;
+  const tip = el.querySelector(".phtip"), svg = el.querySelector("svg");
+  el.querySelectorAll(".phpt").forEach((g) => {
+    const show = () => {
+      const p = pts[+g.dataset.i], r = svg.getBoundingClientRect(), k = r.width / W;
+      tip.innerHTML = `<b>${esc(money(p.price))}</b><br><span class="sub">${esc(dateShort(p.day))} · ${esc(Lp(p.spools, "{0} spool", "{0} spools"))}</span>`;
+      tip.hidden = false; tip.style.left = `${x(p.day) * k}px`; tip.style.top = `${y(p.price) * k}px`;
+      el.querySelectorAll(".phpt").forEach((o) => o.classList.toggle("on", o === g));
+    };
+    g.addEventListener("pointerenter", show); g.addEventListener("click", show);
+    g.addEventListener("pointerleave", () => { tip.hidden = true; g.classList.remove("on"); });
+  });
+}
+// one recorded print; a click opens the filaments it used with grams and cost (detail rows from stats.py)
+const printLi = (p, withPrinter) => `<li data-print="${p.id}" class="prow" tabindex="0" aria-expanded="false"><span class="grow">${esc(p.name || L("Print job"))}<span class="sub">${esc(dateShort(p.ts))}${withPrinter && p.printer ? " · " + esc(p.printer) : ""}${p.state === "failed" ? " · " + L("cancelled") : ""}${p.project ? ` · <span class="pprojtag">${esc(p.project)}</span>` : ""}</span></span>`
+  + `<b${!p.grams ? ` title="${esc(L("No amounts were read from the print file"))}"` : ""}>${p.grams ? gkg(p.grams) : "–"}</b><span class="pcost">${p.cost != null ? money(p.cost) : "–"}</span>${prenBtn()}${pdelBtn()}</li>`;
+function printDetail(p) {
+  const rows = (p.detail || []).filter((x) => x.grams > 0);
+  const names = [...new Set((statsData?.projects || []).map((x) => x.name))];
+  const proj = `<div class="pproj"><span class="sub">${L("Project")}</span><input data-pproj="${p.id}" list="projnames" value="${esc(p.project || "")}" placeholder="${esc(L("e.g. Gift for Alex"))}" maxlength="80" autocomplete="off">
+    <datalist id="projnames">${names.map((n) => `<option value="${esc(n)}">`).join("")}</datalist><button class="small" data-pprojsave="${p.id}">${L("Save")}</button></div>`;
+  if (!rows.length) return `<li class="pdet"><p class="sub">${esc(L("No amounts were read from the print file, so usage and cost are unknown."))}</p>${proj}</li>`;
+  return `<li class="pdet">${proj}<ul>${rows.map((x) => `<li>${x.line ? sw(x) : sw("transparent", "none")}<span class="grow">${x.line ? `${esc(x.line)} ${esc(cname(x))}` : esc(L("Unknown spool"))}${x.slot ? `<span class="sub">${esc(x.slot)}</span>` : ""}</span>`
+    + `<b>${gkg(x.grams)}</b><span class="pcost">${x.cost != null ? money(x.cost) : `<span class="sub" title="${esc(L("No price set for this spool"))}">${L("no price")}</span>`}</span></li>`).join("")}</ul></li>`;
+}
+function bindPrintRows(box, list) {
+  box.querySelectorAll("ul.prints li.prow").forEach((li) => (li.onclick = li.onkeydown = (e) => {
+    if (e.target.closest("button")) return;
+    if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    const nx = li.nextElementSibling;
+    if (nx?.classList.contains("pdet")) { nx.remove(); li.setAttribute("aria-expanded", "false"); return; }
+    const p = (list || statsData?.prints || []).find((x) => x.id === +li.dataset.print); if (!p) return;
+    li.insertAdjacentHTML("afterend", printDetail(p)); li.setAttribute("aria-expanded", "true");
+    const inp = li.nextElementSibling.querySelector("[data-pproj]"), btn = li.nextElementSibling.querySelector("[data-pprojsave]");
+    const save = async () => {
+      try { await api(`/api/prints/${p.id}`, { method: "PATCH", body: { project: inp.value.trim() } }); } catch (err) { toast(tr(err.message)); return; }
+      p.project = inp.value.trim() || null; toast(L("Saved")); loadStatsView();
+    };
+    btn.onclick = save; inp.onkeydown = (ev) => { if (ev.key === "Enter") save(); };
+  }));
 }
 // rename a recorded print: the job name from the printer does not always fit
 const prenBtn = () => `<button class="pdel pren" data-pren title="${esc(L("Rename"))}" aria-label="${esc(L("Rename"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>`;
@@ -3620,6 +3845,7 @@ async function delPrint(li, list) {
   if (!await askConfirm(L("Remove “{0}” ({1}, {2}) from the statistics? Usage and cost of this print no longer count. Your spools stay as they are.",
     p.name || L("Print job"), dateShort(p.ts), gkg(p.grams)), { ok: L("Delete"), danger: true, title: L("Remove print") })) return false;
   try { await api(`/api/prints/${p.id}`, { method: "DELETE" }); } catch (e) { toast(e.message); return false; }
+  if (li.nextElementSibling?.classList.contains("pdet")) li.nextElementSibling.remove();
   li.remove(); toast(L("Print removed from the statistics"));
   loadStatsView();
   return true;
@@ -3629,7 +3855,7 @@ async function monthPrints(month) {
   let list; try { list = await api(`/api/prints?month=${month}`); } catch (e) { toast(e.message); return; }
   const d = new Date(+month.slice(0, 4), +month.slice(5) - 1, 1);
   const wrap = document.createElement("div"); wrap.className = "dlgwrap";
-  const rows = () => list.map((p) => `<li data-print="${p.id}"><span class="grow">${esc(p.name || L("Print job"))}<span class="sub">${esc(dateShort(p.ts))}${p.state === "failed" ? " · " + L("cancelled") : ""}</span></span><b>${gkg(p.grams)}</b><span class="pcost">${p.cost != null ? money(p.cost) : "–"}</span>${prenBtn()}${pdelBtn()}</li>`).join("")
+  const rows = () => list.map((p) => printLi(p)).join("")
     || `<li class="sub">${esc(L("No prints recorded"))}</li>`;
   wrap.innerHTML = `<div class="dlg monthdlg" role="dialog" aria-modal="true"><h3>${esc(d.toLocaleDateString(LOCALE, { month: "long", year: "numeric" }))}</h3>
     <ul class="shop prints">${rows()}</ul><div class="actions"><span class="grow"></span><button class="primary" data-dok>${esc(L("Close"))}</button></div></div>`;
@@ -3638,7 +3864,8 @@ async function monthPrints(month) {
     const li = b.closest("li"), id = +li.dataset.print;
     if (await delPrint(li, list)) { list = list.filter((x) => x.id !== id); if (!list.length) wrap.querySelector("ul").innerHTML = rows(); }
   }));
-    wrap.querySelectorAll("[data-pren]").forEach((b) => (b.onclick = async () => { await renamePrint(b.closest("li"), list); loadStatsView(); })); };
+    wrap.querySelectorAll("[data-pren]").forEach((b) => (b.onclick = async () => { await renamePrint(b.closest("li"), list); loadStatsView(); }));
+    bindPrintRows(wrap, list); };
   wrap.onclick = (e) => { if (e.target === wrap || e.target.closest("[data-dok]")) close(); };
   wrap.onkeydown = (e) => { if (e.key === "Escape") close(); };
   document.body.append(wrap); bind();
@@ -3654,9 +3881,9 @@ async function loadPrices() {
 function drawPrices() {
   const pb = $("#pricebox"), db = $("#delivbox"); if (!pb || !db || !priceRows) return;
   const cur = esc(SET().currency || "€");
-  pb.innerHTML = priceRows.length ? `<div class="optgrid prices">${priceRows.map((r) => `<span>${esc(r.name)} <span class="sub">${Lp(r.spools, "{0} spool", "{0} spools")}${r.paid ? " · " + L("paid avg. {0}", money(r.avg_paid)) : ""}</span></span><span class="inline"><input data-price="${r.id}" inputmode="decimal" value="${priceStr(r.price)}" placeholder="–"> ${cur}</span>`).join("")}</div>
+  pb.innerHTML = priceRows.length ? `<div class="optgrid prices">${priceRows.map((r) => `<span>${esc(r.name)} <span class="sub">${Lp(r.spools, "{0} spool", "{0} spools")}${r.paid ? " · " + L("paid avg. {0}", money(r.avg_paid)) : ""}</span></span><span class="inline"><input data-price="${r.id}" inputmode="decimal" data-money value="${priceStr(r.price)}" placeholder="–"> ${cur}</span>`).join("")}</div>
       <div class="actions"><button class="primary" id="pricesave">${L("Save prices")}</button></div>` : `<p class="sub">${L("Lines appear here as soon as you have spools of them.")}</p>`;
-  db.innerHTML = (delivRows || []).length ? `<div class="optgrid prices">${delivRows.slice(0, delivAll ? 999 : 8).map((r, i) => `<span>${esc(dateShort(r.day))} · ${esc(r.line)} <span class="sub">${Lp(r.spools, "{0} spool", "{0} spools")}${r.mixed ? " · " + L("different prices") : ""}</span></span><span class="inline"><input data-deliv="${i}" inputmode="decimal" value="${esc(delivEdit[r.day + "|" + r.line_id] ?? priceStr(r.price))}" placeholder="${r.mixed ? "…" : r.line_price != null ? esc(priceStr(r.line_price)) : "–"}"> ${cur}</span>`).join("")}</div>
+  db.innerHTML = (delivRows || []).length ? `<div class="optgrid prices">${delivRows.slice(0, delivAll ? 999 : 8).map((r, i) => `<span>${esc(dateShort(r.day))} · ${esc(r.line)} <span class="sub">${Lp(r.spools, "{0} spool", "{0} spools")}${r.mixed ? " · " + L("different prices") : ""}</span></span><span class="inline"><input data-deliv="${i}" inputmode="decimal" data-money value="${esc(delivEdit[r.day + "|" + r.line_id] ?? priceStr(r.price))}" placeholder="${r.mixed ? "…" : r.line_price != null ? esc(priceStr(r.line_price)) : "–"}"> ${cur}</span>`).join("")}</div>
       <div class="actions"><button class="primary" id="delivsave" ${Object.keys(delivEdit).length ? "" : "disabled"}>${L("Save prices")}</button>${delivRows.length > 8 ? `<button class="small" id="delivall">${delivAll ? L("Show less") : L("Show all {0}", delivRows.length)}</button>` : ""}</div>`
     : `<p class="sub">${L("No spools with a received date yet.")}</p>`;
   const da = $("#delivall"); if (da) da.onclick = () => { delivAll = !delivAll; drawPrices(); };
@@ -4054,6 +4281,7 @@ $("#setScanPause").onchange = () => { const v = parseFloat(String($("#setScanPau
 $("#setLogRows").onchange = async () => { await saveSettings({ log_rows: $("#setLogRows").value }); drawLog(); };
 $("#datefmt").onchange = async () => { await saveSettings({ date_fmt: $("#datefmt").value }); render(); drawPrinter?.(); };
 document.querySelectorAll("[data-tf]").forEach((b) => (b.onclick = async () => { await saveSettings({ time_fmt: b.dataset.tf }); render(); drawPrinter(); }));
+document.querySelectorAll("[data-disc]").forEach((b) => (b.onclick = async () => { await saveSettings({ show_discontinued: b.dataset.disc === "1" }); if (catalogData) drawCatalog(); }));
 document.querySelectorAll("[data-cam]").forEach((b) => (b.onclick = async () => {
   const m = b.dataset.cam;
   if (m === "max" && (SET().camera || "off") !== "max" && !await askConfirm(esc(L("Max shows every camera frame, up to 30 per second. This needs much more computing power, so PixxelSpool may become slower. Turn it on anyway?")) + (overview?.host?.kind === "pi" ? `<span class="dlgnote">${esc(L("The Pi gets noticeably warmer. A heatsink with a fan (e.g. the official Active Cooler) is recommended, otherwise it throttles itself when hot."))}</span>` : ""), { ok: L("Turn on anyway"), warn: true, html: true, title: L("Needs more computing power") })) return;

@@ -57,6 +57,7 @@ EXTRA = [
     "Update available: PixxelSpool {0}", "CPU", "Memory", "Temperature", "Storage space", "Power supply", "Last restart of the Pi", "PixxelSpool running since", "System",
     "Automatic system security updates", "OK", "Too many wrong attempts. Please try again in {0}.", "Security update available: PixxelSpool {0}. Please install it soon.",
     "Installing security update {0} automatically …", "Please refresh the setup once: run ./install.sh again in the PixxelSpool folder on the Pi.", "Security update {0} was installed automatically.",
+    "The Raspberry Pi was switched off without shutting down (last sign of life: {0}). Shut it down under Options › System first, otherwise the data and the memory card can be damaged.",
     "Version {0} did not start. PixxelSpool went back to {1} by itself; your data is unchanged.",
     "Version {0} had trouble starting and going back to {1} did not work. Please check the log.",
     "Print finished: {0}", "Print failed: {0}", "Print paused: {0}",

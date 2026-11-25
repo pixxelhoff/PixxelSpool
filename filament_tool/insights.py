@@ -57,7 +57,7 @@ def shopping(conn: sqlite3.Connection, st: dict) -> dict:
         q = ",".join("?" * len(lines))
         missing = [dict(r) for r in conn.execute(
             f"SELECT p.*, l.name AS line FROM products p JOIN lines l ON l.id = p.line_id WHERE l.name IN ({q}) "
-            "AND p.in_catalog = 1 AND NOT EXISTS (SELECT 1 FROM spools s WHERE s.product_id = p.id AND s.status != 'empty') "
+            "AND p.in_catalog = 1 AND p.discontinued = 0 AND NOT EXISTS (SELECT 1 FROM spools s WHERE s.product_id = p.id AND s.status != 'empty') "
             "ORDER BY l.name, p.bambu_no", lines)]
     # minimum stock per color: fewer spools (not empty) than wanted -> on the list, also before the last one is used up
     below = []
@@ -118,15 +118,20 @@ def set_min_stock(conn: sqlite3.Connection, product_id: int, n: int) -> None:
     settings.save({"min_stock": ms})
 
 
+REACH_DAYS = 60
+
+
 def consumption(conn: sqlite3.Connection) -> dict:
     """Usage from the recorded prints (per spool and month). The remaining-percent history is not used: weighing and
     corrections would count as printed filament."""
     months: dict = {}
     per_product: dict = {}
+    per60: dict = {}        # grams per color in the last REACH_DAYS days, for "lasts about …"
     since30 = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    since60 = (datetime.now() - timedelta(days=REACH_DAYS)).strftime("%Y-%m-%d")
     for r in conn.execute("SELECT ts, grams, detail FROM prints ORDER BY ts"):
         months[r["ts"][:7]] = months.get(r["ts"][:7], 0) + (r["grams"] or 0)
-        if r["ts"][:10] < since30:
+        if r["ts"][:10] < since60:
             continue
         try:
             detail = json.loads(r["detail"] or "[]")
@@ -135,7 +140,9 @@ def consumption(conn: sqlite3.Connection) -> dict:
         for d in detail:
             sp = conn.execute("SELECT product_id FROM spools WHERE id = ?", (d.get("spool_id"),)).fetchone() if d.get("spool_id") else None
             if sp:
-                per_product[sp["product_id"]] = per_product.get(sp["product_id"], 0) + (d.get("grams") or 0)
+                per60[sp["product_id"]] = per60.get(sp["product_id"], 0) + (d.get("grams") or 0)
+                if r["ts"][:10] >= since30:
+                    per_product[sp["product_id"]] = per_product.get(sp["product_id"], 0) + (d.get("grams") or 0)
     top = []
     for pid, g in sorted(per_product.items(), key=lambda x: -x[1])[:10]:
         p = conn.execute("SELECT p.*, l.name AS line FROM products p JOIN lines l ON l.id = p.line_id WHERE p.id = ?",
@@ -143,8 +150,17 @@ def consumption(conn: sqlite3.Connection) -> dict:
         if p:
             top.append({**dict(p), "grams": round(g)})
     first = conn.execute("SELECT MIN(ts) FROM prints").fetchone()[0]
+    # usage per day: over the last REACH_DAYS days, or since the first print (at least two weeks, so one big
+    # print on day one does not make a spool "last 2 days")
+    days = REACH_DAYS
+    if first:
+        try:
+            days = max(14, min(REACH_DAYS, (datetime.now() - datetime.fromisoformat(str(first)[:19])).days or 0))
+        except ValueError:
+            pass
+    rate = {str(pid): round(g / days, 2) for pid, g in per60.items() if g > 0}
     return {"months": [{"month": m, "grams": round(g)} for m, g in sorted(months.items())][-12:],
-            "top30": top, "since": first}
+            "top30": top, "since": first, "rate": rate, "rate_days": days}
 
 
 def all_insights(conn: sqlite3.Connection) -> dict:

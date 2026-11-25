@@ -227,8 +227,9 @@ def handle_scan(conn: sqlite3.Connection, tag: dict) -> dict:
                      ("#" + tag["color_rgba"][:6], product_id))
 
     # An unscanned spool from the initial stock? Then link it (rod spool first).
+    # (not one assigned by hand to an AMS slot: that one sits in the printer, not on the reader)
     seed = conn.execute(
-        "SELECT id FROM spools WHERE product_id = ? AND tray_uid IS NULL AND status != 'empty' "
+        "SELECT id FROM spools WHERE product_id = ? AND tray_uid IS NULL AND status != 'empty' AND ams_slot IS NULL "
         "ORDER BY in_cabinet DESC, is_refill, id LIMIT 1", (product_id,)).fetchone()
     if seed is not None:
         _apply_tag(conn, seed["id"], tag)
@@ -454,7 +455,7 @@ def catalog(conn: sqlite3.Connection) -> list:
     """All lines with all colors and the user's stock for each."""
     rows = conn.execute(
         "SELECT p.id, p.bambu_no, p.name_en, p.name_de, p.color_name, p.hex, p.colors, p.kind, "
-        "  p.in_catalog, l.name AS line, "
+        "  p.in_catalog, p.discontinued, l.name AS line, l.shop_url, l.brand, "
         "  (SELECT COUNT(*) FROM spools s WHERE s.product_id = p.id AND s.status != 'empty') AS owned, "
         "  (SELECT slot_id FROM spools s WHERE s.product_id = p.id AND s.in_cabinet = 1) AS cabinet_slot "
         "FROM products p JOIN lines l ON l.id = p.line_id WHERE COALESCE(l.brand, '') = '' "   # Bambu Lab lines only
@@ -464,9 +465,11 @@ def catalog(conn: sqlite3.Connection) -> list:
         lines.setdefault(r["line"], []).append(dict(r))
     out = []
     for name, products in lines.items():
-        owned = sum(1 for p in products if p["owned"])
-        out.append({"line": name, "total": len(products), "owned": owned,
-                    "complete": owned == len(products), "products": products})
+        # colours Bambu Lab no longer sells do not count as missing (only shown when switched on in the options)
+        active = [p for p in products if not p["discontinued"]]
+        owned = sum(1 for p in active if p["owned"])
+        out.append({"line": name, "total": len(active), "owned": owned,
+                    "complete": owned == len(active), "products": products})
     out.sort(key=lambda x: (-x["owned"], x["line"]))
     return out
 
@@ -646,10 +649,13 @@ def adopt_ams(conn: sqlite3.Connection, tray: dict, product_id: Optional[int] = 
 
 
 def _no_tag_tray(tray: dict) -> bool:
-    """An occupied AMS slot whose spool has no Bambu tag (the printer only knows the material set by hand)."""
+    """An occupied AMS slot or external holder whose spool has no Bambu tag (the printer only knows the material
+    set by hand). An AMS slot also counts when the AMS reports a spool but no material is set for it."""
     typ = (tray.get("type") or "").strip()
-    return (str(tray.get("name") or "").startswith("AMS ") and not tray.get("tray_uuid")
-            and bool(typ) and typ.lower() != "empty")
+    name = str(tray.get("name") or "")
+    if tray.get("tray_uuid") or not (name.startswith("AMS ") or name.startswith("External spool")):
+        return False
+    return (bool(typ) and typ.lower() != "empty") or (name.startswith("AMS ") and tray.get("occupied") is True)
 
 
 def assign_candidates(conn: sqlite3.Connection, tray: dict) -> list:

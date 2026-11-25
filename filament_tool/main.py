@@ -399,6 +399,14 @@ async def startup() -> None:
     _watch.start()
     if host.KIND == "pi":
         threading.Thread(target=_confirm_update, daemon=True, name="update-guard").start()
+    from . import power
+    power.check_and_start()
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    from . import power
+    power.clean_stop()
 
 
 def _confirm_update() -> None:
@@ -717,9 +725,11 @@ def prints_get(month: str = ""):
 
 @app.patch("/api/prints/{print_id}")
 def print_rename(print_id: int, payload: dict = Body(...)):
-    """Rename one recorded print."""
+    """Rename one recorded print, or put it into a project (payload "project", empty = none)."""
     with db.session() as conn:
-        if not stats.rename_print(conn, print_id, payload.get("name")):
+        if "name" in payload and not stats.rename_print(conn, print_id, payload.get("name")):
+            raise logic.InventoryError("Print not found")
+        if "project" in payload and not stats.set_project(conn, print_id, payload.get("project")):
             raise logic.InventoryError("Print not found")
     return {"ok": True}
 
@@ -769,12 +779,65 @@ def api_logs(level: str = "", q: str = "", limit: int = 500):
     return {"lines": logs.lines(level, q, max(1, min(limit, 2000)))}
 
 
+def _diag() -> dict:
+    """Facts for a bug report: version, platform, printer models, reader. No names, addresses, codes or tokens."""
+    import platform
+    from . import __version__
+    try:
+        models = [p.get("model") or "?" for p in bambu.printers()]
+    except Exception:       # noqa: BLE001 - a broken printer config must not break the bug report
+        models = []
+    st = settings.load()
+    return {"version": __version__, "platform": host.KIND, "os": f"{platform.system()} {platform.release()} ({platform.machine()})",
+            "python": platform.python_version(), "printers": models, "reader": _reader_state.get("kind") or "",
+            "reader_status": _reader_state.get("status") or "", "lang": st.get("lang") or "",
+            "update_channel": st.get("update_channel"), "ha": bool(st.get("ha_on")), "mock": MOCK}
+
+
+@app.get("/api/export/{what}.csv")
+def api_export(what: str):
+    """Spools or prints as a CSV file for Excel / Numbers (semicolon, decimal comma for German, UTF-8 with BOM)."""
+    import csv
+    import io
+    from fastapi.responses import Response
+    de = settings.lang() in ("de", "es")
+    num = (lambda v: "" if v is None else (f"{v:.2f}".replace(".", ",") if de else f"{v:.2f}")) 
+    out = io.StringIO()
+    w = csv.writer(out, delimiter=";" if de else ",")
+    with db.session() as conn:
+        if what == "spools":
+            w.writerow(["id", "brand", "line", "color", "bambu_no", "status", "slot", "ams", "remaining_pct", "price", "received", "opened", "refill"])
+            for r in conn.execute(logic.SPOOL_SELECT + " ORDER BY l.name, p.bambu_no, s.id"):
+                name = (r["name_de"] if settings.lang() == "de" else r["name_en"]) or r["color_name"]
+                w.writerow([r["id"], r["brand"] or "Bambu Lab", r["line"], name, r["bambu_no"] or "", r["status"], r["slot_id"] or "",
+                            r["ams_slot"] or "", "" if r["remain_pct"] is None else r["remain_pct"],
+                            num(r["price"] if r["price"] is not None else r["line_price"]), r["received_at"] or "", r["opened_at"] or "",
+                            1 if r["is_refill"] else 0])
+        elif what == "prints":
+            w.writerow(["id", "date", "name", "state", "printer", "project", "grams", "cost"])
+            for r in conn.execute("SELECT * FROM prints ORDER BY ts"):
+                w.writerow([r["id"], r["ts"], r["name"] or "", r["state"] or "", r["printer"] or "", r["project"] or "",
+                            num(r["grams"]), num(r["cost"])])
+        else:
+            return JSONResponse({"error": "Not found"}, status_code=404)
+    name = f"pixxelspool-{what}-{time.strftime('%Y%m%d')}.csv"
+    return Response("\ufeff" + out.getvalue(), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@app.get("/api/diag")
+def api_diag():
+    return _diag()
+
+
 @app.get("/api/logs/download")
 def api_logs_download():
-    """The log file as plain text for support requests (secrets redacted)."""
+    """The log file as plain text for support requests (secrets redacted), with the facts of _diag() on top."""
     from fastapi.responses import PlainTextResponse
     from . import __version__
-    head = f"# PixxelSpool {__version__} · {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    d = _diag()
+    head = (f"# PixxelSpool {__version__} · {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            + "".join(f"# {k}: {', '.join(v) if isinstance(v, list) else v}\n" for k, v in d.items() if k != "version") + "\n")
     name = f"pixxelspool-log-{time.strftime('%Y%m%d-%H%M')}.txt"
     return PlainTextResponse(head + logs.export_text(), headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
@@ -852,10 +915,12 @@ ACTIVE_JOB = {"prepare", "running", "pause", "slicing", "init"}
 
 
 def _direct(pid: str) -> bool:
-    """Is this printer connected directly and are AMS data available?"""
+    """Is this printer connected directly and are AMS data available? A printer without an AMS counts once its
+    full report has arrived (only the external holder), so its prints are checked and recorded as well."""
     t = _printers.get(pid)
-    return bool(t and t.state.get("status") == "connected"
-                and any(x["name"].startswith("AMS") for x in t.state.get("trays") or []))
+    trays = (t.state.get("trays") or []) if t else []
+    return bool(t and t.state.get("status") == "connected" and trays
+                and (t.state.get("ams_known") or any(x["name"].startswith("AMS") for x in trays)))
 
 
 def _bambu_changed(pid: str, res: dict) -> None:
@@ -1043,7 +1108,7 @@ def recent():
 def products():
     with db.session() as conn:
         return [dict(r) for r in conn.execute(
-            "SELECT p.*, l.name AS line, l.brand, l.shop_url, l.net_g FROM products p JOIN lines l ON l.id = p.line_id "
+            "SELECT p.*, l.name AS line, l.brand, l.shop_url, l.net_g, l.price AS line_price FROM products p JOIN lines l ON l.id = p.line_id "
             "ORDER BY l.name, p.bambu_no")]
 
 

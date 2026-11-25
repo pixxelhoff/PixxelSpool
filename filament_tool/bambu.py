@@ -282,12 +282,9 @@ def trays(state: dict) -> list:
                 "humidity_pct": hum_raw, "temp": _f(unit.get("temp")),
                 "dry_time": _f(unit.get("dry_time")),
             })
-    vt = p.get("vt_tray")
-    for ext in ([vt] if isinstance(vt, dict) else []) + list((p.get("vir_slot") or [])):
-        if not isinstance(ext, dict):
-            continue
+    for i, ext in enumerate(_ext_trays(p)):
         out.append({
-            "ams": 0, "slot": int(_f(ext.get("id"), 254)), "name": "External spool",
+            "ams": 0, "slot": int(_f(ext.get("id"), 254 + i)), "name": _ext_name(ext.get("id"), i),
             "tray_uuid": (ext.get("tray_uuid") or "").upper(), "tag_uid": ext.get("tag_uid") or "",
             "type": ext.get("tray_type") or "", "sub": ext.get("tray_sub_brands") or "",
             "color": (ext.get("tray_color") or "")[:6].upper(), "cols": [],
@@ -299,6 +296,18 @@ def trays(state: dict) -> list:
 
 
 EMPTY_UUID = "0" * 32
+
+
+def _ext_trays(p: dict) -> list:
+    """External spool holders: H2 models report them in vir_slot (two holders), older models in vt_tray."""
+    vir = [x for x in p.get("vir_slot") or [] if isinstance(x, dict)]
+    return vir or ([p["vt_tray"]] if isinstance(p.get("vt_tray"), dict) else [])
+
+
+def _ext_name(tid, i: int = 0) -> str:
+    """Name of an external holder by its id (254, 255), the same names the print file mapping uses (job_weights)."""
+    n = int(_f(tid, 254 + i))
+    return "External spool 2" if n == 255 else "External spool"
 
 
 def _present(ams: dict, gid: int) -> bool:
@@ -339,16 +348,22 @@ def ha_trays(state: dict) -> list:
                      ams_temp=_f(unit.get("temp")))
         return d
 
-    for i, ext in enumerate(p.get("vir_slot") or ([p["vt_tray"]] if isinstance(p.get("vt_tray"), dict) else [])):
-        if isinstance(ext, dict):
-            out.append(one(ext, "External spool" + (f" {i + 1}" if i else ""), str(ext.get("id", 254 + i))))
+    for i, ext in enumerate(_ext_trays(p)):
+        out.append(one(ext, _ext_name(ext.get("id"), i), str(ext.get("id", 254 + i))))
     for unit in ams.get("ams") or []:
         uid = int(_f(unit.get("id"), 0))
         for t in unit.get("tray") or []:
             tid = int(_f(t.get("id"), 0))
-            if not _present(ams, uid * 4 + tid):
+            present = _present(ams, uid * 4 + tid)
+            if not present:
                 t = {"id": t.get("id")}
-            out.append(one(t, f"AMS {uid + 1} · Slot {tid + 1}", str(uid * 4 + tid), unit))
+            d = one(t, f"AMS {uid + 1} · Slot {tid + 1}", str(uid * 4 + tid), unit)
+            # the AMS reports a spool here (bit mask), but no material is set for it (no Bambu tag, not set on the
+            # printer): occupied, not empty. Without the bit mask nothing is known about it.
+            d["occupied"] = present if ams.get("tray_exist_bits") not in (None, "") else None
+            if d["occupied"] and d["type"] == "Empty" and not d["tray_uuid"]:
+                d.update(type="", label="", state="")
+            out.append(d)
     return out
 
 
@@ -719,7 +734,9 @@ class BambuThread(threading.Thread):
             log.debug("Printer %s: job %s %s %%, trays %s", self.pid, jb["state"], int(jb["progress"] or 0),
                       "; ".join(f'{t["name"]} {t["type"] or "-"} {t["color"] or ""} {t["remain"]} % uuid {(t["tray_uuid"] or "")[:8]}' for t in ts))
             self._sig = sig
-            self.state.update(trays=ht, job=jb)
+            # a full report has arrived: printers without an AMS report an empty unit list, the external
+            # holder is then all there is (main._direct)
+            self.state.update(trays=ht, job=jb, ams_known=isinstance(a.get("ams"), list))
             self.on_change({"trays": True})
 
     def _fetch_weights(self, jb: dict) -> None:

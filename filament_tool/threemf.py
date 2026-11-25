@@ -35,15 +35,42 @@ def _det(m: list) -> float:
     return abs(a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g))
 
 
+def _paint(code: str) -> dict:
+    """Decode a painted triangle (Bambu "paint_color" / PrusaSlicer "mmu_segmentation", TriangleSelector format)
+    into {state: share of the triangle}. State 0 = not painted (the object's own filament), state k = filament k.
+    The string is read nibble by nibble from its end; a split node has 2 to 4 children, the area is split evenly."""
+    try:
+        nib = [int(c, 16) for c in reversed(code)]
+    except ValueError:
+        return {}
+    out: dict = {}
+    pos, stack = 0, [1.0]
+    while stack and pos < len(nib):
+        w = stack.pop()
+        c = nib[pos]
+        pos += 1
+        split = c & 3
+        if split:
+            stack.extend([w / (split + 1)] * (split + 1))
+            continue
+        st = c >> 2
+        if st == 3 and pos < len(nib):
+            st = nib[pos] + 3
+            pos += 1
+        out[st] = out.get(st, 0.0) + w
+    return out
+
+
 def _mesh_stats(data: bytes) -> dict:
     """{object_id: (volume_mm3, (side, top, bottom) area_mm2, painted)} for all mesh objects of a .model file.
+    painted is {} for an unpainted object, otherwise {state: painted area mm2} (state 0 = the object's own filament).
     The area is split by the face normal: steep faces get walls, faces looking up/down get top/bottom shells."""
-    out, verts, vol, area, painted, cur = {}, [], 0.0, [0.0, 0.0, 0.0], False, None
+    out, verts, vol, area, painted, cur = {}, [], 0.0, [0.0, 0.0, 0.0], {}, None
     for ev, el in ET.iterparse(io.BytesIO(data), events=("start", "end")):
         tag = el.tag.rsplit("}", 1)[-1]
         if ev == "start":
             if tag == "object":
-                cur, verts, vol, area, painted = el.get("id"), [], 0.0, [0.0, 0.0, 0.0], False
+                cur, verts, vol, area, painted = el.get("id"), [], 0.0, [0.0, 0.0, 0.0], {}
             continue
         if tag == "vertex":
             verts.append((float(el.get("x")), float(el.get("y")), float(el.get("z"))))
@@ -63,13 +90,17 @@ def _mesh_stats(data: bytes) -> dict:
                 # within 45° of horizontal counts as top (normal up) or bottom (normal down)
                 k = 0 if abs(nz) < 0.7071 * dbl else (1 if nz > 0 else 2)
                 area[k] += 0.5 * dbl
-            if not painted and (el.get("paint_color") or el.get("{http://schemas.slic3r.org/3mf/2017/06}mmu_segmentation")):
-                painted = True
+            code = el.get("paint_color") or el.get("{http://schemas.slic3r.org/3mf/2017/06}mmu_segmentation")
+            if code:
+                for st, share in _paint(code).items():
+                    painted[st] = painted.get(st, 0.0) + share * 0.5 * dbl
+            elif painted is not None and dbl > 0:
+                painted[0] = painted.get(0, 0.0) + 0.5 * dbl
         elif tag == "object":
             if verts:
                 if vol < 0:          # inverted winding: up and down are swapped
                     area[1], area[2] = area[2], area[1]
-                out[cur] = (abs(vol), tuple(area), painted)
+                out[cur] = (abs(vol), tuple(area), painted if any(k for k in painted) else {})
             verts = []
         if tag in ("vertex", "triangle"):
             el.clear()
@@ -126,6 +157,7 @@ def analyze(blob: bytes) -> dict:
     ids = _lst(st.get("filament_ids"))
     profiles = _lst(st.get("filament_settings_id"))
     dens = _lst(st.get("filament_density"))
+    costs = _lst(st.get("filament_cost"))       # price per kg as set in the slicer
     n = max(len(colors), len(types), 1)
     fil = []
     for i in range(n):
@@ -136,6 +168,7 @@ def analyze(blob: bytes) -> dict:
             "filament_id": ids[i] if i < len(ids) else "",
             "profile": re.sub(r"\s*@.*$", "", profiles[i]) if i < len(profiles) else "",
             "density": _num(dens[i] if i < len(dens) else None, 1.24),
+            "cost_kg": _num(costs[i] if i < len(costs) else None, 0) or None,
             "est_g": 0.0, "exact_g": None, "exact_m": None, "painted": False,
         })
 
@@ -230,13 +263,35 @@ def analyze(blob: bytes) -> dict:
             k = max(1, min(ext, len(fil))) - 1
             dens_g = fil[k]["density"] / 1000.0
             g = (shell + infill * max(v - shell, 0)) * fill * dens_g
-            fil[k]["est_g"] += g
+            if painted:
+                # painted surface: the outer shell is split by painted area, the infill stays with the object's filament
+                tot_a = sum(painted.values()) or 1.0
+                g_shell = shell * fill * dens_g
+                fil[k]["est_g"] += g - g_shell
+                for pst, a in painted.items():
+                    j = k if pst == 0 else max(1, min(pst, len(fil))) - 1
+                    fil[j]["est_g"] += g_shell * a / tot_a
+                    fil[j]["assigned"] = True
+                    fil[j]["painted"] = fil[j]["painted"] or pst != 0
+            else:
+                fil[k]["est_g"] += g
             if v > 0:
                 fil[k]["assigned"] = True     # tiny parts (a thin logo inlay) round to 0 g but are still printed
-            fil[k]["painted"] = fil[k]["painted"] or painted
             total_vol += v
             parts_out.append({"name": obj_name.get(oid, f"Objekt {oid}"), "filament": k + 1,
-                              "volume_cm3": round(v / 1000, 1 if v >= 1000 else 3), "est_g": round(g, 1 if g >= 1 else 3), "painted": painted})
+                              "volume_cm3": round(v / 1000, 1 if v >= 1000 else 3), "est_g": round(g, 1 if g >= 1 else 3),
+                              "painted": bool(painted),
+                              "paint_filaments": sorted({(k if pst == 0 else max(1, min(pst, len(fil))) - 1) + 1 for pst in painted})})
+
+    # sliced files (.gcode.3mf) usually carry no meshes: take the object names from slice_info.config
+    if sliced and not parts_out:
+        try:
+            root = ET.fromstring(z.read("Metadata/slice_info.config"))
+            for o in root.iter("object"):
+                if o.get("skipped") != "true":
+                    parts_out.append({"name": o.get("name") or "?", "filament": None, "volume_cm3": None, "est_g": None, "painted": False})
+        except (ET.ParseError, KeyError):
+            pass
 
     # supports: their filament is listed too (amount only known after slicing)
     support = str(st.get("enable_support", "0")) in ("1", "true")

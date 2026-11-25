@@ -64,18 +64,89 @@ def record_print(conn: sqlite3.Connection, task: str, name: str, state: str, row
     return True
 
 
+def fill_costs(conn: sqlite3.Connection) -> int:
+    """Prints recorded before their spools had a price (e.g. delivery prices entered later, free spools at 0):
+    compute the missing cost from the stored detail as soon as every spool used has a price. Returns the count."""
+    n = 0
+    for r in conn.execute("SELECT id, detail FROM prints WHERE cost IS NULL AND grams > 0").fetchall():
+        try:
+            detail = json.loads(r["detail"] or "[]")
+        except ValueError:
+            continue
+        if not detail:
+            continue
+        total = 0.0
+        for d in detail:
+            if d.get("cost") is None:
+                pg = per_gram(conn, d["spool_id"]) if d.get("spool_id") else None
+                if pg is None:
+                    break
+                d["cost"] = round(float(d.get("grams") or 0) * pg, 2)
+            total += d["cost"]
+        else:
+            conn.execute("UPDATE prints SET cost = ?, detail = ? WHERE id = ?", (round(total, 2), json.dumps(detail), r["id"]))
+            n += 1
+    return n
+
+
+def _named(conn: sqlite3.Connection, detail: list) -> list:
+    """Print detail rows with the spool's line, colour and swatch for the per-filament view."""
+    out = []
+    for d in detail:
+        d = dict(d)
+        if d.get("spool_id"):
+            r = conn.execute(SPOOL_SELECT + " WHERE s.id = ?", (d["spool_id"],)).fetchone()
+            if r:
+                d.update({k: r[k] for k in ("line", "brand", "color_name", "name_en", "name_de", "hex", "colors", "swatch", "bambu_no")})
+        out.append(d)
+    return out
+
+
 def prints_of(conn: sqlite3.Connection, month: str) -> list:
     """Recorded prints of one month (YYYY-MM), newest first."""
     if len(month) != 7 or month[4] != "-" or not (month[:4] + month[5:]).isdigit():
         return []
-    return [{k: r[k] for k in ("id", "ts", "name", "state", "grams", "cost")}
-            for r in conn.execute("SELECT * FROM prints WHERE substr(ts, 1, 7) = ? ORDER BY ts DESC, id DESC", (month,))]
+    out = []
+    for r in conn.execute("SELECT * FROM prints WHERE substr(ts, 1, 7) = ? ORDER BY ts DESC, id DESC", (month,)).fetchall():
+        p = {k: r[k] for k in ("id", "ts", "name", "state", "grams", "cost", "project")}
+        try:
+            p["detail"] = _named(conn, json.loads(r["detail"] or "[]"))
+        except ValueError:
+            p["detail"] = []
+        out.append(p)
+    return out
 
 
 def rename_print(conn: sqlite3.Connection, print_id: int, name: str) -> bool:
     """Give a recorded print another name (the printer's job name does not always fit). Empty = "Print job"."""
     name = " ".join(str(name or "").split())[:120]
     return conn.execute("UPDATE prints SET name = ? WHERE id = ?", (name or None, print_id)).rowcount > 0
+
+
+def set_project(conn: sqlite3.Connection, print_id: int, project: str) -> bool:
+    """Put a print into a project (several prints of one thing, a gift, an order). Empty = no project."""
+    project = " ".join(str(project or "").split())[:80]
+    return conn.execute("UPDATE prints SET project = ? WHERE id = ?", (project or None, print_id)).rowcount > 0
+
+
+def price_history(conn: sqlite3.Connection) -> list:
+    """Paid price per spool by delivery day, per line (only lines with at least two deliveries with a price)."""
+    by: dict = {}
+    for r in conn.execute("SELECT l.id AS line_id, l.name AS line, l.price AS line_price, s.received_at AS day, AVG(s.price) AS price, "
+                          "COUNT(*) AS n FROM spools s JOIN products p ON p.id = s.product_id JOIN lines l ON l.id = p.line_id "
+                          "WHERE s.price IS NOT NULL AND s.received_at IS NOT NULL GROUP BY l.id, s.received_at ORDER BY s.received_at"):
+        b = by.setdefault(r["line_id"], {"line": r["line"], "line_price": r["line_price"], "points": []})
+        b["points"].append({"day": r["day"], "price": round(r["price"], 2), "spools": r["n"]})
+    return sorted((b for b in by.values() if len(b["points"]) >= 2), key=lambda b: -len(b["points"]))
+
+
+def projects(conn: sqlite3.Connection) -> list:
+    """All projects with their prints counted together, newest first. cost is None if a print has no cost."""
+    return [{"name": r["project"], "count": r["n"], "grams": round(r["g"] or 0), "cost": round(r["c"], 2) if r["c"] is not None and not r["unknown"] else None,
+             "first": r["first"], "last": r["last"]}
+            for r in conn.execute("SELECT project, COUNT(*) AS n, SUM(grams) AS g, SUM(cost) AS c, "
+                                  "SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) AS unknown, MIN(ts) AS first, MAX(ts) AS last "
+                                  "FROM prints WHERE project IS NOT NULL GROUP BY project ORDER BY MAX(ts) DESC")]
 
 
 def delete_print(conn: sqlite3.Connection, print_id: int) -> bool:
@@ -95,6 +166,7 @@ def _months(n: int = 12) -> list:
 
 def overview(conn: sqlite3.Connection) -> dict:
     """Data for the statistics tab: stock, 12 months of usage/cost/spending, recent prints and totals."""
+    fill_costs(conn)
     spools = [dict(r) for r in conn.execute(SPOOL_SELECT)]
     active = [s for s in spools if s["status"] != "empty"]
     by_mat: dict = {}
@@ -140,7 +212,7 @@ def overview(conn: sqlite3.Connection) -> dict:
     for r in conn.execute("SELECT * FROM prints ORDER BY id DESC LIMIT 30"):
         p = dict(r)
         try:
-            p["detail"] = json.loads(p["detail"] or "[]")
+            p["detail"] = _named(conn, json.loads(p["detail"] or "[]"))
         except ValueError:
             p["detail"] = []
         prints.append(p)
@@ -169,6 +241,8 @@ def overview(conn: sqlite3.Connection) -> dict:
         "prints": prints,
         "prints_total": {"count": tot["n"], "ok": tot["ok"] or 0, "grams": round(tot["g"]), "cost": round(tot["c"], 2) if tot["c"] is not None else None},
         "used_month": round(used30),
+        "projects": projects(conn),
+        "price_history": price_history(conn),
         "by_printer": sorted(({**b, "grams": round(b["grams"])} for b in by_printer.values()), key=lambda b: -b["grams"])
         if len(by_printer) > 1 else [],
     }

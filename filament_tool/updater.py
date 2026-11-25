@@ -268,6 +268,13 @@ def check(force: bool = False) -> dict:
         def wanted(v: Optional[tuple]) -> bool:
             return (bool(v) and (not _prerelease(v) or (floor is not None and v[4] >= floor))
                     and (v[3] != 2 or host.DESKTOP_APP))     # -patch.N only for the Windows and Mac app
+
+        # security releases are always offered: also with the switch on "Off" while a beta runs (beta.2: the
+        # switch only decides about normal pre-releases, a beta installation still gets beta security fixes)
+        stage = (cur[4] // 1000) * 1000 if _prerelease(cur) else None
+
+        def wanted_sec(v: Optional[tuple]) -> bool:
+            return wanted(v) or (bool(v) and stage is not None and _prerelease(v) and v[4] >= stage and v[3] != 2)
         best = max(((_ver(t.get("name", "")), t["name"]) for t in tags if wanted(_ver(t.get("name", "")))), default=None)
         if best:
             res["latest"] = best[1].lstrip("v")
@@ -275,18 +282,25 @@ def check(force: bool = False) -> dict:
             if res["available"]:
                 res["tag"] = best[1]
                 res["notes"] = _notes(best[1], cur)
-                # security releases (marked in the English changelog) between the running and the newest version
-                try:
-                    text = _get(f"{RAW}/{REPO}/{best[1]}/CHANGELOG.md", limit=1024 * 1024).decode("utf-8", "replace")
-                except ValueError:
-                    text = ""
-                names = {t.get("name", "") for t in tags}
-                sec = [(_ver(v), "v" + v) for v in security_versions(text, cur) if "v" + v in names and wanted(_ver(v))]
-                if sec:
-                    top = max(sec)
-                    res["security"], res["security_tag"] = top[1].lstrip("v"), top[1]
                 if host.DESKTOP_APP:    # the app cannot replace itself: download the new installer / disk image
                     res["download"] = f"https://github.com/{REPO}/releases/tag/{best[1]}"
+        # security releases (marked in the English changelog) between the running and the newest eligible version
+        top_any = max(((_ver(t.get("name", "")), t["name"]) for t in tags if wanted_sec(_ver(t.get("name", "")))), default=None)
+        if top_any and top_any[0] > cur:
+            try:
+                text = _get(f"{RAW}/{REPO}/{top_any[1]}/CHANGELOG.md", limit=1024 * 1024).decode("utf-8", "replace")
+            except ValueError:
+                text = ""
+            names = {t.get("name", "") for t in tags}
+            sec = [(_ver(v), "v" + v) for v in security_versions(text, cur) if "v" + v in names and wanted_sec(_ver(v))]
+            if sec:
+                top = max(sec)
+                res["security"], res["security_tag"] = top[1].lstrip("v"), top[1]
+                if not res["available"]:     # only a security release is new (switch on "Off" during the beta)
+                    res["available"], res["latest"], res["tag"] = True, top[1].lstrip("v"), top[1]
+                    res["notes"] = _notes(top[1], cur)
+                    if host.DESKTOP_APP:
+                        res["download"] = f"https://github.com/{REPO}/releases/tag/{top[1]}"
     except (ValueError, KeyError, TypeError) as e:
         res["error"] = str(e)
     with _lock:

@@ -200,7 +200,7 @@
 {
 "bambu_no": "10900",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M0",
 "name_en": "Arctic Whisper",
 "name_de": "Arktisches Flüstern",
@@ -214,7 +214,7 @@
 {
 "bambu_no": "10901",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M1",
 "name_en": "Solar Breeze",
 "name_de": "Sonnenbrise",
@@ -228,7 +228,7 @@
 {
 "bambu_no": "10902",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M2",
 "name_en": "Ocean to Meadow",
 "name_de": "Meer und Wiese",
@@ -242,7 +242,7 @@
 {
 "bambu_no": "10903",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M3",
 "name_en": "Pink Citrus",
 "name_de": "Zitrus-Pink",
@@ -256,7 +256,7 @@
 {
 "bambu_no": "10904",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M4",
 "name_en": "Mint Lime",
 "name_de": "Minze-Limette",
@@ -270,7 +270,7 @@
 {
 "bambu_no": "10905",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M5",
 "name_en": "Blueberry Bubblegum",
 "name_de": "Blaubeere-Bubblegum",
@@ -284,7 +284,7 @@
 {
 "bambu_no": "10906",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M6",
 "name_en": "Dusk Glare",
 "name_de": "Leuchtende Abenddämmerung",
@@ -298,7 +298,7 @@
 {
 "bambu_no": "10907",
 "material_id": "GFA00",
-"line": "PLA Basic",
+"line": "PLA Basic Gradient",
 "variant_id": "A00-M7",
 "name_en": "Cotton Candy Cloud",
 "name_de": "Zuckerwatten-Wolke",
@@ -910,7 +910,7 @@
 {
 "bambu_no": "13901",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-T1",
 "name_en": "Gilded Rose",
 "name_de": "Goldenes Rosa",
@@ -924,7 +924,7 @@
 {
 "bambu_no": "13902",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-T2",
 "name_en": "Midnight Blaze",
 "name_de": "Mitternachtsglanz",
@@ -938,7 +938,7 @@
 {
 "bambu_no": "13903",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-T3",
 "name_en": "Neon City",
 "name_de": "Neon City",
@@ -952,7 +952,7 @@
 {
 "bambu_no": "13904",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-T4",
 "name_en": "Blue Hawaii",
 "name_de": "Hawaii-Blau",
@@ -966,7 +966,7 @@
 {
 "bambu_no": "13905",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-T5",
 "name_en": "Velvet Eclipse (Black-Red)",
 "name_de": "Dunkler Samt (Schwarz-Rot)",
@@ -3268,7 +3268,7 @@
 {
 "bambu_no": "13906",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-M1",
 "name_en": "South Beach",
 "name_de": "South Beach",
@@ -3282,7 +3282,7 @@
 {
 "bambu_no": "13909",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-M4",
 "name_en": "Aurora Purple",
 "name_de": "Aurora-Lila",
@@ -3296,7 +3296,7 @@
 {
 "bambu_no": "13912",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-M8",
 "name_en": "Dawn Radiance",
 "name_de": "Morgenröte",
@@ -3652,7 +3652,7 @@
 {
 "bambu_no": "13913",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-T7",
 "name_en": "Mystic Magenta",
 "name_de": "Mystisches Magenta",
@@ -3666,7 +3666,7 @@
 {
 "bambu_no": "13916",
 "material_id": "GFA05",
-"line": "PLA Silk",
+"line": "PLA Silk Multi-Color",
 "variant_id": "A05-T9",
 "name_en": "Phantom Blue",
 "name_de": "Phantomblau",
@@ -4026,7 +4026,8 @@
 "#8A75D1"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "30404",
@@ -4039,7 +4040,8 @@
 "#FFB81C"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "30504",
@@ -4052,7 +4054,8 @@
 "#97D700"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "30702",
@@ -4065,7 +4068,8 @@
 "#F277C6"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35100",
@@ -4470,5 +4474,6 @@
 "kind": "single",
 "de_source": "übersetzt"
 }
-]
+],
+"note": "\"discontinued\": colour no longer sold in the Bambu Lab store (kept so existing spools keep their name; hidden in the catalog unless Options › Appearance › \"Show discontinued colours\" is on). Maintained with tools/catalog_check.py."
 }

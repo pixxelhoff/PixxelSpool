@@ -36,6 +36,7 @@ DEFAULTS = {
     "climate": {},            # per cabinet: {"temp": entity_id, "hum": entity_id, "max_hum": 50}
     "camera": "off",          # camera in the printer card: off | eco (1 fps) | smooth (5 fps) | max (all frames)
     "update_check": True,
+    "show_discontinued": False,   # catalog: also show colours Bambu Lab no longer sells
     "update_channel": "off",  # "off" = stable only, "beta" = also beta and rc, "alpha" = also alpha
     "pre_auto": False,        # the channel was set once automatically because a pre-release is installed
     "auto_security": True,    # Pi: install security releases by itself (daily check, rollback if it does not start)
@@ -195,7 +196,7 @@ def save(patch: dict) -> dict:
             cur["time_fmt"] = str(patch["time_fmt"])
         if patch.get("update_channel") in ("off", "beta", "alpha"):
             cur["update_channel"] = patch["update_channel"]
-        for k in ("printer_on", "ha_on", "update_check", "auto_security", "dry_on", "log_detail"):
+        for k in ("printer_on", "ha_on", "update_check", "auto_security", "dry_on", "log_detail", "show_discontinued"):
             if k in patch:
                 cur[k] = bool(patch[k])
         if isinstance(patch.get("climate"), dict):

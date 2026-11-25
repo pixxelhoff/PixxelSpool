@@ -109,6 +109,7 @@ def fetch_states(cfg: dict) -> list:
 def apply(conn, trays: list, printer_id: str = "p1", label: str = "") -> dict:
     """Mark spools found in this printer's AMS as in use, and spools that left it as 'to be put back' (removed).
     label: printer name for the history ("H2C · AMS 1 Slot 3"), empty with a single printer."""
+    from .logic import _no_tag_tray
     seen, changed, removed = set(), [], []
     for t in trays:
         if not t["tray_uuid"]:
@@ -141,8 +142,7 @@ def apply(conn, trays: list, printer_id: str = "p1", label: str = "") -> dict:
             conn.execute("UPDATE spools SET ams_bound = 0, ams_prev = NULL WHERE id = ?", (sp["id"],))
             continue
         t = by_name.get(sp["ams_slot"]) or {}
-        typ = str(t.get("type") or "").strip().lower()
-        if t and not t.get("tray_uuid") and typ and typ != "empty" and sp["status"] != "empty":
+        if t and _no_tag_tray(t) and sp["status"] != "empty":
             seen.add(sp["id"])
     for sp in conn.execute("SELECT id FROM spools WHERE ams_slot IS NOT NULL AND (printer_id = ? OR printer_id IS NULL)",
                            (printer_id,)).fetchall():

@@ -52,7 +52,7 @@ DEFAULT_CABINETS = [
 ]
 # Order of lines on the rods: common lines first, special ones last
 LINE_ORDER = [
-    "PLA Basic", "PLA Matte", "PLA Pure", "PLA Lite", "PLA Silk", "PLA Silk+", "PLA Translucent",
+    "PLA Basic", "PLA Basic Gradient", "PLA Matte", "PLA Pure", "PLA Lite", "PLA Silk", "PLA Silk Multi-Color", "PLA Silk+", "PLA Translucent",
     "PLA Sparkle", "PLA Metal", "PLA Galaxy", "PLA Marble", "PLA Glow", "PLA Wood", "PLA Palette",
     "PLA Dynamic", "PLA Aero", "PLA Tough", "PLA Tough+", "PLA-CF",
     "PETG Basic", "PETG Matte", "PETG HF", "PETG Translucent", "PETG-CF",
@@ -440,7 +440,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(products)")}
     for name, typ in [("name_en", "TEXT"), ("name_de", "TEXT"), ("variant_id", "TEXT"),
                       ("material_id", "TEXT"), ("colors", "TEXT"), ("kind", "TEXT"),
-                      ("in_catalog", "INTEGER NOT NULL DEFAULT 0")]:
+                      ("in_catalog", "INTEGER NOT NULL DEFAULT 0"),
+                      ("discontinued", "INTEGER NOT NULL DEFAULT 0")]:     # no longer sold by Bambu Lab
         if name not in cols:
             conn.execute(f"ALTER TABLE products ADD COLUMN {name} {typ}")
     if "sku" not in cols:
@@ -463,8 +464,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
                       ("ams_prev", "TEXT")]:                            # status before that assignment (for "undo")
         if name not in scols:
             conn.execute(f"ALTER TABLE spools ADD COLUMN {name} {typ}")
-    if "printer" not in {r["name"] for r in conn.execute("PRAGMA table_info(prints)")}:
+    pcols = {r["name"] for r in conn.execute("PRAGMA table_info(prints)")}
+    if "printer" not in pcols:
         conn.execute("ALTER TABLE prints ADD COLUMN printer TEXT")
+    if "project" not in pcols:          # beta.2: prints grouped into projects ("Evee for Alex") with total cost
+        conn.execute("ALTER TABLE prints ADD COLUMN project TEXT")
     # spools scanned before: received = day of the first scan
     conn.execute("UPDATE spools SET received_at = date(updated_at) "
                  "WHERE tray_uid IS NOT NULL AND received_at IS NULL")
@@ -486,24 +490,37 @@ def sync_catalog(conn: sqlite3.Connection, path: Path) -> int:
     with open(path, encoding="utf-8") as f:
         colors = json.load(f)["colors"]
     for c in colors:
+        row = conn.execute("SELECT p.id, p.line_id, l.name FROM products p JOIN lines l ON l.id = p.line_id WHERE p.bambu_no = ?",
+                           (c["bambu_no"],)).fetchone()
+        new_line = not conn.execute("SELECT 1 FROM lines WHERE name = ?", (c["line"],)).fetchone()
         conn.execute("INSERT OR IGNORE INTO lines (name, zone) VALUES (?, ?)",
                      (c["line"], ZONES.get(c["line"], DEFAULT_ZONE)))
         line_id = conn.execute("SELECT id FROM lines WHERE name = ?", (c["line"],)).fetchone()[0]
+        if row and row["line_id"] != line_id:
+            # beta.2: gradient / multi-colour spools became lines of their own (e.g. "PLA Basic Gradient");
+            # the new line takes over price, weights and drying of the line the colour came from
+            if new_line:
+                conn.execute("UPDATE lines SET price = o.price, net_g = o.net_g, spool_g = o.spool_g, dry_temp = o.dry_temp, "
+                             "dry_hours = o.dry_hours FROM (SELECT * FROM lines WHERE id = ?) AS o WHERE lines.id = ?",
+                             (row["line_id"], line_id))
+            conn.execute("UPDATE products SET line_id = ? WHERE id = ?", (line_id, row["id"]))
         first = c["colors"][0] if c["colors"] else None
         # "#000000" also means transparent/natural in the catalog -> leave the color empty (real dark colors keep it)
         dark = "Black" in c["name_en"] or c["name_en"] in ("Charcoal", "Key")
         hex_color = first if first and (first != "#000000" or dark) else None
         args = (c["name_en"], c["name_de"], c["variant_id"], c["material_id"],
                 json.dumps(c["colors"]), c["kind"])
-        row = conn.execute("SELECT id FROM products WHERE bambu_no = ?", (c["bambu_no"],)).fetchone()
+        disc = 1 if c.get("discontinued") else 0
         if row:
             conn.execute("UPDATE products SET name_en = ?, name_de = ?, color_name = ?, variant_id = ?, "
-                         "material_id = ?, colors = ?, kind = ?, in_catalog = 1, "
+                         "material_id = ?, colors = ?, kind = ?, in_catalog = 1, discontinued = ?, "
                          "hex = COALESCE(hex, ?) WHERE id = ?",
-                         (args[0], args[1], args[1], *args[2:], hex_color, row[0]))
+                         (args[0], args[1], args[1], *args[2:], disc, hex_color, row[0]))
         else:
             conn.execute("INSERT INTO products (line_id, color_name, bambu_no, hex, name_en, name_de, "
-                         "variant_id, material_id, colors, kind, in_catalog) "
-                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
-                         (line_id, c["name_de"], c["bambu_no"], hex_color, *args))
+                         "variant_id, material_id, colors, kind, in_catalog, discontinued) "
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)",
+                         (line_id, c["name_de"], c["bambu_no"], hex_color, *args, disc))
+    # lines left without any colour (all moved to a new line) are removed
+    conn.execute("DELETE FROM lines WHERE brand IS NULL AND NOT EXISTS (SELECT 1 FROM products p WHERE p.line_id = lines.id)")
     return len(colors)
