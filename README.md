@@ -173,6 +173,10 @@ Bambu Lab spools carry a MIFARE Classic tag (13.56 MHz). PixxelSpool reads it wi
 tag sits under the Bambu Lab logo on the side of the spool, so hold that spot against the reader.
 Choose your reader in the setup assistant or under **Options › NFC reader**.
 
+**Recommended: a USB reader on a cable.** You can hold it right against the tag and read it precisely. A reader
+built into the Raspberry Pi case (PN532 HAT or module on the GPIO pins) works too, but in everyday use it is less
+practical: you have to bring the spool to the Pi and find the right spot on the case.
+
 | Reader | Part number | Connection | Status | Example |
 | --- | --- | --- | --- | --- |
 | ACS ACR1252U (NFC Reader III) | ACR1252U-M1 | USB | ✅ tested | [Amazon](https://www.amazon.de/dp/B01KIKBYAG) |
