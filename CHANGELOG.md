@@ -8,6 +8,15 @@ get the current version plus `-patch.N` (e.g. 1.0.0-patch.1); the Pi does not of
 
 The German changelog is [CHANGELOG.de.md](CHANGELOG.de.md).
 
+## [1.0.0-beta.6] – 2026-11-26
+
+Fifth bundled release with bug fixes.
+
+### Fixed
+- AMS HT: the unit was shown as "AMS 129 · Slot 1" and always as empty, even with a spool loaded. It is now called "AMS HT 1", its spool is recognised, and prints from it are matched to the right slot.
+- Check 3MF: the "Shop" link often did nothing because live updates from the printer redrew the result; opened sections no longer close by themselves either. "Shop" is now a small button.
+- Labels (Safari): an open print dialog could freeze the PixxelSpool tab in the background. Labels now open in the same tab with a "‹ PixxelSpool" link back.
+
 ## [1.0.0-beta.5] – 2026-11-26
 
 Fourth bundled release with security fixes. Installations with automatic security updates get it by themselves.

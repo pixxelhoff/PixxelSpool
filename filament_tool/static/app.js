@@ -2885,7 +2885,7 @@ const gText = (g) => (g > 0 && g < 1 ? L("under 1 g") : `${Math.round(g)} g`);  
 function drawTmf() {
   const out = $("#tmfout");
   $("#tmfremove").hidden = !tmf;
-  if (!tmf) { out.innerHTML = ""; return; }
+  if (!tmf) { out.innerHTML = out._tmfHtml = ""; return; }
   const used = tmf.filaments.filter((f) => f.used);
   let total = 0, totalG = 0, costKnown = true, inStock = 0;
   const srcs = new Set();
@@ -2907,7 +2907,7 @@ function drawTmf() {
       : m.near ? `${esc(m.near.p.line)} <span class="tmfcol">${L("own colour")}</span> <span class="sub">≈ ${esc(cname(m.near.p))}</span>`
       : `${esc(f.profile || f.type)} <span class="tmfcol">${L("own colour")}</span>`;
     const amount = f.support && !(need > 0) ? L("supports only") : `${tmf.sliced || need < 1 ? "" : "~"}${gText(need)}${f.support ? " " + L("+ supports") : ""}`;
-    const shop = !m.own.length && (m.exact || m.near) && !(m.exact || m.near.p).discontinued ? ` <a class="tmfshop" href="${shopUrl(m.exact || m.near.p)}" target="_blank" rel="noopener">${L("Shop")}</a>` : "";
+    const shop = !m.own.length && (m.exact || m.near) && !(m.exact || m.near.p).discontinued ? ` <a class="btn small tmfshop" href="${shopUrl(m.exact || m.near.p)}" target="_blank" rel="noopener">${L("Shop")}</a>` : "";
     return `<li><span class="tmfidx">${f.idx}</span><span title="${esc(f.hex)}">${sw(f.hex)}</span><span class="grow"><span class="tmfname">${name}</span>
       <span class="sub tmfline">${status}${where}${ri.blocked ? "" : refillHtml(ri)}${shop}</span>${alt}</span>
       <span class="tmfamt">${amount}</span>
@@ -2920,13 +2920,16 @@ function drawTmf() {
       ${L("Not included: supports, brim and purge.")}${tmf.multicolor ? " " + L("Multi-colour prints often add 20–40 % for the prime tower and purging.") : ""}${tmf.painted ? " " + L("The file contains painted areas: their colours are listed, the amounts are a rough estimate from the painted surface.") : ""}</p>
       <p><b>${L("Exact values: slice in Bambu Studio, then File › Export › Export plate sliced file, and load the .gcode.3mf here.")}</b></p></details>`;
   const allIn = used.length && inStock === used.length;
-  out.innerHTML = used.length ? `<div class="tmfhead">
+  let html = used.length ? `<div class="tmfhead">
       <div class="tmfbig"><b>${est}${gText(totalG)}</b>${srcs.size ? `<b>${tmf.sliced && costKnown ? "" : "~"}${esc(money(total))}</b>` : ""}</div>
       <div class="tmfsum"><span class="${allIn ? "okc" : "warnc"}">${allIn ? "✓ " : ""}${L("{0} of {1} colours in storage", inStock, used.length)}</span>${tmf.printer ? ` <span class="sub">· ${esc(tmf.printer)}</span>` : ""}</div>
       <div class="tmfsum">${info}${srcs.size ? `<span class="sub" title="${esc(srcTxt)}">${!costKnown ? L("not every filament has a price") : ""}</span>` : `<span class="sub">${L("No prices known yet")}</span>`}</div>
     </div>
     <ul class="shop tmflist">${rows.join("")}</ul>` : `<p class="sub">${L("No printable objects found.")}</p>`;
-  out.innerHTML += `<details class="tmfobj"><summary>${Lp(tmf.objects.length, "{0} object", "{0} objects")}</summary><ul>${tmf.objects.map((o) => `<li>${esc(o.name)}${o.filament ? ` · Filament ${(o.paint_filaments?.length > 1 ? o.paint_filaments : [o.filament]).join(", ")}` : ""}${o.volume_cm3 != null ? ` · ${o.volume_cm3 > 0 && o.volume_cm3 < 0.1 ? "< 0.1" : o.volume_cm3} cm³` : ""}${o.est_g != null ? ` · ${o.est_g < 1 ? "" : "~"}${gText(o.est_g)}` : ""}</li>`).join("")}</ul></details>`;
+  html += `<details class="tmfobj"><summary>${Lp(tmf.objects.length, "{0} object", "{0} objects")}</summary><ul>${tmf.objects.map((o) => `<li>${esc(o.name)}${o.filament ? ` · Filament ${(o.paint_filaments?.length > 1 ? o.paint_filaments : [o.filament]).join(", ")}` : ""}${o.volume_cm3 != null ? ` · ${o.volume_cm3 > 0 && o.volume_cm3 < 0.1 ? "< 0.1" : o.volume_cm3} cm³` : ""}${o.est_g != null ? ` · ${o.est_g < 1 ? "" : "~"}${gText(o.est_g)}` : ""}</li>`).join("")}</ul></details>`;
+  // live updates (printer, scale) call this often: redrawing unchanged content would swallow clicks (Shop link) and close open details
+  if (html === out._tmfHtml) return;
+  out.innerHTML = out._tmfHtml = html;
   out.querySelectorAll("[data-spool]").forEach((el) => (el.onclick = async () => showSpool(await api(`/api/spools/${el.dataset.spool}`))));
 }
 // Analyse a 3MF on the server: upload with progress, then the analysis runs as a job with progress.

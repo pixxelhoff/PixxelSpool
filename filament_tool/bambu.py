@@ -269,10 +269,10 @@ def trays(state: dict) -> list:
         hum_raw = _f(unit.get("humidity_raw"))
         for t in unit.get("tray") or []:
             tid = int(_f(t.get("id"), 0))
-            gid = uid * 4 + tid
+            gid = _gid(uid, tid)
             t = t if _present(ams, gid) else {"id": t.get("id")}
             out.append({
-                "ams": uid + 1, "slot": tid + 1, "name": f"AMS {uid + 1} · Slot {tid + 1}",
+                "ams": uid + 1, "slot": tid + 1, "name": _slot_name(uid, tid),
                 "tray_uuid": (t.get("tray_uuid") or "").upper(), "tag_uid": t.get("tag_uid") or "",
                 "type": t.get("tray_type") or "", "sub": t.get("tray_sub_brands") or "",
                 "color": (t.get("tray_color") or "")[:6].upper(), "cols": [c[:6].upper() for c in t.get("cols") or []],
@@ -310,10 +310,31 @@ def _ext_name(tid, i: int = 0) -> str:
     return "External spool 2" if n == 255 else "External spool"
 
 
+HT_BASE = 128   # AMS HT units report ids 128-135, one slot each; tray_now and the print mapping use that id
+
+
+def _gid(uid: int, tid: int) -> int:
+    """Global slot number as tray_now and the print mapping use it: uid * 4 + slot, the unit id for an AMS HT."""
+    return uid if uid >= HT_BASE else uid * 4 + tid
+
+
+def _slot_name(uid: int, tid: int) -> str:
+    return f"AMS HT {uid - HT_BASE + 1}" if uid >= HT_BASE else f"AMS {uid + 1} · Slot {tid + 1}"
+
+
+def _map_name(m: int) -> str:
+    """Slot name for a value of the print mapping (0-15 AMS, 128-135 AMS HT, 254/255 external holders)."""
+    if m in (254, 255):
+        return _ext_name(m)
+    return _slot_name(m, 0) if m >= HT_BASE else _slot_name(m // 4, m % 4)
+
+
 def _present(ams: dict, gid: int) -> bool:
     """Does the printer report a spool in this AMS slot? tray_exist_bits is a hex bit mask (bit = uid * 4 + slot);
     without it every slot counts as present."""
     bits = ams.get("tray_exist_bits")
+    if gid >= HT_BASE:      # the bit mask only covers the 4-slot units: an AMS HT slot counts by its tray data
+        return True
     try:
         return bool(int(str(bits), 16) >> gid & 1) if bits not in (None, "") else True
     except ValueError:
@@ -354,13 +375,14 @@ def ha_trays(state: dict) -> list:
         uid = int(_f(unit.get("id"), 0))
         for t in unit.get("tray") or []:
             tid = int(_f(t.get("id"), 0))
-            present = _present(ams, uid * 4 + tid)
+            gid = _gid(uid, tid)
+            present = _present(ams, gid)
             if not present:
                 t = {"id": t.get("id")}
-            d = one(t, f"AMS {uid + 1} · Slot {tid + 1}", str(uid * 4 + tid), unit)
+            d = one(t, _slot_name(uid, tid), str(gid), unit)
             # the AMS reports a spool here (bit mask), but no material is set for it (no Bambu tag, not set on the
             # printer): occupied, not empty. Without the bit mask nothing is known about it.
-            d["occupied"] = present if ams.get("tray_exist_bits") not in (None, "") else None
+            d["occupied"] = present if ams.get("tray_exist_bits") not in (None, "") and gid < HT_BASE else None
             if d["occupied"] and d["type"] == "Empty" and not d["tray_uuid"]:
                 d.update(type="", label="", state="")
             out.append(d)
@@ -378,8 +400,7 @@ def job(state: dict) -> dict:
         "errors": len(p.get("hms") or []), "print_error": p.get("print_error") or 0,
         "task": str(p.get("subtask_id") or p.get("task_id") or ""), "plate": int(_f(p.get("plate_idx"), 1) or 1),
         "mapping": [m for m in (p.get("mapping") or []) if isinstance(m, (int, float))],
-        "slots": [("External spool" if int(m) == 254 else "External spool 2" if int(m) == 255 else f"AMS {int(m) // 4 + 1} · Slot {int(m) % 4 + 1}")
-                  for m in (p.get("mapping") or []) if isinstance(m, (int, float)) and int(m) >= 0 and int(m) != 65535],
+        "slots": [_map_name(int(m)) for m in (p.get("mapping") or []) if isinstance(m, (int, float)) and int(m) >= 0 and int(m) != 65535],
     }
 
 
@@ -563,7 +584,7 @@ def job_weights(cfg: dict, name: str, plate: int, mapping: list) -> dict:
             continue
         if m < 0 or m == 65535 or g <= 0:
             continue
-        slot = "External spool" if m == 254 else "External spool 2" if m == 255 else f"AMS {m // 4 + 1} · Slot {m % 4 + 1}"
+        slot = _map_name(m)
         out[slot] = round(out.get(slot, 0) + g, 2)
     return out
 

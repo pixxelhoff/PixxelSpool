@@ -8,6 +8,15 @@ nur für die Apps bekommen die Nummer der aktuellen Version mit dem Zusatz `-pat
 
 Der englische Changelog ist [CHANGELOG.md](CHANGELOG.md).
 
+## [1.0.0-beta.6] – 2026-11-26
+
+Fünftes Sammelrelease mit Fehlerkorrekturen.
+
+### Behoben
+- AMS HT: Die Einheit hieß „AMS 129 · Slot 1“ und galt immer als leer, auch mit eingelegter Rolle. Sie heißt jetzt „AMS HT 1“, die Rolle wird erkannt, und Drucke daraus werden dem richtigen Platz zugeordnet.
+- 3MF prüfen: Der Link „Shop“ öffnete oft nichts, weil Live-Meldungen vom Drucker das Ergebnis neu zeichneten; aufgeklappte Abschnitte klappen auch nicht mehr von selbst zu. „Shop“ ist jetzt ein kleiner Knopf.
+- Etiketten (Safari): Ein offener Druckdialog konnte den PixxelSpool-Tab im Hintergrund einfrieren. Die Etiketten öffnen jetzt im selben Tab mit einem Link „‹ PixxelSpool“ zurück.
+
 ## [1.0.0-beta.5] – 2026-11-26
 
 Viertes Sammelrelease mit Sicherheitskorrekturen. Installationen mit automatischen Sicherheitsupdates bekommen es von selbst.
