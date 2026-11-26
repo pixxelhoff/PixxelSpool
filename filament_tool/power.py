@@ -56,7 +56,9 @@ def check_and_start() -> None:
                 lost = boot is not None and boot > last + 5
         if lost:
             from . import notices
-            when = datetime.fromtimestamp(last).strftime("%Y-%m-%d %H:%M")
+            from . import settings
+            fmt = {"de": "%d.%m. %H:%M", "es": "%d/%m %H:%M"}.get(settings.lang(), "%b %d, %H:%M")
+            when = datetime.fromtimestamp(last).strftime(fmt)
             notices.add("system", f"powerloss:{int(last)}",
                         "The Raspberry Pi was switched off without shutting down (last sign of life: {0}). "
                         "Shut it down under Options › System first, otherwise the data and the memory card can be damaged.",

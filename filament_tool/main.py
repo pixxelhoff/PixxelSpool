@@ -62,6 +62,22 @@ async def log_calls(request: Request, call_next):
 
 
 @app.middleware("http")
+async def same_origin_only(request: Request, call_next):
+    """Changes only from PixxelSpool's own pages: a foreign web page open in the same browser must not be able to
+    send requests that empty spools, start a bulk inventory and so on (CSRF). Browsers mark such requests with
+    Sec-Fetch-Site; apps, scripts and Home Assistant send none. The Host header is not compared on purpose: reverse
+    proxies often rewrite it."""
+    if request.method not in ("GET", "HEAD", "OPTIONS") and (
+            request.headers.get("sec-fetch-site") == "cross-site" or request.headers.get("origin") == "null"):
+        return JSONResponse({"error": "Request from another website blocked"}, status_code=403)
+    resp = await call_next(request)
+    # no framing ban on purpose: people show PixxelSpool in a Home Assistant dashboard
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    return resp
+
+
+@app.middleware("http")
 async def require_login(request: Request, call_next):
     """With an app password (Options › System) everything except the page itself, its files and the login needs a
     valid login cookie. Without a password nothing changes."""
@@ -478,13 +494,13 @@ LABEL_TEXTS = ["Labels", "Labels for your storage slots. The QR code opens the s
                "Gap between labels", "Page margin", "Skip fields at the start",
                "For a sheet that is already partly used: the first fields stay empty.", "Print",
                "In the print dialog choose: paper A4, scale 100 % (not “fit to page”), margins “none” and no headers and footers.",
-               "Reset settings", "{0} labels · {1} per page · {2} pages · QR opens {3}",
+               "Reset settings", "1 label", "{0} labels", "{0} per page", "1 page", "{0} pages", "QR opens {0}",
                "Safari: switch off “Print headers and footers” in the print dialog, otherwise the labels do not fit on the page.",
                "QR code opens", "The .local name keeps working when the router gives PixxelSpool a new IP address."]
 
 
 @app.get("/labels")
-def labels(request: Request, cab: str = "", logo: int = 1, addr: str = ""):
+def labels(request: Request, cab: str = "", logo: int = 1, addr: str = "", fmt: str = ""):
     """Printable slot labels: a label designer with an A4 preview (static/labels.html), the QR codes come from here."""
     from fastapi.responses import HTMLResponse
     from html import escape
@@ -497,7 +513,10 @@ def labels(request: Request, cab: str = "", logo: int = 1, addr: str = ""):
     here = f"{scheme}://{addr}/"
     # the QR code may also open the device's .local name: it stays valid when the router hands out a new IP address
     mdns = host.mdns_name()
-    local = f"{scheme}://{mdns}" + (f":{port}" if port else "") + "/" if mdns and name != mdns else ""
+    # PixxelSpool itself answers plain http on its own port: behind Tailscale HTTPS the browser's scheme and port
+    # (https, 443) belong to the proxy and would not work on the .local name
+    own_port = (request.scope.get("server") or (None, None))[1] or port
+    local = f"http://{mdns}" + (f":{own_port}" if own_port and str(own_port) != "80" else "") + "/" if mdns and name != mdns else ""
     bases = [{"key": "", "url": here}] + ([{"key": "local", "url": local}] if local else [])
     base = local if addr_choice == "local" and local else here
     cabs = {c["key"]: c for c in settings.load()["cabinets"]}
@@ -518,6 +537,8 @@ def labels(request: Request, cab: str = "", logo: int = 1, addr: str = ""):
     data = {"base": base, "bases": bases, "addr": "local" if base == local and local else "", "logo": bool(logo), "cab": cab if cab in cabs else "", "items": items,
             "cabs": [{"key": k, "name": str(c.get("name") or k)} for k, c in cabs.items()],
             "T": {k: _t(k) for k in LABEL_TEXTS}}
+    if fmt == "json":   # the page switches the QR address or logo without reloading itself
+        return JSONResponse(data, headers={"Cache-Control": "no-store"})
     page = (Path(__file__).parent / "static" / "labels.html").read_text(encoding="utf-8")
     page = (page.replace("__LANG__", settings.lang()).replace("__TITLE__", escape("PixxelSpool " + _t("Labels")))
             .replace("__DATA__", json.dumps(data, ensure_ascii=False).replace("</", "<\\/")))
@@ -1024,32 +1045,62 @@ def _job_view(pid: str) -> Optional[dict]:
         return None
     active = job.get("status") in ACTIVE_JOB
     prog = (job.get("progress") or 0) if active else 0
-    by_name = {t["name"]: t for t in _ams_view(pid)}
+    trays = _ams_view(pid)
+    by_name = {t["name"]: t for t in trays}
     tight = 1 + settings.load().get("tight_pct", 15) / 100
+    left = lambda grams: round(grams * (1 - min(max(prog, 0), 100) / 100), 1)
+
+    def have_of(t: dict) -> Optional[float]:
+        remain = t.get("remain") if isinstance(t.get("remain"), (int, float)) and t.get("remain") >= 0 else None
+        try:
+            full = float(t.get("tray_weight") or 0) or 1000.0
+        except (TypeError, ValueError):
+            full = 1000.0
+        bound = t.get("spool") if (t.get("spool") or {}).get("ams_bound") else None
+        if remain is None and bound:   # assigned by hand: the AMS can't measure it, PixxelSpool counts along
+            remain = bound["remain_pct"] if bound["remain_pct"] is not None else 100
+            full = float(bound["weight_g"] or bound["net_g"] or 1000)
+        return round(full * remain / 100) if remain is not None else None
+
+    def same_filament(a: dict, b: dict) -> bool:
+        """The AMS switches to another slot with the same filament when one runs out (AMS filament backup)."""
+        pa, pb = (a.get("spool") or {}).get("product_id"), (b.get("spool") or {}).get("product_id")
+        if pa and pb:
+            return pa == pb
+        return bool(a.get("material_id")) and a.get("material_id") == b.get("material_id") and a.get("color") == b.get("color")
+
+    def state_of(have, need) -> str:
+        return "unknown" if have is None else "ok" if have >= need * tight + 5 else "tight" if have >= need else "short"
+
     rows = []
     with db.session() as conn:
         for slot, grams in job["weights"].items():
             t = by_name.get(slot) or {}
-            need = round(grams * (1 - min(max(prog, 0), 100) / 100), 1)
-            remain = t.get("remain") if isinstance(t.get("remain"), (int, float)) and t.get("remain") >= 0 else None
-            try:
-                full = float(t.get("tray_weight") or 0) or 1000.0
-            except (TypeError, ValueError):
-                full = 1000.0
-            bound = t.get("spool") if (t.get("spool") or {}).get("ams_bound") else None
-            if remain is None and bound:   # assigned by hand: the AMS can't measure it, PixxelSpool counts along
-                remain = bound["remain_pct"] if bound["remain_pct"] is not None else 100
-                full = float(bound["weight_g"] or bound["net_g"] or 1000)
-            have = round(full * remain / 100) if remain is not None else None
-            state = "unknown" if have is None else "ok" if have >= need * tight + 5 else "tight" if have >= need else "short"
+            need = left(grams)
+            have = own = have_of(t)
+            state = state_of(have, need)
+            backup = []
+            if state in ("tight", "short") and t.get("ams"):
+                # filament backup: same filament in another AMS slot takes over, minus what the job needs from it itself
+                for o in trays:
+                    if o is t or not o.get("ams") or not same_filament(t, o):
+                        continue
+                    oh = have_of(o)
+                    if oh is None:
+                        continue
+                    spare_g = oh - left(job["weights"].get(o["name"], 0))
+                    if spare_g > 0:
+                        backup.append(o["name"]); have += spare_g
+                if backup:
+                    state = state_of(have, need)
             sp = t.get("spool")
             spare = None
             if sp and state in ("tight", "short"):
                 r = conn.execute(logic.SPOOL_SELECT + " WHERE s.product_id = ? AND s.id != ? AND s.status = 'stored' "
                                  "ORDER BY s.in_cabinet DESC, s.id LIMIT 1", (sp["product_id"], sp["id"])).fetchone()
                 spare = dict(r) if r else None
-            rows.append({"slot": slot, "need_g": need, "have_g": have, "state": state, "spool": sp,
-                         "label": t.get("label"), "spare": spare})
+            rows.append({"slot": slot, "need_g": need, "have_g": own, "state": state,
+                         "spool": sp, "label": t.get("label"), "spare": spare, "backup": backup})
     return {"printer": pid, "printer_name": _pname(pid), "status": job.get("status"), "progress": job.get("progress"),
             "active": active, "rows": rows, "name": job.get("name"), "remaining_min": job.get("remaining_min"),
             "layer": job.get("layer"), "layers": job.get("layers")}
@@ -1626,6 +1677,9 @@ async def backup_restore(request: Request):
             with zipfile.ZipFile(io.BytesIO(blob)) as z:
                 for name in ("inventory.db", "settings.json", "homeassistant.json", "bambu.json"):
                     if name in z.namelist():
+                        # a tiny ZIP can unpack to gigabytes and take the device down: check the size first
+                        if z.getinfo(name).file_size > (500 if name == "inventory.db" else 5) * 1024 * 1024:
+                            raise logic.InventoryError("This is not a PixxelSpool backup (inventory.db missing)")
                         files[name] = z.read(name)
         except zipfile.BadZipFile:
             raise logic.InventoryError("The ZIP file is damaged")
@@ -1962,7 +2016,8 @@ def min_stock(payload: dict = Body(...)):
 @app.post("/api/spools/{spool_id}/dried")
 def dried(spool_id: int):
     with db.session() as conn:
-        conn.execute("UPDATE spools SET dried_at = date('now','localtime') WHERE id = ?", (spool_id,))
+        if not conn.execute("UPDATE spools SET dried_at = date('now','localtime') WHERE id = ?", (spool_id,)).rowcount:
+            raise logic.InventoryError("Spool not found")
         logic.log(conn, spool_id, "dried", "")
         sp = logic.get_spool(conn, spool_id)
     broadcast({"type": "changed"})

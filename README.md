@@ -321,8 +321,8 @@ supported). Like the Windows app it is a preview and not yet tested as thoroughl
 
    This is only needed for the first start and again after each update.
 4. **Start:** PixxelSpool runs in the background with an icon in the menu bar at the top of the screen (no Dock icon)
-   and opens in its own window (Google Chrome or Microsoft Edge in app mode if one is installed, otherwise your
-   default browser; `http://localhost:8000` works in any browser too).
+   and opens in your default browser (if that is Google Chrome or Microsoft Edge, in its own window without address
+   bar; `http://localhost:8000` works in any browser too).
 5. **Allow network access:** confirm the request to find devices in your local network (needed for the printer) and,
    if the macOS firewall is on, incoming connections (needed for phones).
 

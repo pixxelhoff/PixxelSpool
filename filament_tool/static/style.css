@@ -2037,11 +2037,10 @@ body.booting > #boot { opacity: 1; visibility: visible; transition: none; }
 #boot .flange { fill: none; stroke: color-mix(in srgb, var(--quiet) 35%, transparent); stroke-width: 3; }
 #boot .ring { fill: none; stroke: var(--c); stroke-width: 4.6; opacity: 0; animation: bootwind 2.6s ease-out infinite; animation-delay: var(--d); }
 #boot .hub { animation: bootspin 1.6s linear infinite; }
-#boot .hub circle { fill: color-mix(in srgb, var(--quiet) 25%, var(--card, #fff)); }
-#boot .hub .hole { fill: var(--bg, #fff); }
-#boot .thread { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 6 5; animation: bootthread .6s linear infinite; }
+#boot .hub circle { fill: var(--bg, #fff); }
+#boot .thread { fill: none; stroke: #d81b78; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 6 5; animation: bootthread .6s linear infinite; }
 #boot .bootname { font-weight: 700; font-size: 22px; letter-spacing: .2px; color: var(--ink); }
-#boot .bootname .xx { color: var(--accent); }
+#boot .bootname .xx { color: #d81b78; background: linear-gradient(135deg, #ff5c7a, #d81b78); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 @keyframes bootwind { 0% { opacity: 0; } 10% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes bootspin { to { transform: rotate(360deg); } }
 @keyframes bootthread { to { stroke-dashoffset: -11; } }

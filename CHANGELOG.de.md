@@ -8,6 +8,28 @@ nur für die Apps bekommen die Nummer der aktuellen Version mit dem Zusatz `-pat
 
 Der englische Changelog ist [CHANGELOG.md](CHANGELOG.md).
 
+## [1.0.0-beta.5] – 2026-11-26
+
+Viertes Sammelrelease mit Sicherheitskorrekturen. Installationen mit automatischen Sicherheitsupdates bekommen es von selbst.
+
+### Sicherheit
+- Mehrere Sicherheitsverbesserungen an der Weboberfläche, beim Wiederherstellen von Sicherungen und bei der Anmeldung. Update wird empfohlen.
+- Tipp: Ein Kennwort setzen (Optionen › System), wenn andere dein Netzwerk nutzen oder du Fernzugriff verwendest.
+
+### Behoben
+- Etiketten: Safari druckte alles etwas zu groß, dadurch rutschte die letzte Reihe auf eine eigene Seite.
+- Etiketten: Die Wahl der `.local`-Adresse für den QR-Code tat in manchen Browsern nichts; über Tailscale war die Adresse falsch.
+- Etiketten: „1 Seite“ und „1 Etikett“ statt „1 Seiten“ und „1 Etiketten“.
+- Druckprüfung: Mit AMS-Filament-Backup zeigt ein knapper Slot nicht mehr „knapp“ und Ersatz aus dem Lager, wenn dieselbe Rolle in einem anderen AMS-Slot steckt; stattdessen „danach Slot 4“.
+- 3MF prüfen: Abbrechen einer neuen Datei lässt das vorige Ergebnis stehen.
+- Stromausfall-Hinweis: Die Zeit steht im üblichen Format (z. B. 26.11. 10:44).
+- Mac-App: Öffnet im Standardbrowser; nur mit Chrome oder Edge als Standard gibt es ein eigenes Fenster.
+- Projekt planen: Das Suchfeld hat wie die anderen Suchfelder eine Lupe.
+- „Getrocknet“ bei einer nicht mehr vorhandenen Rolle gibt eine klare Meldung statt eines Serverfehlers.
+
+### Geändert
+- Ladebildschirm: „xx“ und Faden in PixxelSpool-Pink, das runde Logo in der Spulenmitte.
+
 ## [1.0.0-beta.4] – 2026-11-25
 
 Drittes Sammelrelease, dazu eine Docker-Version.

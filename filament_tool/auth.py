@@ -111,15 +111,19 @@ def _fail() -> None:
             _locked_until = now + min(LOCK_MAX, LOCK_FIRST * 2 ** over)
 
 
+_attempt = threading.Lock()   # one guess at a time: parallel requests must not slip past the lock together
+
+
 def check_password(password: str) -> bool:
-    _throttle()
-    ok = _check(password or "", _load().get("password") or {})
-    if not ok:
-        _fail()
-    else:
-        with _lock:
-            _fails.clear()
-    return ok
+    with _attempt:
+        _throttle()
+        ok = _check(password or "", _load().get("password") or {})
+        if not ok:
+            _fail()
+        else:
+            with _lock:
+                _fails.clear()
+        return ok
 
 
 # ------------------------------------------------------------------ login cookie
@@ -164,10 +168,11 @@ def new_recovery_code() -> str:
 
 def recover(code: str, password: str) -> str:
     """Forgotten password: the recovery code allows a new password (and gives a new code)."""
-    _throttle()
-    if not _check(_norm_code(code), _load().get("recovery") or {}):
-        _fail()
-        raise ValueError("The recovery code is not correct")
+    with _attempt:
+        _throttle()
+        if not _check(_norm_code(code), _load().get("recovery") or {}):
+            _fail()
+            raise ValueError("The recovery code is not correct")
     return set_password(password)
 
 

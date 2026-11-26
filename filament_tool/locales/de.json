@@ -1581,7 +1581,13 @@
  "exact amounts from the sliced file": "genaue Mengen aus der geslicten Datei",
  "own colour": "eigene Farbe",
  "supports only": "nur Stützen",
- "{0} labels · {1} per page · {2} pages · QR opens {3}": "{0} Etiketten · {1} pro Seite · {2} Seiten · QR öffnet {3}",
  "{0} more": "{0} weitere",
- "{0} of {1} colours in storage": "{0} von {1} Farben im Lager"
+ "{0} of {1} colours in storage": "{0} von {1} Farben im Lager",
+ "1 label": "1 Etikett",
+ "1 page": "1 Seite",
+ "QR opens {0}": "QR öffnet {0}",
+ "then {0}": "danach {0}",
+ "{0} labels": "{0} Etiketten",
+ "{0} pages": "{0} Seiten",
+ "{0} per page": "{0} pro Seite"
 }

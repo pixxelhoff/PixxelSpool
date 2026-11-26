@@ -1581,7 +1581,13 @@
  "exact amounts from the sliced file": "cantidades exactas del archivo laminado",
  "own colour": "color propio",
  "supports only": "solo soportes",
- "{0} labels · {1} per page · {2} pages · QR opens {3}": "{0} etiquetas · {1} por página · {2} páginas · el QR abre {3}",
  "{0} more": "{0} más",
- "{0} of {1} colours in storage": "{0} de {1} colores en el almacén"
+ "{0} of {1} colours in storage": "{0} de {1} colores en el almacén",
+ "1 label": "1 etiqueta",
+ "1 page": "1 página",
+ "QR opens {0}": "QR abre {0}",
+ "then {0}": "después {0}",
+ "{0} labels": "{0} etiquetas",
+ "{0} pages": "{0} páginas",
+ "{0} per page": "{0} por página"
 }

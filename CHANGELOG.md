@@ -8,6 +8,28 @@ get the current version plus `-patch.N` (e.g. 1.0.0-patch.1); the Pi does not of
 
 The German changelog is [CHANGELOG.de.md](CHANGELOG.de.md).
 
+## [1.0.0-beta.5] – 2026-11-26
+
+Fourth bundled release with security fixes. Installations with automatic security updates get it by themselves.
+
+### Security
+- Several security improvements to the web interface, backup restore and sign-in. Updating is recommended.
+- Tip: set a password (Options › System) when other people use your network or you use remote access.
+
+### Fixed
+- Labels: Safari printed everything slightly too large, so the last row spilled onto an extra page.
+- Labels: choosing the `.local` address for the QR code did nothing in some browsers; behind Tailscale the address was wrong.
+- Labels: "1 page" and "1 label" instead of "1 pages" and "1 labels".
+- Print check: with AMS filament backup, a slot running low no longer shows "tight" and a spare from storage when the same spool sits in another AMS slot; it shows "then Slot 4" instead.
+- Check 3MF: cancelling a new file keeps the previous result.
+- Power-loss notice: the time is shown in the local format (e.g. 26.11. 10:44).
+- Mac app: opens in your default browser; only with Chrome or Edge as default it gets its own window.
+- Plan a project: the search field has its magnifier icon like the other search fields.
+- "Dried" on a spool that no longer exists gives a clear message instead of a server error.
+
+### Changed
+- Loading screen: "xx" and thread in PixxelSpool pink, the round logo in the middle of the spool.
+
 ## [1.0.0-beta.4] – 2026-11-25
 
 Third bundled release, plus a Docker version.

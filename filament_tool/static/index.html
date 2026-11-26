@@ -21,7 +21,7 @@
 <body class="booting">
 <div id="boot" aria-hidden="true"><div class="bootbox">
   <svg class="bootspool" viewBox="-60 -60 120 120"><circle class="flange" r="56"/><g class="wound"><circle class="ring" r="18.0" style="--c:#F47A2A;--d:0.00s"/><circle class="ring" r="22.4" style="--c:#F4C430;--d:0.18s"/><circle class="ring" r="26.8" style="--c:#3FAE5A;--d:0.36s"/><circle class="ring" r="31.2" style="--c:#2F80ED;--d:0.54s"/><circle class="ring" r="35.6" style="--c:#8E5BD6;--d:0.72s"/><circle class="ring" r="40.0" style="--c:#E84393;--d:0.90s"/><circle class="ring" r="44.4" style="--c:#E5484D;--d:1.08s"/><circle class="ring" r="48.8" style="--c:#14B8A6;--d:1.26s"/></g>
-    <g class="hub"><circle r="14"/><circle class="hole" cx="0" cy="-8" r="3"/><circle class="hole" cx="6.9" cy="4" r="3"/><circle class="hole" cx="-6.9" cy="4" r="3"/></g>
+    <g class="hub"><circle r="15.5"/><image href="/static/logo-round.svg" x="-14" y="-14" width="28" height="28"/></g>
     <path class="thread" d="M60 -60 C 40 -58, 20 -54, 0 -52"/></svg>
   <div class="bootname" translate="no">Pi<span class="xx">xx</span>elSpool</div></div></div>
 <header>
@@ -370,7 +370,7 @@
       <h3 class="fold nofold" id="projfold">Plan a project <span class="sub foldsum" id="projsum"></span></h3>
       <div class="foldbody">
         <p class="sub">Put together the colors for a print: you see right away what you have, how much is left and where it is.</p>
-        <div class="search projsearch"><input id="projq" type="search" placeholder="Add color: name, number, line" autocomplete="off"><ul id="projres" hidden></ul></div>
+        <div class="search projsearch"><svg class="sico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="projq" type="search" placeholder="Add color: name, number, line" autocomplete="off"><ul id="projres" hidden></ul></div>
         <ul id="projlist" class="shop"></ul>
         <div class="actions"><button class="small" id="projclear">Clear list</button></div>
       </div>

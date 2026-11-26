@@ -11,8 +11,8 @@
 - Tray icon: double-click opens PixxelSpool. Menu: open, address for the phone, GitHub, check for updates, start
   with Windows, restart, quit.
 - Data lives in %APPDATA%\\PixxelSpool (see host.py), logs in its logs\\ folder.
-- Mac: the same with a menu bar icon and no Dock icon (LSUIElement). The window is Chrome or Edge in app mode if one
-  is installed, otherwise the default browser (Safari). Start at login through a LaunchAgent. Data lives in
+- Mac: the same with a menu bar icon and no Dock icon (LSUIElement). The window is Chrome or Edge in app mode only
+  if that is the default browser, otherwise PixxelSpool opens in the default browser (e.g. Safari). Start at login through a LaunchAgent. Data lives in
   ~/Library/Application Support/PixxelSpool.
 
 Started without a tray library (e.g. for testing) it simply runs the server in the foreground.
@@ -96,13 +96,29 @@ def port_free(port: int) -> bool:
 
 # ---------------------------------------------------------------- app window
 
+def _mac_default_browser() -> str:
+    """Bundle id of the browser macOS opens web links with (e.g. "com.apple.safari"), "" if unknown."""
+    import plistlib
+    f = Path.home() / "Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist"
+    try:
+        with open(f, "rb") as fh:
+            handlers = plistlib.load(fh).get("LSHandlers") or []
+    except (OSError, ValueError, plistlib.InvalidFileException):
+        return ""
+    for h in handlers:
+        if h.get("LSHandlerURLScheme") in ("https", "http"):
+            return str(h.get("LSHandlerRoleAll") or "").lower()
+    return ""
+
+
 def _app_browser() -> str:
     """Edge (part of Windows 10/11) or Chrome, for a window without address bar and tabs."""
-    if IS_MAC:
+    if IS_MAC:   # only when it is the default browser: an app window in another browser surprises people
+        rel = {"com.google.chrome": "Google Chrome.app/Contents/MacOS/Google Chrome",
+               "com.microsoft.edgemac": "Microsoft Edge.app/Contents/MacOS/Microsoft Edge"}.get(_mac_default_browser())
         for base in (Path("/Applications"), Path.home() / "Applications"):
-            for rel in ("Google Chrome.app/Contents/MacOS/Google Chrome", "Microsoft Edge.app/Contents/MacOS/Microsoft Edge"):
-                if (base / rel).exists():
-                    return str(base / rel)
+            if rel and (base / rel).exists():
+                return str(base / rel)
         return ""
     if sys.platform != "win32":
         return ""

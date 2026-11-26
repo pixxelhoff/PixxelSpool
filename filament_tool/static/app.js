@@ -90,7 +90,7 @@ const I18N = {
     resetTitle: "Reset storage", resetBtn: "Remove all spools",
     resetIntro: "Removes all spools from storage. Color catalog, assignments and slots are kept. A database backup is made first.",
     resetType: "Type RESET to confirm", resetDone: (n, f) => L("{0} spools removed. Backup: {1}", n, f),
-    shelf: (c, n) => L("{0} · reserve {1}", cabName(c), n), tabReorg: "Reorganize", reorgIntro: "These spools are not where they belong: outside the block of their line, or in a storage that does not suit the material (e.g. PETG outside the dry zone). Spools you put on a slot yourself are not listed. Work through the list from the top and tap “Done” after each move. Greyed-out steps become possible once an earlier step has freed the slot.",
+    shelf: (c, n) => L("{0} · reserve {1}", esc(cabName(c)), n), tabReorg: "Reorganize", reorgIntro: "These spools are not where they belong: outside the block of their line, or in a storage that does not suit the material (e.g. PETG outside the dry zone). Spools you put on a slot yourself are not listed. Work through the list from the top and tap “Done” after each move. Greyed-out steps become possible once an earlier step has freed the slot.",
     done: "Done", noRoom: "no free slot", reorgEmpty: "Everything is in the right place.",
     offline: "Lost connection to the server", received: "Received", opened: "Opened", notOpened: "unopened",
     ago: (n) => n <= 0 ? L("today") : n < 60 ? Lp(n, "{0} day ago", "{0} days ago") : n < 730 ? L("{0} months ago", Math.round(n / 30.4)) : L("{0} years ago", (n / 365).toLocaleString(LOCALE, { maximumFractionDigits: 1 })),
@@ -917,7 +917,7 @@ function drawJob() {
       const spare = r.spare ? `<br><span class="sub">${L("Spare:")} <b>${esc(r.spare.slot_id ?? "–")}</b>${r.spare.in_cabinet ? "" : " (" + L("reserve") + ")"}</span>`
         : isBad(r) && sp ? `<br><span class="sub">${L("No spare spool in storage")}</span>` : "";
       return `<li class="job-${r.state}" ${r.spare ? `data-spool="${r.spare.id}"` : ""}><span class="jobst">${ST[r.state][0]}</span>
-        <span class="grow"><b>${esc(tr(r.slot))}</b> · ${what}<br><span class="sub">${L("needs {0} g", Math.round(r.need_g))}${r.have_g != null ? " · " + L("approx. {0} g left", r.have_g) : ""} · ${ST[r.state][1]}</span>${spare}</span></li>`;
+        <span class="grow"><b>${esc(tr(r.slot))}</b> · ${what}<br><span class="sub">${L("needs {0} g", Math.round(r.need_g))}${r.have_g != null ? " · " + L("approx. {0} g left", r.have_g) : ""} · ${ST[r.state][1]}${r.backup?.length ? " · " + L("then {0}", backupNames(r)) : ""}</span>${spare}</span></li>`;
     }).join("")}</ul></div>`;
   };
   const warn = shown.some((j) => j.rows.some(isBad));
@@ -2972,9 +2972,10 @@ let tmfCtl = null;
 $("#tmffile").onchange = async () => {
   const f = $("#tmffile").files[0]; $("#tmffile").value = ""; if (!f) return;
   if (!/\.3mf$/i.test(f.name)) return toast(L("Please choose a .3mf file (from Bambu Studio or Orca Slicer)."));
-  tmfCtl?.cancel?.();
+  const old = tmfCtl; old?.cancel?.();
   const ctl = tmfCtl = {}, nameEl = $("#tmfname");
-  tmf = null; drawTmf();
+  // the previous result stays until the new one is there, and comes back after Cancel or an error
+  ctl.prev = old ? old.prev : { tmf, name: nameEl.textContent };
   nameEl.innerHTML = `<span class="tmfprog"><span class="tmfptxt"></span><progress max="1" value="0"></progress><button class="small" type="button">${L("Cancel")}</button></span>`;
   const txt = nameEl.querySelector(".tmfptxt"), bar = nameEl.querySelector("progress");
   nameEl.querySelector("button").onclick = () => ctl.cancel?.();
@@ -2987,7 +2988,7 @@ $("#tmffile").onchange = async () => {
     tmf = data; nameEl.textContent = f.name; drawTmf();
   } catch (e) {
     if (tmfCtl !== ctl) return;
-    tmf = null; nameEl.textContent = ""; drawTmf();
+    tmf = ctl.prev?.tmf || null; nameEl.textContent = tmf ? ctl.prev.name : ""; drawTmf();
     if (!ctl.cancelled) toast(e.message);
   }
   tmfCtl = null;
@@ -3225,6 +3226,8 @@ async function loadPrinter() {
   drawPrinter(); wizSync();
   if (overview) drawAms();    // external spools move between AMS card and printer card
 }
+// AMS slots with the same filament that take over when this one runs out (filament backup)
+const backupNames = (r, short) => (r.backup || []).map((x) => esc(short ? x.replace(/^AMS 1 · /, "") : x)).join(", ");
 function pcheck(pid) {
   const j = (overview?.jobs || []).find((x) => x.printer === pid);
   if (!j || !j.rows?.length || !j.active) return "";
@@ -3232,8 +3235,9 @@ function pcheck(pid) {
   return `<ul class="pcheck">${j.rows.map((r) => {
     const sp = r.spool, bad = r.state === "tight" || r.state === "short";
     const spare = bad ? (r.spare ? ` · ${L("Spare:")} <b>${esc(r.spare.slot_id ?? "–")}</b>` : sp ? " · " + L("no spare spool") : "") : "";
+    const backup = r.backup?.length ? " · " + L("then {0}", backupNames(r, true)) : "";
     return `<li class="job-${r.state}" ${r.spare ? `data-spool="${r.spare.id}"` : ""}><span class="jobst">${ST[r.state][0]}</span>
-      ${sp ? sw(sp) : ""}<span class="grow">${esc(r.slot.replace("AMS 1 · ", ""))} · ${ST[r.state][1]} <span class="sub">(${Math.round(r.need_g)} g${r.have_g != null ? " " + L("of approx. {0} g", r.have_g) : ""})</span>${spare}</span></li>`;
+      ${sp ? sw(sp) : ""}<span class="grow">${esc(r.slot.replace("AMS 1 · ", ""))} · ${ST[r.state][1]} <span class="sub">(${Math.round(r.need_g)} g${r.have_g != null ? " " + L("of approx. {0} g", r.have_g) : ""})</span>${backup}${spare}</span></li>`;
   }).join("")}</ul>`;
 }
 // remaining time or finishing time; a tap switches between them (remembered per device)
