@@ -461,26 +461,36 @@ function drawCatalog() {
 $("#onlymissing").onchange = drawCatalog; $("#onlyowned").onchange = drawCatalog;
 $("#showdisc").onchange = async () => { await saveSettings({ show_discontinued: $("#showdisc").checked }); drawCatalog(); };
 // tapping a color: a small card with the spools you have and "Add to shopping list"
-$("#catlines").addEventListener("click", async (e) => {
+$("#catlines").addEventListener("click", (e) => {
   const el = e.target.closest("[data-cat]");
-  if (!el) return;
-  const pid = +el.dataset.cat, p = catalogData.flatMap((l) => l.products).find((x) => x.id === pid);
-  if (!p) return;
+  if (el) showFilament(+el.dataset.cat);
+});
+// the card of one filament (catalog, or a scanned filament label #filament=<id>, which may also be another brand)
+async function showFilament(pid) {
+  let p = catalogData?.flatMap((l) => l.products).find((x) => x.id === pid);
+  if (!p) {
+    try { p = (await api("/api/products")).find((x) => x.id === pid); } catch (e) { p = null; }
+    if (!p) return toast(L("Filament {0} doesn't exist", pid));
+    p = { ...p, owned: spoolsOf(pid).length };
+  }
   const sps = spoolsOf(pid), noted = isNoted(pid);
+  const ref = p.brand ? esc(p.brand) + (p.sku ? " · " + esc(p.sku) : "") : esc(p.bambu_no ?? "");
   const where = (s) => s.ams_slot ? esc(amsWhere(s)) : `${esc(s.slot_id ?? "–")}${s.in_cabinet ? "" : " (" + L("reserve") + ")"}`;
-  const body = `<div class="catpop"><div class="catpophead">${sw(p, "big")}<div><b>${esc(p.line)} ${esc(cname(p))}</b><br><span class="sub">${esc(p.bambu_no ?? "")}</span></div></div>
-    ${sps.length ? `<ul class="shop">${sps.map((s) => `<li>${sw(s)}<span class="grow"><b>${where(s)}</b>${s.remain_pct != null ? ` · ${shownPct(s)} %` : ""}${s.is_refill ? " · " + T("refill") : ""}</span></li>`).join("")}</ul>`
+  const body = `<div class="catpop"><div class="catpophead">${sw(p, "big")}<div><b>${esc(p.line)} ${esc(cname(p))}</b><br><span class="sub">${ref}</span></div></div>
+    ${sps.length ? `<ul class="shop">${sps.map((s) => `<li>${sw(s)}<span class="grow"><b>${where(s)}</b>${s.remain_pct != null ? ` · ${shownPct(s)} %` : ""}${s.is_refill ? " · " + T("refill") : ""}</span></li>`).join("")}</ul>`
       : `<p class="sub">${L(p.owned ? "In use or in the AMS." : "Not in your storage.")}</p>`}
     ${p.discontinued ? `<p class="sub discmark">${L("Bambu Lab no longer sells this color.")}</p>` : ""}
     ${noted ? `<p class="sub">${L("This color is already on your shopping list.")}</p>` : ""}
     <p class="sub">${L("Minimum stock")}: ${minStock(pid) ? esc(Lp(minStock(pid), "{0} spool", "{0} spools")) : L("none")}</p></div>`;
-  const extra = [{ label: L("Minimum stock"), value: "min" }].concat(sps.length ? [{ label: L("Show in storage"), value: "show" }] : []);
+  const extra = [{ label: L("Minimum stock"), value: "min" }, { label: L("Print label"), value: "label" }]
+    .concat(sps.length ? [{ label: L("Show in storage"), value: "show" }] : []);
   const r = await ask(body, { block: true, extra, cancel: L("Close"), ...(p.discontinued && !noted ? { ok: L("Close"), noCancel: true } : { ok: L(noted ? "Remove from shopping list" : "Add to shopping list") }) });
   if (r === true && p.discontinued && !noted) return;
   if (r === "show") { const sp = sps.find((s) => s.in_cabinet) || sps[0]; showView("storage"); showSpool(await api(`/api/spools/${sp.id}`)); }
   else if (r === "min") { await askMinStock(pid, `${p.line} ${cname(p)}`); drawCatalog(); }
+  else if (r === "label") location.href = `/labels/filament?id=${pid}`;
   else if (r === true) setNoted(pid, !noted);
-});
+}
 
 let reorgData = [];
 async function loadReorg() {
@@ -597,7 +607,7 @@ async function refresh() {
   try { resume = sessionStorage.getItem("wizStep"); sessionStorage.removeItem("wizStep"); } catch (e) {}
   if ((resume !== null || overview.settings?.setup_done === false) && !wiz.open) openWizard(+resume || 0);
   document.body.classList.remove("booting");   // shown only now, so a first start goes straight to the wizard
-  if (!refresh.done) { refresh.done = true; openSlotHash(); loadUpdate(); if (!wiz.open) whatsNew(); }   // version and last update check for the status menu
+  if (!refresh.done) { refresh.done = true; openHash(); loadUpdate(); if (!wiz.open) whatsNew(); }   // version and last update check for the status menu
   setTimeout(askNewAmsSpools, 1200);
   setTimeout(askRefillAms, 1600);
 }
@@ -657,7 +667,15 @@ function openSlotHash() {
   if (sl.spools.length) showSpool(sl.spools[0], null, sl.spools.length > 1 ? L("There are {1} spools on {0}.", esc(id), sl.spools.length) : "");
   else { highlight(id); toast(L("Slot {0} is free", id)); }
 }
-window.addEventListener("hashchange", openSlotHash);
+// scanned filament label: #filament=123 opens the card of that filament
+function openFilamentHash() {
+  const m = location.hash.match(/^#filament=(\d+)$/);
+  if (!m || !overview) return;
+  history.replaceState(null, "", location.pathname + location.search);
+  showFilament(+m[1]);
+}
+const openHash = () => { openSlotHash(); openFilamentHash(); };
+window.addEventListener("hashchange", openHash);
 let navInfoOpen = false;
 // remaining filament: red at or below the "low" threshold from the options, amber up to twice that, else green
 const remainCls = (p) => { const low = +(SET().low_remain_pct ?? 5) || 5; return p <= low ? "rbad" : p <= Math.max(20, low * 2) ? "rwarn" : "rok"; };

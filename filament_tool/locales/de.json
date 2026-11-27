@@ -1589,5 +1589,20 @@
  "then {0}": "danach {0}",
  "{0} labels": "{0} Etiketten",
  "{0} pages": "{0} Seiten",
- "{0} per page": "{0} pro Seite"
+ "{0} per page": "{0} pro Seite",
+ "Article number": "Artikelnummer",
+ "Black only (thermal printer)": "Nur Schwarz (Thermodrucker)",
+ "Color field": "Farbfeld",
+ "Filament {0} doesn't exist": "Filament {0} gibt es nicht",
+ "Inner margin": "Innenabstand",
+ "Print label": "Etikett drucken",
+ "Filament label": "Filament-Etikett",
+ "Hex code": "Hexcode",
+ "Label for this filament, made for a label printer. The QR code opens the filament in PixxelSpool.": "Etikett für dieses Filament, gemacht für einen Etikettendrucker. Der QR-Code öffnet das Filament in PixxelSpool.",
+ "Landscape": "Querformat",
+ "Orientation": "Ausrichtung",
+ "Portrait": "Hochformat",
+ "View": "Ansehen",
+ "Download": "Herunterladen",
+ "“View” opens the label as a PDF in exactly the label size. From there, share it to the app of your label printer (e.g. Niimbot or Labelife) or print it.": "„Ansehen“ öffnet das Etikett als PDF in genau der Etikettengröße. Von dort teilst du es an die App deines Etikettendruckers (z. B. Niimbot oder Labelife) oder druckst es."
 }

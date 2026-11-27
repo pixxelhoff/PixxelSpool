@@ -8,6 +8,11 @@ get the current version plus `-patch.N` (e.g. 1.0.0-patch.1); the Pi does not of
 
 The German changelog is [CHANGELOG.de.md](CHANGELOG.de.md).
 
+## [Unreleased]
+
+### Added
+- Filament label for a label printer: "Print label" on a filament's card (Catalog). One label, 40 × 30 mm by default (also 50 × 30, 62 × 29 or a custom size), landscape or portrait. Shows brand, line, color name, article number, hex code, drying and a color field; the QR code opens the filament's card in PixxelSpool. "View" opens the label as a PDF in exactly the label size (on the iPhone it can be shared from there to the app of the label printer, e.g. Niimbot or Labelife), "Download" saves it. "Black only" is meant for thermal printers. Slot labels stay under Storage.
+
 ## [1.0.0-beta.6] – 2026-11-26
 
 Fifth bundled release with bug fixes.

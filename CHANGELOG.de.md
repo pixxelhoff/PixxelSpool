@@ -8,6 +8,11 @@ nur für die Apps bekommen die Nummer der aktuellen Version mit dem Zusatz `-pat
 
 Der englische Changelog ist [CHANGELOG.md](CHANGELOG.md).
 
+## [Unveröffentlicht]
+
+### Neu
+- Filament-Etikett für Etikettendrucker: „Etikett drucken“ in der Karte eines Filaments (Katalog). Ein Etikett, standardmäßig 40 × 30 mm (auch 50 × 30, 62 × 29 oder eigene Größe), im Quer- oder Hochformat. Zeigt Marke, Linie, Farbname, Artikelnummer, Hexcode, Trocknung und ein Farbfeld; der QR-Code öffnet die Karte des Filaments in PixxelSpool. „Ansehen“ öffnet das Etikett als PDF in genau der Etikettengröße (auf dem iPhone lässt es sich von dort an die App des Etikettendruckers teilen, z. B. Niimbot oder Labelife), „Herunterladen“ speichert es. „Nur Schwarz“ ist für Thermodrucker gedacht. Die Etiketten für Lagerplätze bleiben beim Lager.
+
 ## [1.0.0-beta.6] – 2026-11-26
 
 Fünftes Sammelrelease mit Fehlerkorrekturen.
