@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import secrets
 import subprocess
 import threading
@@ -496,15 +497,17 @@ LABEL_TEXTS = ["Labels", "Labels for your storage slots. The QR code opens the s
                "In the print dialog choose: paper A4, scale 100 % (not “fit to page”), margins “none” and no headers and footers.",
                "Reset settings", "1 label", "{0} labels", "{0} per page", "1 page", "{0} pages", "QR opens {0}",
                "Safari: switch off “Print headers and footers” in the print dialog, otherwise the labels do not fit on the page.",
-               "QR code opens", "The .local name keeps working when the router gives PixxelSpool a new IP address."]
+               "QR code opens", "The .local name keeps working when the router gives PixxelSpool a new IP address.",
+               # filament label (static/filament_labels.html)
+               "Filament label", "Label for this filament, made for a label printer. The QR code opens the filament in PixxelSpool.",
+               "Orientation", "Landscape", "Portrait", "Brand", "Line", "Color name", "Article number", "Hex code",
+               "Drying", "Color field", "Black only (thermal printer)", "Inner margin",
+               "View", "Download",
+               "“View” opens the label as a PDF in exactly the label size. From there, share it to the app of your label printer (e.g. Niimbot or Labelife) or print it."]
 
 
-@app.get("/labels")
-def labels(request: Request, cab: str = "", logo: int = 1, addr: str = "", fmt: str = ""):
-    """Printable slot labels: a label designer with an A4 preview (static/labels.html), the QR codes come from here."""
-    from fastapi.responses import HTMLResponse
-    from html import escape
-    addr_choice = addr
+def _label_base(request: Request, addr_choice: str = "") -> tuple:
+    """Address the QR codes on printed labels open: (base, choices, chosen key). Shared by both label pages."""
     addr = request.headers.get("host") or "pixxelspool.local:8000"
     scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
     name, _, port = addr.partition(":") if addr.count(":") <= 1 else (addr, "", "")
@@ -519,6 +522,22 @@ def labels(request: Request, cab: str = "", logo: int = 1, addr: str = "", fmt: 
     local = f"http://{mdns}" + (f":{own_port}" if own_port and str(own_port) != "80" else "") + "/" if mdns and name != mdns else ""
     bases = [{"key": "", "url": here}] + ([{"key": "local", "url": local}] if local else [])
     base = local if addr_choice == "local" and local else here
+    return base, bases, "local" if base == local and local else ""
+
+
+def _label_page(file: str, title: str, data: dict):
+    from fastapi.responses import HTMLResponse
+    from html import escape
+    page = (Path(__file__).parent / "static" / file).read_text(encoding="utf-8")
+    page = (page.replace("__LANG__", settings.lang()).replace("__TITLE__", escape("PixxelSpool " + title))
+            .replace("__DATA__", json.dumps(data, ensure_ascii=False).replace("</", "<\\/")))
+    return HTMLResponse(page, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/labels")
+def labels(request: Request, cab: str = "", logo: int = 1, addr: str = "", fmt: str = ""):
+    """Printable slot labels: a label designer with an A4 preview (static/labels.html), the QR codes come from here."""
+    base, bases, addr_key = _label_base(request, addr)
     cabs = {c["key"]: c for c in settings.load()["cabinets"]}
     with db.session() as conn:
         rows = [dict(r) for r in conn.execute("SELECT * FROM slots ORDER BY cabinet, kind, row, pos")]
@@ -534,15 +553,41 @@ def labels(request: Request, cab: str = "", logo: int = 1, addr: str = "", fmt: 
         items.append({"id": r["id"], "cab": r["cabinet"], "cabName": str(c.get("name") or r["cabinet"]),
                       "purpose": str(c.get("label") or ""), "where": where, "res": r["kind"] != "cabinet",
                       "qr": remote.qr_label_svg(base + "#slot=" + r["id"], logo=bool(logo), accent="currentColor")})
-    data = {"base": base, "bases": bases, "addr": "local" if base == local and local else "", "logo": bool(logo), "cab": cab if cab in cabs else "", "items": items,
+    data = {"base": base, "bases": bases, "addr": addr_key, "logo": bool(logo), "cab": cab if cab in cabs else "", "items": items,
             "cabs": [{"key": k, "name": str(c.get("name") or k)} for k, c in cabs.items()],
             "T": {k: _t(k) for k in LABEL_TEXTS}}
     if fmt == "json":   # the page switches the QR address or logo without reloading itself
         return JSONResponse(data, headers={"Cache-Control": "no-store"})
-    page = (Path(__file__).parent / "static" / "labels.html").read_text(encoding="utf-8")
-    page = (page.replace("__LANG__", settings.lang()).replace("__TITLE__", escape("PixxelSpool " + _t("Labels")))
-            .replace("__DATA__", json.dumps(data, ensure_ascii=False).replace("</", "<\\/")))
-    return HTMLResponse(page, headers={"Cache-Control": "no-store"})
+    return _label_page("labels.html", _t("Labels"), data)
+
+
+@app.get("/labels/filament")
+def filament_label(request: Request, id: int = 0, logo: int = 1, addr: str = "", fmt: str = ""):
+    """Label of one filament for a label printer (static/filament_labels.html), opened from its card in the app.
+    One label per page, e.g. 40 x 30 mm; the QR code opens the card again (#filament=<product id>)."""
+    base, bases, addr_key = _label_base(request, addr)
+    with db.session() as conn:
+        r = conn.execute(
+            "SELECT p.id, p.bambu_no, p.sku, p.name_en, p.name_de, p.color_name, p.hex, p.colors, "
+            "  l.name AS line, l.brand, l.dry_temp, l.dry_hours "
+            "FROM products p JOIN lines l ON l.id = p.line_id WHERE p.id = ?", (id,)).fetchone()
+    if r is None:
+        return JSONResponse({"detail": "Filament not found"}, status_code=404)
+    try:
+        cols = [c for c in json.loads(r["colors"] or "[]") if isinstance(c, str)]
+    except ValueError:
+        cols = []
+    item = {"id": r["id"], "brand": r["brand"] or "Bambu Lab", "line": r["line"],
+            "name": (r["name_de"] if settings.lang() == "de" else r["name_en"]) or r["color_name"] or "",
+            "no": r["bambu_no"] or r["sku"] or "", "hex": (r["hex"] or "").upper(), "colors": [c.upper() for c in cols],
+            "dry": [r["dry_temp"], r["dry_hours"]] if r["dry_temp"] else None,
+            "qr": remote.qr_label_svg(base + "#filament=" + str(r["id"]), logo=bool(logo), accent="currentColor")}
+    _t = push._tr
+    data = {"base": base, "bases": bases, "addr": addr_key, "logo": bool(logo), "item": item,
+            "T": {k: _t(k) for k in LABEL_TEXTS}}
+    if fmt == "json":   # the page switches the QR address or logo without reloading itself
+        return JSONResponse(data, headers={"Cache-Control": "no-store"})
+    return _label_page("filament_labels.html", _t("Filament label"), data)
 
 
 @app.get("/api/events")

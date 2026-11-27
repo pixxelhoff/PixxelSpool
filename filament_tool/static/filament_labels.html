@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="__LANG__"><head><meta charset="utf-8"><title>__TITLE__</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/static/favicon-32.png">
+<style>
+:root { --accent: #d81b78; --ink: #1d1d1b; --quiet: #6b6a65; --line: #dddad3; --bg: #eceae5; --card: #fff; --blue: #1f6feb; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+.app { display: grid; grid-template-columns: 330px 1fr; min-height: 100vh; }
+.side { background: var(--card); border-right: 1px solid var(--line); padding: 18px 18px 30px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.side h1 { font-size: 20px; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+.side h1 img { width: 26px; height: 26px; }
+.back { display: inline-block; margin: 0 0 10px; font-size: 14px; color: var(--blue); text-decoration: none; }
+.back:hover { text-decoration: underline; }
+.side .sub { color: var(--quiet); font-size: 13px; line-height: 1.4; }
+.grp { margin-top: 18px; }
+.grp > b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--quiet); margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: #f6f5f2; color: var(--ink); cursor: pointer; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip.busy { opacity: .6; cursor: progress; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; font-size: 14px; }
+.row + .row { border-top: 1px solid #efede8; }
+.row input[type=number] { width: 70px; font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; text-align: right; }
+.row .unit { color: var(--quiet); font-size: 13px; margin-left: 4px; }
+.sw { position: relative; width: 40px; height: 24px; flex: none; }
+.sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; z-index: 1; }
+.sw i { position: absolute; inset: 0; border-radius: 12px; background: #d4d2cc; transition: background .15s; }
+.sw i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0003; transition: transform .15s; }
+.sw input:checked + i { background: var(--accent); }
+.sw input:checked + i::after { transform: translateX(16px); }
+.sw input:disabled + i { opacity: .4; }
+.custom { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 14px; }
+.custom input { width: 64px; font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; text-align: right; }
+.hint { margin-top: 10px; font-size: 12.5px; color: var(--quiet); line-height: 1.45; }
+.reset { font: inherit; font-size: 13px; color: var(--quiet); background: none; border: 0; text-decoration: underline; cursor: pointer; padding: 0; margin-top: 14px; }
+.main { padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.info { color: var(--quiet); font-size: 13px; margin: 0; align-self: stretch; }
+.tile { flex: none; background: #fff; box-shadow: 0 4px 24px #0002; border-radius: 10px; overflow: hidden; line-height: 0; margin-top: 8px; }
+.tile canvas { display: block; width: 100%; height: 100%; }
+body.loading .tile { opacity: .5; transition: opacity .2s; }
+.outbar { display: flex; gap: 10px; width: 100%; max-width: 420px; }
+.outbar button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 15px; font-weight: 600;
+  padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+.outbar button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.outbar button:disabled { opacity: .5; cursor: progress; }
+.outbar svg { width: 18px; height: 18px; flex: none; }
+/* phone: the label preview with its buttons stays on top, the settings scroll below it */
+@media screen and (max-width: 800px) {
+  .app { display: flex; flex-direction: column; }
+  .main { order: -1; position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 14px 14px; gap: 10px; border-bottom: 1px solid var(--line); }
+  .info { text-align: center; }
+  .tile { margin-top: 0; }
+  .side { position: static; height: auto; border-right: 0; }
+}
+</style></head><body>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main class="main">
+    <p class="info" id="info"></p>
+    <div class="tile" id="tile"></div>
+    <div class="outbar">
+      <button id="view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span></span></button>
+      <button id="dl" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span></span></button>
+    </div>
+  </main>
+</div>
+<script>
+const D = __DATA__, T = (k, ...a) => (D.T[k] || k).replace(/\{(\d)\}/g, (_, i) => a[i]);
+// common sizes of label printer rolls (Phomemo, Niimbot, Zebra: 40×30 and 50×30; Brother DK-11209: 62×29), long side first
+const SIZES = { a: [40, 30], b: [50, 30], c: [62, 29] };
+const DEF = { size: "a", w: 40, h: 30, port: false, pad: 1.5,
+  brand: true, line: true, cname: true, no: true, hex: true, dry: true, swatch: true, qr: true, mono: true };
+let S = { ...DEF };
+try { S = { ...DEF, ...JSON.parse(localStorage.getItem("filamentLabelSettings") || "{}") }; } catch (e) {}
+const save = () => { try { localStorage.setItem("filamentLabelSettings", JSON.stringify(S)); } catch (e) {} };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const clamp = (v, lo, hi, d) => { v = parseFloat(String(v).replace(",", ".")); return isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
+// label size: sizes are kept lying (long side first), portrait stands them upright
+const dims = () => { const a = Math.max(S.w, S.h), b = Math.min(S.w, S.h); return S.port ? [b, a] : [a, b]; };
+const hexText = (it) => (it.colors.length > 1 ? it.colors : [it.hex]).filter(Boolean).join(" ");
+
+function sw(key, label, dis) {
+  return `<label class="row"><span>${esc(label)}</span><span class="sw"><input type="checkbox" data-k="${key}" ${S[key] ? "checked" : ""} ${dis ? "disabled" : ""}><i></i></span></label>`;
+}
+function num(key, label, lo, hi, step, unit) {
+  return `<label class="row"><span>${esc(label)}</span><span><input type="number" data-n="${key}" min="${lo}" max="${hi}" step="${step}" value="${S[key]}"><span class="unit">${unit || ""}</span></span></label>`;
+}
+function drawSide() {
+  const it = D.item;
+  $side.innerHTML = `<a class="back" href="/#filament=${it.id}" translate="no">‹ PixxelSpool</a><h1><img src="/static/logo.svg" alt="">${esc(T("Filament label"))}</h1>
+    <p class="sub"><b>${esc(it.line)} ${esc(it.name)}</b><br>${esc(T("Label for this filament, made for a label printer. The QR code opens the filament in PixxelSpool."))}</p>
+    <div class="grp"><b>${esc(T("Size"))}</b><div class="chips">${Object.entries(SIZES).map(([k, [a, b]]) => `<button class="chip ${S.size === k ? "on" : ""}" data-size="${k}">${S.port ? `${b}×${a}` : `${a}×${b}`}</button>`).join("")}
+      <button class="chip ${S.size === "x" ? "on" : ""}" data-size="x">${esc(T("Custom"))}</button></div>
+      ${S.size === "x" ? `<div class="custom"><input type="number" data-n="w" min="15" max="120" step="1" value="${Math.max(S.w, S.h)}"> × <input type="number" data-n="h" min="12" max="120" step="1" value="${Math.min(S.w, S.h)}"> mm</div>` : ""}</div>
+    <div class="grp"><b>${esc(T("Orientation"))}</b><div class="chips">
+      <button class="chip ${S.port ? "" : "on"}" data-port="0">${esc(T("Landscape"))}</button><button class="chip ${S.port ? "on" : ""}" data-port="1">${esc(T("Portrait"))}</button></div></div>
+    <div class="grp"><b>${esc(T("Content"))}</b>
+      ${sw("brand", T("Brand"))}${sw("line", T("Line"))}${sw("cname", T("Color name"))}${sw("no", T("Article number"))}${sw("hex", T("Hex code"))}${sw("dry", T("Drying"))}
+      ${sw("swatch", T("Color field"), S.mono)}${sw("qr", T("QR code"))}
+      ${S.qr && D.bases.length > 1 ? `<div class="row"><span>${esc(T("QR code opens"))}</span></div>
+        <div class="chips">${D.bases.map((b) => `<button class="chip ${D.addr === b.key ? "on" : ""}" data-addr="${esc(b.key)}" title="${esc(b.url)}">${esc(b.url.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</button>`).join("")}</div>
+        <p class="hint">${esc(T("The .local name keeps working when the router gives PixxelSpool a new IP address."))}</p>` : ""}
+      <label class="row"><span>${esc(T("Logo in the QR code"))}</span><span class="sw"><input type="checkbox" id="logo" ${D.logo ? "checked" : ""} ${S.qr ? "" : "disabled"}><i></i></span></label></div>
+    <div class="grp"><b>${esc(T("Look"))}</b>
+      ${sw("mono", T("Black only (thermal printer)"))}${num("pad", T("Inner margin"), 0, 6, 0.5, "mm")}</div>
+    <p class="hint">${esc(T("“View” opens the label as a PDF in exactly the label size. From there, share it to the app of your label printer (e.g. Niimbot or Labelife) or print it."))}</p>
+    <button class="reset" id="reset">${esc(T("Reset settings"))}</button>`;
+  $side.querySelectorAll("[data-size]").forEach((b) => (b.onclick = () => { S.size = b.dataset.size; if (SIZES[S.size]) [S.w, S.h] = SIZES[S.size]; upd(true); }));
+  $side.querySelectorAll("[data-port]").forEach((b) => (b.onclick = () => { S.port = b.dataset.port === "1"; upd(true); }));
+  $side.querySelectorAll("[data-k]").forEach((i) => (i.onchange = () => { S[i.dataset.k] = i.checked; upd(true); }));
+  $side.querySelectorAll("[data-n]").forEach((i) => (i.onchange = () => {
+    const k = i.dataset.n, r = { w: [15, 120, 40], h: [12, 120, 30], pad: [0, 6, 1.5] }[k];
+    S[k] = clamp(i.value, ...r); i.value = S[k]; upd(false);
+  }));
+  $side.querySelectorAll("[data-addr]").forEach((b) => (b.onclick = () => { b.classList.add("busy"); refetch("addr", b.dataset.addr); }));
+  const lg = $side.querySelector("#logo");
+  lg.onchange = () => refetch("logo", lg.checked ? 1 : 0);
+  $side.querySelector("#reset").onclick = () => { S = { ...DEF }; upd(true); };
+}
+// a new QR code (other address, logo on or off) comes from the server: fetch it in the background
+async function refetch(key, val) {
+  save();
+  const u = new URL(location.href); u.searchParams.set(key, val);
+  const j = new URL(u); j.searchParams.set("fmt", "json");
+  document.body.classList.add("loading");
+  try {
+    const r = await fetch(j, { cache: "no-store", credentials: "same-origin" });
+    if (!r.ok) throw new Error(r.status);
+    Object.assign(D, await r.json());
+    try { history.replaceState(null, "", u); } catch (e) {}
+    document.body.classList.remove("loading"); drawSide(); draw();
+  } catch (e) { location.href = u.href; }
+}
+function upd(side) { save(); if (side) drawSide(); draw(); }
+
+// ---------------------------------------------------------------- the label, drawn on a canvas
+// The same picture is the preview and the PDF, so what you see is what the label printer gets.
+const K = 20;                       // pixels per mm (about 500 dpi, sharper than any label printer)
+const SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const cv = document.createElement("canvas"), ctx = cv.getContext("2d");
+const imgs = new Map();
+function loadImg(src) {
+  if (!imgs.has(src)) imgs.set(src, new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }));
+  return imgs.get(src);
+}
+// SVGs without a size draw as 0 × 0 in some browsers: give them one
+const svgImg = (svg) => loadImg("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.replace("<svg ", '<svg width="600" height="600" ')));
+let logoSvg = null;
+async function logoImg() {
+  if (logoSvg === null) logoSvg = await fetch("/static/logo-round.svg").then((r) => r.text()).catch(() => "");
+  return logoSvg ? svgImg(logoSvg) : null;
+}
+function font(weight, mm, spacing) {
+  ctx.font = `${weight} ${(mm * K).toFixed(1)}px ${SANS}`;
+  if ("letterSpacing" in ctx) ctx.letterSpacing = spacing ? `${(mm * K * spacing).toFixed(1)}px` : "0px";
+}
+const width = (s) => ctx.measureText(s).width / K;            // in mm, for the current font
+function wrap(text, maxW) {                                     // whole words only
+  const lines = []; let cur = "";
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    const t = cur ? cur + " " + w : w;
+    if (!cur || width(t) <= maxW) cur = t; else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+// font size and lines of one text: one line while it stays big enough, otherwise up to n lines
+function fitText(b, start, maxW) {
+  let s = start;
+  font(b.weight, s, b.spacing);
+  const min1 = b.n > 1 ? start * 0.72 : 0.8;
+  while (width(b.text) > maxW && s > min1) { s -= 0.05; font(b.weight, s, b.spacing); }
+  if (width(b.text) <= maxW || b.n === 1) return { size: s, lines: [b.text] };
+  for (s = start; s > 0.8; s -= 0.05) {
+    font(b.weight, s, b.spacing);
+    const ls = wrap(b.text, maxW);
+    if (ls.length <= b.n && ls.every((l) => width(l) <= maxW)) return { size: s, lines: ls };
+  }
+  font(b.weight, 0.8, b.spacing);
+  return { size: 0.8, lines: wrap(b.text, maxW).slice(0, b.n) };
+}
+function fitBlocks(defs, maxW, base, sc) {
+  return defs.map((d) => {
+    if (d.bar) return { ...d, height: base * 0.7 * sc };
+    const f = fitText(d, base * d.k * sc, maxW);
+    return { ...d, ...f, height: f.lines.length * f.size * d.lh };
+  });
+}
+const colHeight = (bs, gap) => bs.reduce((a, b) => a + b.height, 0) + gap * Math.max(0, bs.length - 1);
+function paintBlocks(bs, x, y, maxW, gap, center) {
+  ctx.textBaseline = "middle"; ctx.textAlign = center ? "center" : "left";
+  for (const b of bs) {
+    if (b.bar) {
+      const bw = center ? maxW * 0.6 : maxW, bx = center ? x + (maxW - bw) / 2 : x;
+      const r = [bx * K, y * K, bw * K, b.height * K];
+      if (b.colors.length > 1) {
+        const g = ctx.createLinearGradient(r[0], r[1], r[0] + r[2], r[1] + r[3]);
+        b.colors.forEach((c, i) => g.addColorStop(i / (b.colors.length - 1), c));
+        ctx.fillStyle = g;
+      } else ctx.fillStyle = b.colors[0] || "#ccc";
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(...r, 0.6 * K) : ctx.rect(...r); ctx.fill();
+      ctx.lineWidth = 0.2 * K; ctx.strokeStyle = "rgba(0,0,0,.2)"; ctx.stroke();
+    } else {
+      font(b.weight, b.size, b.spacing); ctx.fillStyle = b.color;
+      b.lines.forEach((l, i) => ctx.fillText(l, (center ? x + maxW / 2 : x) * K, (y + (i + 0.5) * b.size * b.lh) * K));
+    }
+    y += b.height + gap;
+  }
+}
+// the QR code is drawn from the server's SVG as shapes (dots and corner markers), not as a picture: it stays sharp, and a
+// canvas with an SVG picture on it may not be read back in Safari (needed for the PDF)
+function paintQr(svg, x, y, size, color) {
+  const vb = (svg.match(/viewBox="([^"]+)"/) || [, "0 0 1 1"])[1].split(/\s+/).map(Number), f = size * K / vb[2];
+  ctx.save(); ctx.translate(x * K, y * K); ctx.scale(f, f); ctx.translate(-vb[0], -vb[1]);
+  ctx.fillStyle = S.mono ? "#000" : "#1a1a1a"; ctx.beginPath();
+  for (const m of svg.matchAll(/M([\d.]+) ([\d.]+)a\.42/g)) { const cx = +m[1], cy = +m[2] + 0.42; ctx.moveTo(cx + 0.42, cy); ctx.arc(cx, cy, 0.42, 0, 2 * Math.PI); }
+  ctx.fill();
+  for (const m of svg.matchAll(/<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)" fill="([^"]+)"(?: stroke="[^"]*" stroke-width="([\d.]+)")?/g)) {
+    const [, rx0, ry0, rw, rh, rr, fill, sw] = m, r = [+rx0, +ry0, +rw, +rh];
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(...r, +rr) : ctx.rect(...r);
+    if (fill === "none") { ctx.lineWidth = +sw || 1; ctx.strokeStyle = color; ctx.stroke(); } else { ctx.fillStyle = color; ctx.fill(); }
+  }
+  ctx.restore();
+}
+let drawNo = 0, noLogo = false;
+async function render() {
+  const it = D.item, [w, h] = dims(), p = S.pad, stack = h > w * 1.15, no = ++drawNo;
+  const logo = S.qr && D.logo && !noLogo ? await logoImg().catch(() => null) : null;
+  if (no !== drawNo) return false;                                    // a newer drawing has started
+  cv.width = Math.round(w * K); cv.height = Math.round(h * K);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+  const ink = "#111", grey = S.mono ? "#111" : "#555", soft = S.mono ? "#111" : "#444";
+  const cw = w - 2 * p, qside = Math.min(cw, h * 0.48);
+  // font size the parts are measured against: portrait labels share the height left under the QR code
+  const base = stack ? Math.min(w / 8, (h - (S.qr ? qside : 0) - 2 * p) / 6.5) : Math.min(h / 7.5, w / 5);
+  const gap = base * 0.15;
+  const dry = S.dry && it.dry ? `${T("Drying")} ${it.dry[0]} °C${it.dry[1] ? " · " + it.dry[1] + " h" : ""}` : "";
+  const meta = [S.no ? it.no : "", S.hex ? hexText(it) : ""].filter(Boolean).join(" · ");
+  const head = fitBlocks([
+    S.brand && { text: it.brand.toUpperCase(), weight: 700, k: 0.6, n: 1, lh: 1.15, color: grey, spacing: 0.06 },
+    S.line && { text: it.line, weight: 700, k: 0.95, n: 2, lh: 1.08, color: ink },
+  ].filter(Boolean), cw, base, 1);
+  if (head.length === 2 && head[0].size > head[1].size * 0.75) head[0].size = head[1].size * 0.75, head[0].height = head[0].size * head[0].lh;
+  const headH = head.length ? colHeight(head, gap) + p * 0.6 : 0;
+  const bodyY = p + headH, bodyH = h - p - bodyY;
+  let q = 0, qx = 0, qy = 0, tx = p, tw = cw, ty = bodyY, th = bodyH;
+  if (S.qr && !stack) { q = Math.max(0, Math.min(bodyH, w * 0.55)); qx = w - p - q; qy = bodyY + (bodyH - q) / 2; tw = cw - q - p; }
+  if (S.qr && stack) { q = Math.max(0, Math.min(qside, bodyH)); qx = (w - q) / 2; qy = bodyY; ty = bodyY + q + p * 0.6; th = h - p - ty; }
+  const defs = [
+    S.cname && { text: it.name, weight: 800, k: 1.15, n: 3, lh: 1.05, color: ink },
+    meta && { text: meta, weight: 500, k: 0.6, n: 1, lh: 1.15, color: soft },
+    dry && { text: dry, weight: 500, k: 0.6, n: 1, lh: 1.15, color: soft },
+    S.swatch && !S.mono && { bar: true, colors: it.colors.length ? it.colors : [it.hex] },
+  ].filter(Boolean);
+  let txt = [], sc = 1;                                               // shrink the text column until it fits its height
+  for (; defs.length; sc -= 0.05) { txt = fitBlocks(defs, tw, base, sc); if (colHeight(txt, gap * sc) <= th + 0.01 || sc <= 0.4) break; }
+  paintBlocks(head, p, p, cw, gap, stack);
+  paintBlocks(txt, tx, ty + Math.max(0, (th - colHeight(txt, gap * sc)) / 2), tw, gap * sc, stack);
+  if (S.qr && q > 0) {
+    paintQr(it.qr, qx, qy, q, S.mono ? "#000" : "#d81b78");
+    if (logo) { const l = q * 0.25; ctx.drawImage(logo, (qx + (q - l) / 2) * K, (qy + (q - l) / 2) * K, l * K, l * K); }
+  }
+  try { ctx.getImageData(0, 0, 1, 1); }
+  catch (e) { if (logo) { noLogo = true; return render(); } }        // the browser locked the canvas because of the logo: without it
+  if (S.mono) {                                                       // black only: turn the picture grey for the thermal printer
+    const im = ctx.getImageData(0, 0, cv.width, cv.height), d = im.data;
+    for (let i = 0; i < d.length; i += 4) d[i] = d[i + 1] = d[i + 2] = Math.round(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+    ctx.putImageData(im, 0, 0);
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------- PDF: one page in exactly the label size
+async function pdfOf(w, h) {
+  const W = cv.width, H = cv.height, px = ctx.getImageData(0, 0, W, H).data, grey = S.mono, n = grey ? 1 : 3;
+  const raw = new Uint8Array(W * H * n);
+  for (let i = 0, j = 0; i < px.length; i += 4) {
+    if (grey) raw[j++] = px[i];
+    else { raw[j++] = px[i]; raw[j++] = px[i + 1]; raw[j++] = px[i + 2]; }
+  }
+  let data = raw, filter = "";
+  if (window.CompressionStream) {
+    data = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());
+    filter = "/Filter /FlateDecode ";
+  }
+  const pw = (w / 25.4 * 72).toFixed(3), ph = (h / 25.4 * 72).toFixed(3), enc = new TextEncoder(), parts = [], offs = [];
+  let len = 0;
+  const add = (x) => { const b = typeof x === "string" ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const obj = (i, dict, stream) => {
+    offs[i] = len; add(`${i} 0 obj\n${dict}\n`);
+    if (stream) { add("stream\n"); add(stream); add("\nendstream\n"); }
+    add("endobj\n");
+  };
+  const content = enc.encode(`q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q\n`);
+  const title = `${D.item.line} ${D.item.name}`.replace(/[^\x20-\x7e]/g, "?").replace(/[()\\]/g, "\\$&");
+  add("%PDF-1.4\n"); add(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]));
+  obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
+  obj(4, `<< /Type /XObject /Subtype /Image /Width ${W} /Height ${H} /ColorSpace /${grey ? "DeviceGray" : "DeviceRGB"} /BitsPerComponent 8 ${filter}/Length ${data.length} >>`, data);
+  obj(5, `<< /Length ${content.length} >>`, content);
+  obj(6, `<< /Title (${title}) /Producer (PixxelSpool) >>`);
+  const xref = len;
+  add(`xref\n0 7\n0000000000 65535 f \n${[1, 2, 3, 4, 5, 6].map((i) => String(offs[i]).padStart(10, "0") + " 00000 n \n").join("")}`);
+  add(`trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, { type: "application/pdf" });
+}
+const fileName = () => `PixxelSpool ${D.item.line} ${D.item.name}`.replace(/[\\/:*?"<>|]+/g, "-").trim() + ".pdf";
+
+let pdfUrl = "";
+async function draw() {
+  const [w, h] = dims();
+  setBusy(true);
+  if (!await render()) return;
+  // preview: the same canvas, as large as fits (on a phone also not taller than a third of the screen)
+  const phone = innerWidth <= 800;
+  const room = phone ? Math.min(innerWidth - 28, 420) : Math.min(innerWidth - 330 - 80, 560);
+  const z = Math.max(1, Math.min(4.5, room / (w * 3.78), phone ? innerHeight * 0.34 / (h * 3.78) : 9));
+  $tile.style.width = (w * z).toFixed(2) + "mm"; $tile.style.height = (h * z).toFixed(2) + "mm";
+  if (!$tile.contains(cv)) $tile.append(cv);
+  $info.textContent = [`${w} × ${h} mm`, S.qr ? T("QR opens {0}", D.base) : ""].filter(Boolean).join(" · ");
+  const no = drawNo, blob = await pdfOf(w, h);
+  if (no !== drawNo) return;
+  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+  pdfUrl = URL.createObjectURL(blob);
+  setBusy(false);
+}
+function setBusy(on) { $view.disabled = $dl.disabled = on; }
+const $side = document.getElementById("side"), $tile = document.getElementById("tile"), $info = document.getElementById("info");
+const $view = document.getElementById("view"), $dl = document.getElementById("dl");
+$view.querySelector("span").textContent = T("View");
+$dl.querySelector("span").textContent = T("Download");
+// "View" opens the PDF in a new tab (on the iPhone Safari's PDF viewer, which can share it to the printer's app)
+$view.onclick = () => { if (pdfUrl && !window.open(pdfUrl, "_blank")) location.href = pdfUrl; };
+$dl.onclick = () => {
+  if (!pdfUrl) return;
+  const a = Object.assign(document.createElement("a"), { href: pdfUrl, download: fileName() });
+  document.body.append(a); a.click(); a.remove();
+};
+drawSide(); draw();
+let rs = 0; addEventListener("resize", () => { clearTimeout(rs); rs = setTimeout(draw, 150); });
+</script></body></html>
