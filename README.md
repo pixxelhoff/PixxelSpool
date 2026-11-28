@@ -175,7 +175,6 @@ Also needed:
 | microSD card | 32 GB, class A1/A2, e.g. SanDisk Extreme or Samsung EVO Plus |
 | Cooling | heatsink set (Pi 4 and Pi 5: active cooler recommended) |
 | NFC reader | one of the readers below |
-| Case | printable case on MakerWorld (coming soon) |
 
 ## NFC readers
 
@@ -183,9 +182,13 @@ Bambu Lab spools carry a MIFARE Classic tag (13.56 MHz). PixxelSpool reads it wi
 tag sits under the Bambu Lab logo on the side of the spool, so hold that spot against the reader.
 Choose your reader in the setup assistant or under **Options › NFC reader**.
 
-**Recommended: a USB reader on a cable.** You can hold it right against the tag and read it precisely. A reader
-built into the Raspberry Pi case (PN532 HAT or module on the GPIO pins) works too, but in everyday use it is less
-practical: you have to bring the spool to the Pi and find the right spot on the case.
+**Recommended: an external reader** that you can hold right against the tag, so it reads precisely:
+
+- a **USB reader** on a cable (all platforms), or
+- the **PN532 module V3** on I2C, connected with jumper wires and placed outside the Raspberry Pi case (Pi only).
+
+A reader built into the Pi case is not recommended: you have to bring the spool to the Pi and find the right spot
+on the case. A wireless reader (ESP32 with battery) is planned.
 
 | Reader | Part number | Connection | Status | Example |
 | --- | --- | --- | --- | --- |
@@ -193,8 +196,6 @@ practical: you have to bring the spool to the Pi and find the right spot on the 
 | ACS ACR122U | ACR122U-A9 | USB | ✅ tested | [Amazon](https://www.amazon.de/dp/B00GYPIZG6) |
 | PN532 board with USB-C ("PN532 V2.0 USB-C") | – | USB (serial) | ✅ tested | [Amazon](https://www.amazon.de/dp/B0H3GKGDRG) |
 | ACS ACR1552U | ACR1552U-M1 | USB | ⚪ same commands as the ACR1252U | – |
-| Identiv uTrust 3700 F, HID Omnikey 5022 / 5427 CK | – | USB | ⚪ should work | – |
-| Waveshare PN532 NFC HAT | – | GPIO (I2C) | ✅ tested | – |
 | PN532 module V3 (Elechouse, Hailege …) | – | GPIO (I2C) | ✅ tested, good range | – |
 
 The Amazon links are examples (Amazon Germany) to show which product we tested, not a recommendation of a
@@ -205,17 +206,10 @@ Not suitable: readers that act as a keyboard and only "type" a number, and 125 k
 Tested another reader or computer? Please let us know in an issue or pull request.
 
 <details>
-<summary><b>Wiring and switches for the PN532 boards</b> (GPIO boards: Raspberry Pi only)</summary>
+<summary><b>Wiring and switches for the PN532 boards</b> (PN532 on I2C: Raspberry Pi only)</summary>
 
 **PN532 board with USB-C:** set the switches to HSU/UART (usually both OFF) and plug it in. PixxelSpool finds the
 port by itself (setting `pn532_port` to force one).
-
-**Waveshare PN532 NFC HAT:** plugs straight onto the GPIO header, no soldering, no cables. Two settings for I2C:
-
-- Yellow jumpers (top left): **I0 = H, I1 = L** (the table printed on the board shows the same).
-- Small switch block (1–8): **5 (SCL) and 6 (SDA) ON**, all others OFF.
-
-With its jumpers the HAT is about 11 mm high above its board, so a lid over it has to sit that much higher.
 
 **PN532 module V3:** easiest with the pin header already soldered on; then four female-to-female jumper wires are
 all you need. Set the switches to I2C: **1 = ON, 2 = OFF** (table "I2C 1 0" on the board). Without a soldered pin
@@ -306,7 +300,7 @@ Good to know:
 - Reader: USB readers that speak PC/SC, e.g. the ACR122U, work without extra software. If Windows does not set one
   up by itself, install the driver from ACS. The PN532 board with USB-C works too (switches on HSU/UART);
   PixxelSpool finds the port by itself (setting `pn532_port` to force one). Built-in laptop smart card readers are
-  ignored. GPIO boards (PN532 HAT, PN532 V3) need a Raspberry Pi.
+  ignored. The PN532 module on I2C needs a Raspberry Pi.
 - Phone access, push notifications, print recording and the nightly backup only work while the PC is on.
 - Tray icon: double-click opens PixxelSpool. Right-click menu: open, phone address, GitHub, check for updates,
   reset password, start with Windows, restart, quit.
@@ -342,7 +336,7 @@ supported). Like the Windows app it is a preview and not yet tested as thoroughl
 
 Good to know:
 - Reader: USB readers that speak PC/SC, e.g. the ACR122U, work without a driver. The PN532 board with USB-C works
-  too (switches on HSU/UART). GPIO boards (PN532 HAT, PN532 V3) need a Raspberry Pi.
+  too (switches on HSU/UART). The PN532 module on I2C needs a Raspberry Pi.
 - Phone access, push notifications, print recording and the nightly backup only work while the Mac is awake.
 - Menu bar icon: open, phone address, GitHub, check for updates, reset password, open at login, restart, quit.
 - To remove PixxelSpool, quit it in the menu bar and move the app to the Trash. Your data stays in
