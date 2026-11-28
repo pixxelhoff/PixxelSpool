@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Body, FastAPI, Request
+from fastapi import Body, FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -746,9 +746,9 @@ def spool_weigh(spool_id: int, payload: dict = Body(...)):
 
 
 @app.get("/api/stats")
-def stats_get():
+def stats_get(frm: str = Query("", alias="from"), to: str = ""):
     with db.session() as conn:
-        return stats.overview(conn)
+        return stats.overview(conn, frm, to)
 
 
 @app.get("/api/prints")
@@ -1222,8 +1222,11 @@ def map_variant(payload: dict = Body(...)):
 @app.post("/api/spools")
 def store(payload: dict = Body(...)):
     with db.session() as conn:
+        price = brands._price(payload.get("price"))
+        if price is None:       # #64: no price typed: the price from a recorded order of this color, if there is one
+            price = insights.order_price(int(payload["product_id"]))[0]
         s = logic.store_new(conn, payload["tag"], int(payload["product_id"]),
-                            payload["slot_id"], bool(payload.get("is_refill")), brands._price(payload.get("price")),
+                            payload["slot_id"], bool(payload.get("is_refill")), price,
                             bool(payload.get("manual")))
     broadcast({"type": "changed"})
     return s
@@ -1988,12 +1991,79 @@ def shoplist_toggle(payload: dict = Body(...)):
     with db.session() as conn:
         try:
             q = payload.get("qty")
-            insights.toggle_noted(conn, pid, bool(payload.get("on", True)), int(q) if q is not None else None)
+            o = str(payload["order"])[:20] if payload.get("order") is not None else None   # #69: an ordered entry ("" = older ones)
+            if "state" in payload or "refill" in payload:     # #58/#62: only status / refill of a listed color change
+                r = payload.get("refill")
+                insights.set_entry(pid, payload.get("state") if "state" in payload else None, bool(r) if r is not None else None, o)
+            else:
+                insights.toggle_noted(conn, pid, bool(payload.get("on", True)), int(q) if q is not None else None, o)
         except ValueError as e:
             raise logic.InventoryError(str(e))
         res = insights.all_insights(conn)
     broadcast({"type": "changed"})
     return res
+
+
+@app.post("/api/orders")
+def order_record(payload: dict = Body(...)):
+    """#64: record a shop order for colors on the shopping list (prices, shipping, Bambu Lab credits)."""
+    with db.session() as conn:
+        try:
+            order = insights.record_order(conn, payload.get("items") or [], payload.get("shipping"),
+                                          payload.get("credits_used"), payload.get("credits_earned"))
+        except ValueError as e:
+            raise logic.InventoryError(str(e))
+        res = insights.all_insights(conn)
+    broadcast({"type": "changed"})
+    return {**res, "order": order}
+
+
+@app.post("/api/parcels")
+def parcel_set(payload: dict = Body(...)):
+    """#71: a parcel of an order: {"order": order id, "ids": product ids in it, "carrier", "tracking", "id": parcel to change}."""
+    try:
+        insights.set_parcel(payload.get("order") or "", payload.get("ids") or [], str(payload.get("carrier") or ""),
+                            str(payload.get("tracking") or ""), str(payload["id"]) if payload.get("id") else None)
+    except ValueError as e:
+        raise logic.InventoryError(str(e))
+    with db.session() as conn:
+        res = insights.all_insights(conn)
+    broadcast({"type": "changed"})
+    return res
+
+
+@app.post("/api/shoplist/order")
+def shoplist_order(payload: dict = Body(...)):
+    """#68: the order of the shopping list (dragged in "Record an order")."""
+    insights.reorder(payload.get("ids") or [])
+    with db.session() as conn:
+        return insights.all_insights(conn)
+
+
+@app.post("/api/orders/{oid}/again")
+def order_again(oid: str):
+    """#78: put a recorded order back on the shopping list."""
+    with db.session() as conn:
+        try:
+            n = insights.order_again(conn, oid[:20])
+        except ValueError as e:
+            raise logic.InventoryError(str(e))
+        res = insights.all_insights(conn)
+    broadcast({"type": "changed"})
+    return {**res, "added": n}
+
+
+@app.get("/api/spending")
+def spending_get(frm: str = Query("", alias="from"), to: str = ""):
+    """#77: spending per month and line, credits saved (#86: in a time range)."""
+    with db.session() as conn:
+        return insights.spending(conn, frm, to)
+
+
+@app.get("/api/orders")
+def orders_get():
+    st = settings.load()
+    return {"orders": list(reversed(st.get("orders") or [])), "credits": st.get("credits") or 0}
 
 
 @app.post("/api/minstock")

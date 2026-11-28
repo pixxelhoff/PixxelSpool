@@ -97,12 +97,12 @@
 - Project planner: combine several colors and see what you have and where it is.
 
 ### 🎨 Colors
-- Color from photo: tap points in a picture and get the closest Bambu Lab filaments (ΔE2000), filtered by PLA,
+- Color from photo (Print tab): tap points in a picture and get the closest Bambu Lab filaments (ΔE2000), filtered by PLA,
   PETG, ABS, TPU or "in stock only".
 - Catalog of all original Bambu Lab colors with your stock. Tap a color to see your spools or put it on the
   shopping list.
-- Shopping list in the catalog: colors you noted, nearly empty and used-up spools and missing colors of the lines you
-  want to have complete.
+- Shopping list in the catalog: colors you noted, colors below your minimum stock (one tap puts the missing number
+  on the list), nearly empty and used-up spools.
 
 ### 📊 Statistics
 - Stock value, filament per material, usage and cost per month, spending on spools, and a list of finished prints

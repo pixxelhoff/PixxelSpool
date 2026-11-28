@@ -8,6 +8,29 @@ nur für die Apps bekommen die Nummer der aktuellen Version mit dem Zusatz `-pat
 
 Der englische Changelog ist [CHANGELOG.md](CHANGELOG.md).
 
+## [1.0.0-beta.7] – 2026-11-28
+
+Sechstes Sammelrelease. Neu sind vor allem Bestellungen: von der Einkaufsliste über die laufende Bestellung bis zum Einscannen der Lieferung. Dazu sind Statistik und Optionen übersichtlicher.
+
+### Neu
+- **Bestellungen:** Bestellung mit Preisen, Versand und Bambu-Lab-Credits erfassen. Laufende Bestellungen haben eine eigene Karte, mit Paketen und Sendungsnummer. „Lieferung einscannen“ hakt die neuen Rollen ab und übernimmt Preis und Refill. „Nochmal bestellen“ holt eine alte Bestellung zurück auf die Liste.
+- **Einkaufsliste:** Jeder Eintrag hat einen Status (Vorgemerkt, Im Warenkorb, Bestellt, Nicht lieferbar) und einen Refill-Schalter. Eine Spulen-Bilanz zeigt, ob die leeren Spulen für die Refills reichen. „+N“ setzt die fehlende Anzahl zum Mindestbestand auf die Liste. Die Liste lässt sich als Text teilen.
+- **Farben** (bisher „Katalog“): Kacheln nach Status gefärbt und mit Mindestbestand; Filter nach Status, Material und Suche; neue Farbkarte.
+- **Statistik:** Reiter Überblick, Verbrauch, Kosten und Drucke mit frei wählbarem Zeitraum; neue Karte „Ausgaben“ und laufende Bestellungen im Überblick.
+- **Fehler melden** per E-Mail, auch für falsche Katalogdaten.
+
+### Geändert
+- Optionen neu sortiert: Lager, Einkauf, Hinweise, Geräte, App, System, Über.
+- „Heute“ zeigt auch Rollen, die unterwegs sind, und Rollen, die laut AMS leer sind.
+- 9 PETG-Matte-Farben, die es im Shop nicht gibt, sind ausgeblendet.
+- „Farbe aus Bild“ ist in den Reiter Drucken umgezogen.
+
+### Behoben
+- Druckprüfung: „danach Slot …“ beim AMS-Filament-Backup griff nie.
+- Lager sortieren: Hin- und Zurückschieben zählte als Änderung.
+- Einkaufsliste: Der Klick auf „Shop“ ging manchmal verloren.
+- Eine Rolle, die laut AMS leer ist, wurde zum Zurücklegen statt zum Austragen vorgeschlagen.
+
 ## [1.0.0-beta.6] – 2026-11-26
 
 Fünftes Sammelrelease mit Fehlerkorrekturen.

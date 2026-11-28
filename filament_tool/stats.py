@@ -175,27 +175,27 @@ def set_project(conn: sqlite3.Connection, print_id: int, project: str) -> bool:
     return conn.execute("UPDATE prints SET project = ? WHERE id = ?", (project or None, print_id)).rowcount > 0
 
 
-def price_history(conn: sqlite3.Connection) -> list:
+def price_history(conn: sqlite3.Connection, lo: str = "0000", hi: str = "9999") -> list:
     """Paid price per spool by delivery day, per line, spools and refills apart (F13). Free spools (0) are left out.
     Only lines with at least two deliveries with a price."""
     by: dict = {}
     for r in conn.execute("SELECT l.id AS line_id, l.name AS line, l.price AS line_price, s.received_at AS day, s.bought_refill AS rf, "
                           "AVG(s.price) AS price, COUNT(*) AS n FROM spools s JOIN products p ON p.id = s.product_id "
-                          "JOIN lines l ON l.id = p.line_id WHERE s.price > 0 AND s.received_at IS NOT NULL "
-                          "GROUP BY l.id, s.received_at, s.bought_refill ORDER BY s.received_at"):
+                          "JOIN lines l ON l.id = p.line_id WHERE s.price > 0 AND s.received_at IS NOT NULL AND s.received_at >= ? AND s.received_at <= ? "
+                          "GROUP BY l.id, s.received_at, s.bought_refill ORDER BY s.received_at", (lo, hi)):
         b = by.setdefault(r["line_id"], {"line": r["line"], "line_price": r["line_price"], "points": [], "refill_points": []})
         b["refill_points" if r["rf"] else "points"].append({"day": r["day"], "price": round(r["price"], 2), "spools": r["n"]})
     return sorted((b for b in by.values() if len(b["points"]) + len(b["refill_points"]) >= 2),
                   key=lambda b: -(len(b["points"]) + len(b["refill_points"])))
 
 
-def projects(conn: sqlite3.Connection) -> list:
+def projects(conn: sqlite3.Connection, lo: str = "0000", hi: str = "9999") -> list:
     """All projects with their prints counted together, newest first. cost is None if a print has no cost."""
     return [{"name": r["project"], "count": r["n"], "grams": round(r["g"] or 0), "cost": round(r["c"], 2) if r["c"] is not None and not r["unknown"] else None,
              "first": r["first"], "last": r["last"]}
             for r in conn.execute("SELECT project, COUNT(*) AS n, SUM(grams) AS g, SUM(cost) AS c, "
                                   "SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) AS unknown, MIN(ts) AS first, MAX(ts) AS last "
-                                  "FROM prints WHERE project IS NOT NULL GROUP BY project ORDER BY MAX(ts) DESC")]
+                                  "FROM prints WHERE project IS NOT NULL AND ts >= ? AND ts <= ? GROUP BY project ORDER BY MAX(ts) DESC", (lo, hi))]
 
 
 def delete_print(conn: sqlite3.Connection, print_id: int) -> bool:
@@ -213,8 +213,37 @@ def _months(n: int = 12) -> list:
     return out[::-1]
 
 
-def overview(conn: sqlite3.Connection) -> dict:
-    """Data for the statistics tab: stock, 12 months of usage/cost/spending, recent prints and totals."""
+def _day(v) -> str:
+    """A YYYY-MM-DD date from the query, or "" when missing or not a date."""
+    try:
+        return date.fromisoformat(str(v or "")[:10]).isoformat()
+    except ValueError:
+        return ""
+
+
+def period(frm: str = "", to: str = "") -> tuple:
+    """#86: the chosen time range as (from, to) days; empty from = everything, empty to = today."""
+    frm, to = _day(frm), _day(to) or date.today().isoformat()
+    if frm and frm > to:
+        frm, to = to, frm
+    return frm, to
+
+
+def _month_span(first: str, last: str) -> list:
+    """All months from first to last (YYYY-MM), at most 10 years."""
+    out, y, m = [], int(first[:4]), int(first[5:7])
+    while f"{y:04d}-{m:02d}" <= last and len(out) < 120:
+        out.append(f"{y:04d}-{m:02d}")
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+def overview(conn: sqlite3.Connection, frm: str = "", to: str = "") -> dict:
+    """Data for the statistics tab: stock (now), and for the chosen time range (#86; default the last 12 months)
+    usage/cost/spending per month, recent prints and totals."""
+    custom = bool(_day(frm) or _day(to))
+    frm, to = period(frm, to)
+    lo, hi = frm or "0000-00-00", to + " 99"      # prints.ts is "YYYY-MM-DD HH:MM:SS"
     fill_costs(conn)
     spools = [dict(r) for r in conn.execute(SPOOL_SELECT)]
     active = [s for s in spools if s["status"] != "empty"]
@@ -239,26 +268,27 @@ def overview(conn: sqlite3.Connection) -> dict:
     # installation does not show a year of empty bars.
     first = [str(r[0])[:7] for r in conn.execute("SELECT MIN(ts) FROM prints UNION ALL SELECT MIN(received_at) FROM spools") if r[0]]
     start = min(first) if first else date.today().strftime("%Y-%m")
-    months = {m: {"month": m, "grams": 0.0, "cost": 0.0, "spent": 0.0, "prints": 0} for m in _months() if m >= start}
+    span = _month_span(max(start, frm[:7]) if frm else start, to[:7]) if custom else [m for m in _months() if m >= start]
+    months = {m: {"month": m, "grams": 0.0, "cost": 0.0, "spent": 0.0, "prints": 0} for m in span}
     for r in conn.execute("SELECT substr(ts, 1, 7) AS m, COALESCE(SUM(grams), 0) AS g, COALESCE(SUM(cost), 0) AS c "
-                          "FROM prints GROUP BY m"):
+                          "FROM prints WHERE ts >= ? AND ts <= ? GROUP BY m", (lo, hi)):
         if r["m"] in months:
             months[r["m"]]["grams"] += r["g"]
             months[r["m"]]["cost"] += r["c"]
     # Spending: spool prices by month received
     for s in spools:
-        m = str(s.get("received_at") or "")[:7]
-        p = _price(s)
-        if m in months and p is not None:
+        d = str(s.get("received_at") or "")
+        m, p = d[:7], _price(s)
+        if m in months and p is not None and lo <= d <= hi:
             months[m]["spent"] += p
-    for r in conn.execute("SELECT substr(ts, 1, 7) AS m, COUNT(*) AS n FROM prints GROUP BY m"):
+    for r in conn.execute("SELECT substr(ts, 1, 7) AS m, COUNT(*) AS n FROM prints WHERE ts >= ? AND ts <= ? GROUP BY m", (lo, hi)):
         if r["m"] in months:
             months[r["m"]]["prints"] = r["n"]
     for m in months.values():
         for k in ("grams", "cost", "spent"):
             m[k] = round(m[k], 2 if k != "grams" else 0)
     prints = []
-    for r in conn.execute("SELECT * FROM prints ORDER BY id DESC LIMIT 30"):
+    for r in conn.execute("SELECT * FROM prints WHERE ts >= ? AND ts <= ? ORDER BY id DESC LIMIT ?", (lo, hi, 100 if custom else 30)):
         p = dict(r)
         try:
             p["detail"] = _named(conn, json.loads(p["detail"] or "[]"))
@@ -266,12 +296,12 @@ def overview(conn: sqlite3.Connection) -> dict:
             p["detail"] = []
         prints.append(p)
     tot = conn.execute("SELECT COUNT(*) AS n, COALESCE(SUM(grams), 0) AS g, SUM(cost) AS c, "
-                       "SUM(CASE WHEN state = 'finish' THEN 1 ELSE 0 END) AS ok FROM prints").fetchone()
+                       "SUM(CASE WHEN state = 'finish' THEN 1 ELSE 0 END) AS ok FROM prints WHERE ts >= ? AND ts <= ?", (lo, hi)).fetchone()
     # per printer (prints without a printer belong to the first one)
     from . import bambu
     first = bambu.name_of("p1") if bambu.printers() else ""
     by_printer: dict = {}
-    for r in conn.execute("SELECT printer, COUNT(*) AS n, COALESCE(SUM(grams), 0) AS g, SUM(cost) AS c FROM prints GROUP BY printer"):
+    for r in conn.execute("SELECT printer, COUNT(*) AS n, COALESCE(SUM(grams), 0) AS g, SUM(cost) AS c FROM prints WHERE ts >= ? AND ts <= ? GROUP BY printer", (lo, hi)):
         name = r["printer"] or first or "–"
         b = by_printer.setdefault(name, {"printer": name, "count": 0, "grams": 0.0, "cost": None})
         b["count"] += r["n"]
@@ -290,8 +320,12 @@ def overview(conn: sqlite3.Connection) -> dict:
         "prints": prints,
         "prints_total": {"count": tot["n"], "ok": tot["ok"] or 0, "grams": round(tot["g"]), "cost": round(tot["c"], 2) if tot["c"] is not None else None},
         "used_month": round(used30),
-        "projects": projects(conn),
-        "price_history": price_history(conn),
+        "projects": projects(conn, lo, hi),
+        "price_history": price_history(conn, lo, hi),
+        "range": {"from": frm, "to": to, "custom": custom},
+        "this_month": dict(conn.execute("SELECT COUNT(*) AS prints, COALESCE(SUM(grams), 0) AS grams, SUM(cost) AS cost FROM prints "
+                                        "WHERE substr(ts, 1, 7) = ?", (date.today().strftime("%Y-%m"),)).fetchone()),
+        "prints_all": dict(conn.execute("SELECT COUNT(*) AS count, SUM(cost) AS cost FROM prints").fetchone()),
         "by_printer": sorted(({**b, "grams": round(b["grams"])} for b in by_printer.values()), key=lambda b: -b["grams"])
         if len(by_printer) > 1 else [],
     }

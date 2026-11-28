@@ -54,7 +54,7 @@ function translateStatic(root) {
 translateStatic(document.body);
 
 const I18N = {
-  en: { title: "PixxelSpool", tabStorage: "Storage", tabCatalog: "Catalog", viewCompact: "Compact", viewDetail: "Detail", viewList: "List", amsSummary: (n) => L("{0} used", n), extTitle: (n) => L("External spools ({0})", n), extUnused: "not in use",
+  en: { title: "PixxelSpool", tabStorage: "Storage", tabCatalog: "Colors", viewCompact: "Compact", viewDetail: "Detail", viewList: "List", amsSummary: (n) => L("{0} used", n), extTitle: (n) => L("External spools ({0})", n), extUnused: "not in use",
     overflowTitle: "Reserve", history: "History", search: "Search", searchLong: "Color, number, line, slot …",
     onlyMissing: "missing colors only", onlyOwnedLines: "only lines I own",
     stats: (s) => L("Slots {0}/{1} used · {2} in reserve · {3} in use · {4} not scanned yet", s.cabinet_used, s.cabinet_slots, s.overflow, s.in_use, s.unscanned),
@@ -102,7 +102,7 @@ const cname = (o) => (LANG === "de" ? o.name_de : o.name_en) || o.color_name || 
 const STATUS = new Proxy({}, { get: (_, k) => T(k) });
 
 let overview = null;   // data from /api/overview
-let insights = null, dryOpen = false, shopOpen = false, missOpen = false, usageOpen = false;
+let insights = null, dryOpen = false, shopOpen = false, usageOpen = true, ordOpen = false, ordOpenIds = [];
 const SET = () => overview?.settings || { cabinets: [], low_remain_pct: 5 };
 const CABS = () => SET().cabinets || [];
 const cabOf = (key) => CABS().find((c) => c.key === key);
@@ -343,6 +343,8 @@ document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => setLa
 let view = "storage", catalogData = null;
 const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } };
 shopOpen = pref("shopFold", "0") === "1";   // shopping list: folded unless opened on this device
+ordOpen = pref("ordFold", "0") === "1";     // #69/#73: "Running orders" too, and each order in it
+try { ordOpenIds = JSON.parse(pref("ordOpenIds", "[]")) || []; } catch { ordOpenIds = []; }
 const setPref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 let amsOpen = pref("amsOpen", "0") === "1", logOpen = pref("logOpen", "0") === "1", cabMode = pref("cabMode", "compact");
 document.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => showView(b.dataset.view)));
@@ -439,47 +441,131 @@ function showView(v) {
   closeNav(); window.scrollTo(0, 0);
   if (v === "catalog") loadCatalog();
   if (v === "reorg") drawReorg();
-  if (v === "tools") { resetOpts(); loadRemote(); loadUpdate(); loadBrands(); loadPrices(); loadOffsite(); loadPush(); loadBambuCfg(); }
+  if (v === "tools") { resetOpts(); loadRemote(); loadUpdate(); loadBrands(); loadPrices(); loadOrders(); loadOffsite(); loadPush(); loadBambuCfg(); }
   if (v === "statsview") loadStatsView();
 }
 async function loadCatalog() { catalogData = await api("/api/catalog"); drawCatalog(); }
 function drawCatalog() {
   if (!catalogData) return;
-  const onlyMissing = $("#onlymissing").checked, onlyOwned = $("#onlyowned").checked;
+  // #81: one status filter (all / in stock / missing / on the list / on the way / below minimum), material, search
+  const onlyOwned = $("#onlyowned").checked, cst = catFilter.state, mat = catFilter.mat, q = catFilter.q.trim().toLowerCase();
   const showDisc = !!SET().show_discontinued; $("#showdisc").checked = showDisc;
-  $("#catlines").innerHTML = catalogData.filter((l) => !onlyOwned || l.owned).map((l) => {
+  const mats = [...new Set(catalogData.map((l) => catMat(l.line)))].sort();
+  const ms = $("#catmat"), mh = `<option value="">${esc(L("All materials"))}</option>` + mats.map((m) => `<option value="${esc(m)}"${m === mat ? " selected" : ""}>${esc(m)}</option>`).join("");
+  if (ms._html !== mh) { ms._html = mh; ms.innerHTML = mh; }
+  document.querySelectorAll("#catstate [data-cst]").forEach((b) => { b.classList.toggle("on", b.dataset.cst === cst); b.setAttribute("aria-checked", b.dataset.cst === cst); });
+  const hit = (p, l) => {
+    const st = catState(p.id);
+    if (cst === "stock" && !p.owned) return false;
+    if (cst === "missing" && (p.owned || p.discontinued)) return false;
+    if (cst === "list" && !["list", "cart"].includes(st)) return false;
+    if (cst === "way" && !["ordered", "shipped"].includes(st)) return false;
+    if (cst === "below" && !isBelow(p)) return false;
+    if (q && !`${l.line} ${cname(p)} ${p.name_en || ""} ${p.bambu_no || ""}`.toLowerCase().includes(q)) return false;
+    return true;
+  };
+  let shown = 0;
+  const lines = catalogData.filter((l) => (!onlyOwned || l.owned || q || cst === "list" || cst === "way") && (!mat || catMat(l.line) === mat));
+  $("#catlines").innerHTML = lines.map((l) => {
     // discontinued colours: hidden unless switched on (or you still have a spool of them)
-    const prods = l.products.filter((p) => (!onlyMissing || !p.owned) && (!p.discontinued || showDisc || p.owned));
+    const prods = l.products.filter((p) => (!p.discontinued || showDisc || p.owned) && hit(p, l));
+    shown += prods.length;
     if (!prods.length) return "";
+    // #70: the bar shows the colors in stock, on the way (ordered, shipped) and on the shopping list
+    const act = l.products.filter((p) => !p.discontinued && !p.owned), stOf = (p) => catState(p.id);
+    const way = act.filter((p) => ["ordered", "shipped"].includes(stOf(p))).length, lst = act.filter((p) => ["list", "cart"].includes(stOf(p))).length;
+    const pc = (n) => (100 * n / Math.max(1, l.total)).toFixed(2) + "%";
+    const leg = [[l.owned, "b-stock", L("in stock")], [way, "b-way", L("on the way")], [lst, "b-list", L("on the list")],
+      [l.total - l.owned - way - lst, "b-rest", L("missing")]].filter((x) => x[0] > 0);
     return `<div class="catline"><h3>${esc(l.line)} <span class="sub">${T("colorsOf", l.owned, l.total)}${l.complete ? " · ✓ " + T("complete") : ""}</span></h3>
-      <div class="bar"><i style="width:${(100 * l.owned / l.total).toFixed(0)}%"></i></div>
-      <div class="colors">${prods.map((p) => `<div class="color ${p.owned ? "" : "missing"}${p.discontinued ? " disc" : ""}" data-cat="${p.id}" data-slot-ref="${esc(p.cabinet_slot ?? "")}">
+      <div class="bar segbar" title="${esc(leg.map((x) => x[0] + " " + x[2]).join(" · "))}"><i class="b-stock" style="width:${pc(l.owned)}"></i><i class="b-way" style="width:${pc(way)}"></i><i class="b-list" style="width:${pc(lst)}"></i></div>
+      ${way || lst ? `<div class="barleg">${leg.map((x) => `<span class="${x[1]}"><i></i>${x[0]} ${esc(x[2])}</span>`).join("")}</div>` : ""}
+      <div class="colors">${prods.map((p) => `<div class="color ${p.owned ? "" : "missing"}${p.discontinued ? " disc" : ""}${isBelow(p) ? " below" : ""}${catState(p.id) ? " s-" + catState(p.id) : ""}" data-cat="${p.id}" data-slot-ref="${esc(p.cabinet_slot ?? "")}">
         ${sw(p)}<span class="cname">${esc(cname(p))}<br><span class="sub">${esc(p.bambu_no ?? "")}</span>${p.discontinued ? `<br><span class="discmark" title="${esc(L("Bambu Lab no longer sells this color"))}">${L("no longer available")}</span>` : ""}</span>
-        <span class="meta">${p.owned ? `<b>${esc(p.cabinet_slot ?? "")}</b><br>${T("spools", p.owned)}` : p.discontinued || isNoted(p.id) ? "" : T("missing")}${isNoted(p.id) ? `${p.owned ? "<br>" : ""}<span class="notedmark">${L("on the list")}</span>` : ""}</span></div>`).join("")}</div></div>`;
-  }).join("");
+        <span class="meta">${p.owned ? `<b>${esc(p.cabinet_slot ?? "")}</b><br>${wantOf(p) ? minCount(p) : T("spools", p.owned)}` : wantOf(p) ? minCount(p) : p.discontinued || isNoted(p.id) ? "" : T("missing")}${isNoted(p.id) ? `${p.owned || wantOf(p) ? "<br>" : ""}<span class="notedmark">${notedLabel(p.id)}</span>` : ""}</span></div>`).join("")}</div></div>`;
+  }).join("") || `<p class="sub catempty">${L("No colors match this filter.")}</p>`;
+  $("#catcount").textContent = cst || q ? Lp(shown, "{0} color", "{0} colors") : "";
 }
-$("#onlymissing").onchange = drawCatalog; $("#onlyowned").onchange = drawCatalog;
+// #81: catalog filters, remembered on this device
+const catMat = (line) => (/^Support/i.test(line) ? "Support" : String(line).split(/[\s-]/)[0]);
+let catFilter = { state: "", mat: "", q: "" };
+try { catFilter = { ...catFilter, ...JSON.parse(pref("catFilter", "{}")), q: "" }; } catch (e) {}
+const saveCatFilter = () => setPref("catFilter", JSON.stringify({ state: catFilter.state, mat: catFilter.mat }));
+document.querySelectorAll("#catstate [data-cst]").forEach((b) => (b.onclick = () => { catFilter.state = b.dataset.cst; saveCatFilter(); drawCatalog(); }));
+$("#catmat").onchange = () => { catFilter.mat = $("#catmat").value; saveCatFilter(); drawCatalog(); };
+$("#catq").oninput = () => { catFilter.q = $("#catq").value; drawCatalog(); };
+$("#onlyowned").onchange = drawCatalog;
 $("#showdisc").onchange = async () => { await saveSettings({ show_discontinued: $("#showdisc").checked }); drawCatalog(); };
-// tapping a color: a small card with the spools you have and "Add to shopping list"
-$("#catlines").addEventListener("click", async (e) => {
+// minimum stock in the catalog: own minimum of the color, else the default for every color you have (or had)
+const wantOf = (p) => minStock(p.id) || (p.ever ? +(SET().min_stock_all || 0) : 0);
+const isBelow = (p) => wantOf(p) > 0 && p.owned < wantOf(p);
+const minCount = (p) => `<span class="minc${isBelow(p) ? " low" : ""}" title="${esc(L("{0} of {1} in stock", p.owned, wantOf(p)))}">${p.owned} / ${wantOf(p)}</span>`;
+// tapping a color: a card with stock and minimum (changed right there), your spools (tap = show in storage), shop and list
+let catSheet = null;
+function drawCatSheet() {
+  const c = catSheet; if (!c) return;
+  const p = catalogData?.flatMap((l) => l.products).find((x) => x.id === c.pid) || c.p; c.p = p;
+  const sps = spoolsOf(p.id), want = wantOf(p), own = minStock(p.id), below = isBelow(p);
+  const nt = openOf(p.id), need = Math.max(1, want - p.owned), ordN = orderedOf(p.id);
+  const where = (s) => s.ams_slot ? esc(amsWhere(s)) : `${esc(s.slot_id ?? "–")}${s.in_cabinet ? "" : " · " + L("reserve")}`;
+  c.el.querySelector(".dlg").innerHTML = `<button class="sheetx" data-cs="close" aria-label="${esc(L("Close"))}">×</button>
+    <div class="cshead">${sw(p, "big")}<div><b>${esc(cname(p))}</b><span class="sub">${esc(p.line)} · ${esc(p.bambu_no ?? "")}</span></div></div>
+    ${p.discontinued ? `<p class="sub discmark">${L("Bambu Lab no longer sells this color.")}</p>` : ""}
+    <div class="csstats">
+      <div class="csstat${below ? " low" : ""}"><span class="sub">${L("In stock")}</span><b>${p.owned}${want ? ` <small>/ ${want}</small>` : ""}</b></div>
+      <div class="csstat"><span class="sub">${L("Minimum stock")}</span><span class="qty"><button class="small" data-cs="min-" ${want ? "" : "disabled"} aria-label="${esc(L("One less"))}">−</button><b>${want || "–"}</b><button class="small" data-cs="min+" aria-label="${esc(L("One more"))}">+</button></span>
+        ${want && !own ? `<span class="sub cshint">${L("default for all colors")}</span>` : ""}</div>
+    </div>
+    ${sps.length ? `<ul class="shop csspools">${sps.map((s) => `<li data-cs="show" data-id="${s.id}" tabindex="0" title="${esc(L("Show in storage"))}">${sw(s)}<span class="grow"><b>${where(s)}</b><span class="sub">${s.remain_pct != null ? ` · ${shownPct(s)} %` : ""}${s.is_refill ? " · " + T("refill") : ""}</span></span><span class="chev">›</span></li>`).join("")}</ul>`
+      : `<p class="sub">${L(p.owned ? "In use or in the AMS." : "Not in your storage.")}</p>`}
+    ${ordN ? `<p class="sub csord">${esc(Lp(ordN, "{0} spool ordered, on the way", "{0} spools ordered, on the way"))}</p>` : ""}
+    ${nt ? `<div class="csnoted"><span class="grow">${L("On your shopping list")}</span>
+      ${refillBtn(nt, 'data-cs="refill"')}${stateSel(nt, "data-csstate")}
+      <span class="qty"><button class="small" data-cs="q-" aria-label="${esc(nt.qty > 1 ? L("One less") : L("Remove from shopping list"))}">${nt.qty > 1 ? "−" : "×"}</button><b>${nt.qty}</b><button class="small" data-cs="q+" aria-label="${esc(L("One more"))}">+</button></span></div>` : ""}
+    <div class="actions">${p.discontinued ? "" : `<a class="btn" href="${shopUrl(p)}" target="_blank" rel="noopener">${L("Shop")}</a>`}<span class="grow"></span>
+      ${nt || p.discontinued ? `<button data-cs="close">${L("Close")}</button>` : `<button class="primary" data-cs="add">${esc(L("+{0} to the shopping list", need))}</button>`}</div>
+    <p class="sub csmail"><a class="catmail" href="mailto:contact@pixxelhoff.com" data-pid="${p.id}">${L("Something wrong with this color? Let us know")}</a></p>`;
+}
+async function catSheetAct(b) {
+  const c = catSheet, p = c.p, a = b.dataset.cs, nt = openOf(p.id);
+  const shop = async (body) => { insights = await api("/api/shoplist", { method: "POST", body: { product_id: p.id, ...body } }); drawInsights(); drawCatalog(); };
+  try {
+    if (a === "close") return closeCatSheet();
+    if (a === "show") { const id = +b.dataset.id; closeCatSheet(); showView("storage"); return showSpool(await api(`/api/spools/${id}`)); }
+    if (a === "min+" || a === "min-") {
+      const n = Math.max(0, Math.min(99, wantOf(p) + (a === "min+" ? 1 : -1)));
+      insights = await api("/api/minstock", { method: "POST", body: { product_id: p.id, n } }); await refresh();
+    }
+    if (a === "add") await shop({ on: true, qty: Math.max(1, wantOf(p) - p.owned) });
+    if (a === "refill") await shop({ refill: !nt?.refill });
+    if (a === "state") await shop({ state: b.value });
+    if (a === "q+" || a === "q-") { const q = (nt?.qty || 1) + (a === "q+" ? 1 : -1); await shop(q < 1 ? { on: false } : { on: true, qty: Math.min(99, q) }); }
+  } catch (e) { toast(tr(e.message)); }
+  drawCatSheet();
+}
+function closeCatSheet() {
+  const c = catSheet; if (!c) return; catSheet = null;
+  document.removeEventListener("keydown", c.key, true);
+  c.el.classList.remove("in"); setTimeout(() => c.el.remove(), 180); c.prev?.focus?.();
+}
+$("#catlines").addEventListener("click", (e) => {
   const el = e.target.closest("[data-cat]");
   if (!el) return;
   const pid = +el.dataset.cat, p = catalogData.flatMap((l) => l.products).find((x) => x.id === pid);
   if (!p) return;
-  const sps = spoolsOf(pid), noted = isNoted(pid);
-  const where = (s) => s.ams_slot ? esc(amsWhere(s)) : `${esc(s.slot_id ?? "–")}${s.in_cabinet ? "" : " (" + L("reserve") + ")"}`;
-  const body = `<div class="catpop"><div class="catpophead">${sw(p, "big")}<div><b>${esc(p.line)} ${esc(cname(p))}</b><br><span class="sub">${esc(p.bambu_no ?? "")}</span></div></div>
-    ${sps.length ? `<ul class="shop">${sps.map((s) => `<li>${sw(s)}<span class="grow"><b>${where(s)}</b>${s.remain_pct != null ? ` · ${shownPct(s)} %` : ""}${s.is_refill ? " · " + T("refill") : ""}</span></li>`).join("")}</ul>`
-      : `<p class="sub">${L(p.owned ? "In use or in the AMS." : "Not in your storage.")}</p>`}
-    ${p.discontinued ? `<p class="sub discmark">${L("Bambu Lab no longer sells this color.")}</p>` : ""}
-    ${noted ? `<p class="sub">${L("This color is already on your shopping list.")}</p>` : ""}
-    <p class="sub">${L("Minimum stock")}: ${minStock(pid) ? esc(Lp(minStock(pid), "{0} spool", "{0} spools")) : L("none")}</p></div>`;
-  const extra = [{ label: L("Minimum stock"), value: "min" }].concat(sps.length ? [{ label: L("Show in storage"), value: "show" }] : []);
-  const r = await ask(body, { block: true, extra, cancel: L("Close"), ...(p.discontinued && !noted ? { ok: L("Close"), noCancel: true } : { ok: L(noted ? "Remove from shopping list" : "Add to shopping list") }) });
-  if (r === true && p.discontinued && !noted) return;
-  if (r === "show") { const sp = sps.find((s) => s.in_cabinet) || sps[0]; showView("storage"); showSpool(await api(`/api/spools/${sp.id}`)); }
-  else if (r === "min") { await askMinStock(pid, `${p.line} ${cname(p)}`); drawCatalog(); }
-  else if (r === true) setNoted(pid, !noted);
+  closeCatSheet();
+  const wrap = document.createElement("div"); wrap.className = "dlgwrap";
+  wrap.innerHTML = `<div class="dlg catsheet" role="dialog" aria-modal="true"></div>`;
+  document.body.append(wrap);
+  const key = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeCatSheet(); }
+    else if (e.key === "Enter" && e.target.closest?.("[data-cs=show]")) catSheetAct(e.target.closest("[data-cs]")); };
+  catSheet = { pid, p, el: wrap, key, prev: document.activeElement };
+  document.addEventListener("keydown", key, true);
+  wrap.onclick = (e) => { if (e.target === wrap) return closeCatSheet(); const b = e.target.closest("[data-cs]"); if (b && !b.disabled) catSheetAct(b); };
+  wrap.onchange = (e) => { const sel = e.target.closest("[data-csstate]"); if (sel) { sel.dataset.cs = "state"; catSheetAct(sel); } };
+  drawCatSheet();
+  requestAnimationFrame(() => wrap.classList.add("in"));
+  wrap.querySelector(".sheetx")?.focus();
 });
 
 let reorgData = [];
@@ -835,15 +921,44 @@ function drawBell() {
   }));
 }
 // "Report a bug": the GitHub form with version, platform, browser and printer models filled in (no names or addresses)
-document.addEventListener("click", async (e) => {
-  const a = e.target.closest("a.bugbtn"); if (!a) return;
-  e.preventDefault();
-  const w = window.open("about:blank", "_blank");     // opened right away: Safari blocks windows opened after an await
+async function bugInfo() {
   let d = {}; try { d = await api("/api/diag"); } catch (err) {}
   const plat = { pi: "Raspberry Pi", windows: "Windows app / Windows-App", mac: "Mac app / Mac-App" }[d.platform] || "Other / Andere";
   const ua = navigator.userAgent, br = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Browser";
   const os = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "";
   const dev = [`${br}${os ? " (" + os + ")" : ""}`, ...(d.printers || []).map((m) => "Bambu Lab " + m), d.reader ? "Reader: " + d.reader : ""].filter(Boolean).join(", ");
+  return { d, plat, dev };
+}
+// #74: "Report by e-mail" for people without a GitHub account: the mail program opens with a filled-in template
+document.addEventListener("click", async (e) => {
+  const a = e.target.closest("a.bugmail"); if (!a) return;
+  e.preventDefault();
+  const { d, plat, dev } = await bugInfo();
+  const body = [L("What happened?"), "", "", L("What did you expect instead?"), "", "", L("Steps to reproduce:"), "1. ", "2. ", "3. ", "",
+    "———", `${L("Version")}: ${d.version || "?"}`, `${L("Platform")}: ${plat}`, `${L("Hardware")}: ${dev}`, `${L("Language")}: ${LOCALE}`, "",
+    L("Screenshots and the exported log (Options › Log › Export) help a lot. Please do not send passwords or access codes.")].join("\n");
+  location.href = `mailto:contact@pixxelhoff.com?subject=${encodeURIComponent(L("PixxelSpool {0}: bug report", d.version || ""))}&body=${encodeURIComponent(body)}`;
+});
+// #75: catalog errors by e-mail (a color is missing, no longer sold, wrong name or color), with the color filled in
+document.addEventListener("click", async (e) => {
+  const a = e.target.closest("a.catmail"); if (!a) return;
+  e.preventDefault();
+  const p = a.dataset.pid ? catalogData?.flatMap((l) => l.products).find((x) => x.id === +a.dataset.pid) : null;
+  let d = {}; try { d = await api("/api/diag"); } catch (err) {}
+  const what = p ? [`${L("Line")}: ${p.line}`, `${L("Color")}: ${cname(p)}${p.name_en && p.name_en !== cname(p) ? " / " + p.name_en : ""}`, `${L("Bambu Lab number")}: ${p.bambu_no ?? "–"}`,
+    `${L("Color code")}: ${(() => { let c = []; try { c = JSON.parse(p.colors || "[]"); } catch (err) {} return (c.length ? c : [p.hex]).filter(Boolean).join(", ") || "–"; })()}`, `${L("Shown as")}: ${p.discontinued ? L("no longer available") : L("available")}`]
+    : [`${L("Line")}: `, `${L("Color")}: `, `${L("Bambu Lab number")}: `];
+  const body = [L("What is wrong? (please tick)"), `[ ] ${L("The color is missing in the catalog")}`, `[ ] ${L("Bambu Lab no longer sells it / it is not in the shop")}`,
+    `[ ] ${L("It is back in the shop")}`, `[ ] ${L("Wrong name or translation")}`, `[ ] ${L("Wrong color shown")}`, `[ ] ${L("Something else")}`, "",
+    ...what, "", L("Details (a link to the shop page helps):"), "", "", "———", `${L("Version")}: ${d.version || "?"}`, `${L("Language")}: ${LOCALE}`].join("\n");
+  const subj = p ? L("PixxelSpool catalog: {0}", `${p.line} ${cname(p)} ${p.bambu_no ?? ""}`.trim()) : L("PixxelSpool catalog: correction");
+  location.href = `mailto:contact@pixxelhoff.com?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+});
+document.addEventListener("click", async (e) => {
+  const a = e.target.closest("a.bugbtn"); if (!a) return;
+  e.preventDefault();
+  const w = window.open("about:blank", "_blank");     // opened right away: Safari blocks windows opened after an await
+  const { d, plat, dev } = await bugInfo();
   const u = new URL(a.href);
   u.searchParams.set("version", d.version || "");
   u.searchParams.set("platform", plat);
@@ -1112,14 +1227,17 @@ async function askRefillAms() {
 // beta.2: "Today" bar on top of the storage: what needs doing, each chip leads there
 function drawToday() {
   const el = $("#today"); if (!el || !overview) return;
-  const ret = overview.slots.flatMap((sl) => sl.spools).filter((sp) => sp.needs_return).length;
+  const all = overview.slots.flatMap((sl) => sl.spools), ret = all.filter((sp) => sp.needs_return && !usedUp(sp)).length, gone = all.filter(usedUp).length;
+  const ord = insights?.shopping ? (insights.shopping.noted || []).filter((p) => p.state === "ordered").reduce((n, p) => n + Math.max(0, p.qty || 0), 0) : 0;
   const sh = insights?.shopping, low = sh ? sh.low.length + (sh.below_min || []).length : 0;
-  const list = sh ? (sh.noted || []).length + (sh.below_min || []).length : 0, dry = insights?.drying?.length || 0;
+  const list = sh ? (sh.noted || []).filter((p) => p.state !== "ordered").length + (sh.below_min || []).length : 0, dry = insights?.drying?.length || 0;
   const chips = [
+    gone && ["gone", "low", Lp(gone, "{0} spool is empty according to the AMS", "{0} spools are empty according to the AMS")],
     ret && ["returns", "undo", Lp(ret, "{0} spool to put back", "{0} spools to put back")],
     low && ["shop", "low", Lp(low, "{0} color almost used up", "{0} colors almost used up")],
     dry && ["dry", "dry", Lp(dry, "{0} spool to dry", "{0} spools to dry")],
     list && ["shop", "cart", Lp(list, "{0} item on the shopping list", "{0} items on the shopping list")],
+    ord && ["orders", "truck", Lp(ord, "{0} spool on the way", "{0} spools on the way")],
   ].filter(Boolean);
   el.hidden = !chips.length;
   el.innerHTML = chips.length ? `<b>${L("Today")}</b>` + chips.map(([go, ic, t]) => `<button class="tchip t-${ic}" data-today="${go}">${t}</button>`).join("") : "";
@@ -1128,6 +1246,8 @@ $("#today").addEventListener("click", (e) => {
   const b = e.target.closest("[data-today]"); if (!b) return;
   const go = b.dataset.today;
   if (go === "returns") $("#returns").scrollIntoView({ behavior: "smooth", block: "center" });
+  if (go === "gone") { const sp = overview.slots.flatMap((sl) => sl.spools).filter(usedUp); if (sp.length === 1) api(`/api/spools/${sp[0].id}`).then(showSpool); else $("#returns").scrollIntoView({ behavior: "smooth", block: "center" }); }
+  if (go === "orders") { ordOpen = true; showView("catalog"); drawInsights(); setTimeout(() => $("#orders")?.scrollIntoView({ behavior: "smooth", block: "start" }), 200); }
   if (go === "dry") { dryOpen = true; drawInsights(); $("#drynote").scrollIntoView({ behavior: "smooth", block: "center" }); }
   if (go === "shop") { shopOpen = true; setPref("shopFold", "1"); showView("catalog"); drawInsights(); setTimeout(() => $("#shopping").scrollIntoView({ behavior: "smooth", block: "start" }), 200); }
 });
@@ -1135,15 +1255,17 @@ function drawReturns() {
   const list = overview.slots.flatMap((sl) => sl.spools).filter((sp) => sp.needs_return);
   const el = $("#returns"); el.hidden = !list.length;
   el.innerHTML = `<b>${T("returnsTitle", list.length)}</b> ` + list.map((sp) =>
-    `<span class="chip" data-spool="${sp.id}">${sw(sp)}${title(sp)} → <b>${esc(sp.slot_id ?? "–")}</b></span>`).join("");
+    `<span class="chip" data-spool="${sp.id}">${sw(sp)}${title(sp)} → <b>${usedUp(sp) ? esc(L("empty?")) : esc(sp.slot_id ?? "–")}</b></span>`).join("");
 }
+// #85: taken out of the AMS and the AMS last reported 0 % -> most likely used up, not to be put back
+function usedUp(sp) { return sp.status === "in_use" && sp.remain_pct === 0; }
 function matTag(line) {
   return line ? `<span class="mat">${esc(line)}</span>` : "";
 }
 // beta.2: on a computer (mouse) spools can be sorted by dragging, but only after "Sort" is switched on. Moves (free slot)
 // and swaps (taken slot) are only planned and shown; nothing changes until "Apply" (#23: too easy to move by accident)
 const DRAG = matchMedia("(hover: hover) and (pointer: fine)");
-const SORT = { on: false, ops: [] };
+const SORT = { on: false, ops: [], start: new Map() };
 let dragId = null;
 function sortApplyOp(op) {   // planned change on the local copy of the slots (also replayed after every refresh)
   const sl = overview.slots, from = sl.find((x) => x.spools.some((s) => s.id === op.id)), to = sl.find((x) => x.id === op.slot);
@@ -1159,33 +1281,37 @@ function sortApplyOp(op) {   // planned change on the local copy of the slots (a
   sp.slot_id = to.id;
 }
 const sortReplay = () => SORT.ops.forEach(sortApplyOp);
-const sortTouched = () => new Set(SORT.ops.flatMap((o) => [o.slot, o.from]));
+// #55: the count and the marks show the net result: a spool moved there and back again is no change
+const sortMoved = () => overview.slots.flatMap((sl) => sl.spools.filter((s) => SORT.start.has(s.id) && SORT.start.get(s.id) !== sl.id)
+  .map((s) => ({ id: s.id, slot: sl.id, from: SORT.start.get(s.id) })));
+const sortTouched = () => new Set(sortMoved().flatMap((m) => [m.slot, m.from]));
 function drawSortBar() {
   document.body.classList.toggle("sorting", SORT.on);
   $("#sortmode")?.classList.toggle("on", SORT.on);
   const bar = $("#sortbar"); if (!bar) return;
   bar.hidden = !SORT.on;
-  const n = SORT.ops.length;
+  const n = sortMoved().length;
   bar.innerHTML = SORT.on ? `<span class="grow">${n ? esc(Lp(n, "{0} change planned", "{0} changes planned")) : esc(L("Drag a spool onto a free slot to move it, or onto another spool to swap."))}</span>
     <button class="small" data-sortx>${n ? L("Discard") : L("Done")}</button>${n ? `<button class="small primary" data-sortok>${esc(Lp(n, "Apply {0} change", "Apply {0} changes"))}</button>` : ""}` : "";
 }
 async function sortEnd(apply) {
-  const ops = SORT.ops; SORT.on = false; SORT.ops = [];
-  if (apply) {
+  const ops = sortMoved().length ? SORT.ops : [], n = sortMoved().length; SORT.on = false; SORT.ops = [];
+  if (apply && ops.length) {
     for (const op of ops) {
       try {
         if (op.kind === "swap") await api(`/api/spools/${op.id}/swapwith`, { method: "POST", body: { other: op.other } });
         else await api(`/api/spools/${op.id}/move`, { method: "POST", body: { slot_id: op.slot, manual: true } });
       } catch (err) { toast(tr(err.message)); break; }
     }
-    toast(Lp(ops.length, "{0} change applied", "{0} changes applied"));
+    toast(Lp(n, "{0} change applied", "{0} changes applied"));
   }
   drawSortBar(); await refresh();
 }
 document.addEventListener("click", (e) => {
   if (e.target.closest("#sortmode")) {
     if (SORT.on) { sortEnd(false); return; }
-    SORT.on = true; SORT.ops = []; drawSortBar(); drawStorage(); return;
+    SORT.on = true; SORT.ops = []; SORT.start = new Map(overview.slots.flatMap((sl) => sl.spools.map((s) => [s.id, sl.id])));
+    drawSortBar(); drawStorage(); return;
   }
   if (e.target.closest("[data-sortx]")) sortEnd(false);
   if (e.target.closest("[data-sortok]")) sortEnd(true);
@@ -1210,7 +1336,9 @@ document.addEventListener("drop", (e) => {
   if (other === id) return;
   const from = overview.slots.find((x) => x.spools.some((s) => s.id === id))?.id;
   const op = { kind: other ? "swap" : "move", id, other, slot, from };
-  SORT.ops.push(op); sortApplyOp(op); drawStorage(); drawSortBar();
+  SORT.ops.push(op); sortApplyOp(op);
+  if (!sortMoved().length) SORT.ops = [];   // everything is back where it was
+  drawStorage(); drawSortBar();
 });
 function slotHtml(sl) {
   const sp = sl.spools[0];
@@ -1633,7 +1761,7 @@ function tagDetails(t) {
 function serialFold(uid) {
   return uid ? `<details class="serial"><summary>${T("serial")}</summary><code>${esc(uid)}</code></details>` : "";
 }
-const money = (v) => v == null ? "–" : Number(v).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + (SET().currency || "€");
+const money = (v) => v == null ? "–" : Number(v).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "\u00a0" + (SET().currency || "€");
 const dateShort = (v) => v ? new Date(String(v).replace(" ", "T")).toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric" }) : "";
 const dateTimeShort = (v) => v ? new Date(String(v).replace(" ", "T")).toLocaleString(LOCALE, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
 // "lasts about …": filament left of this color (all spools) divided by the usage per day of the recent prints
@@ -1674,12 +1802,14 @@ function renderSpool(el, p) {
     s.is_refill ? `<span class="badge">${T("refill")}</span>` : "",
     s.tray_uid ? "" : `<span class="badge warn">${T("unscanned")}</span>`,
     s.ams_slot ? `<span class="badge info">${esc(amsBadge(s))}</span>` : "",
-    s.needs_return ? `<span class="badge warn">${T("toReturn")}</span>` : "",
+    s.needs_return && !usedUp(s) ? `<span class="badge warn">${T("toReturn")}</span>` : "",
     p.note ? `<span class="badge info">${esc(T(p.note))}</span>` : "",
   ].join("");
   const acts = [];
 
-  if (s.status === "in_use") acts.push(`<button class="primary" data-act="return">${T("ret")}</button>`);
+  // #85: the AMS says it is empty -> checking it out is the main step, putting it back stays possible
+  if (usedUp(s)) acts.push(`<button class="primary danger" data-act="empty">${L("Empty – remove")}</button>`, `<button data-act="return">${T("ret")}</button>`);
+  else if (s.status === "in_use") acts.push(`<button class="primary" data-act="return">${T("ret")}</button>`);
   if (s.status === "empty") acts.push(`<button class="primary" data-act="return">${T("restore")}</button>`);
   acts.push(`<button data-act="move">${T("move")}</button>`);
   acts.push(`<button data-act="card">${L("Share profile card")}</button>`);
@@ -1688,7 +1818,7 @@ function renderSpool(el, p) {
   if (s.status !== "empty" && s.in_cabinet) acts.push(`<button data-act="reserve" title="${L("Moves to the reserve, frees the fixed slot")}">${L("Move to reserve")}</button>`);
   if (s.status !== "empty" && !s.in_cabinet && s.slot_id) acts.push(`<button data-act="live" title="${sib ? L("Swaps with the spool on {0}", esc(sib.slot_id)) : L("Gets a free fixed slot")}">${L("To live stock")}${sib ? `<small>${L("swap with {0}", esc(sib.slot_id))}</small>` : ""}</button>`);
   // a refill that was never opened and is not in the AMS cannot be used up
-  if (s.status !== "empty" && !(s.is_refill && !s.ams_slot && !s.opened_at)) acts.push(`<button class="danger" data-act="empty">${T("markEmpty")}</button>`);
+  if (s.status !== "empty" && !usedUp(s) && !(s.is_refill && !s.ams_slot && !s.opened_at)) acts.push(`<button class="danger" data-act="empty">${T("markEmpty")}</button>`);
   if (s.status !== "empty" && !s.is_refill) acts.push(`<button data-act="weigh" title="${L("Weigh the spool to find out what's left")}">${L("Weigh")}</button>`);
   if (!s.tray_uid && s.status !== "empty") acts.push(`<button data-act="linktag" title="${L("Stick an NFC sticker on the spool and link it here")}">${L("Add tag")}</button>`);
   // quiet extras in one row with the refill switch
@@ -1702,7 +1832,7 @@ function renderSpool(el, p) {
     <div class="where" title="${esc(T("slot"))}">${esc(where)}</div>${badges}
     <div class="actions">${acts.join("")}</div>
     <div class="spoolopts">${s.opened_at && !s.is_refill ? "" : refillSwitch(s.is_refill)}${links.join("")}</div>
-    ${s.status !== "empty" && s.remain_pct === 0 ? `<div class="msg">${L("According to the AMS the spool is empty.")} <div class="actions"><button class="danger" data-act="empty">${L("Empty – remove")}</button></div></div>`
+    ${usedUp(s) ? `<div class="msg">${L("According to the AMS the spool is empty.")} ${L("Not empty after all? Weigh it or put it back.")}</div>`
       : s.status !== "empty" && s.remain_pct != null && s.remain_pct <= SET().low_remain_pct ? `<div class="msg">${T("lowRemain")}</div>` : ""}
     ${(insights?.drying || []).some((d) => d.id === s.id) ? `<div class="msg">${L("Open for {0} days – drying recommended.", insights.drying.find((d) => d.id === s.id).open_days)} <div class="actions"><button data-act="dried">${L("Dried")}</button></div></div>` : ""}
     ${p.msg ? `<div class="msg">${typeof p.msg === "function" ? p.msg() : p.msg}</div>` : ""}
@@ -1871,12 +2001,15 @@ function showSpool(spool, tag = null, msg = "", note = "") { panel = { kind: "sp
 const lastTyped = {};   // last price typed per line (for several spools of one delivery in a row)
 function renderNew(el, p) {
   const pr = p.product, t = p.tag, slot = p.slot_id;
+  const ord = (insights?.shopping?.noted || []).filter((x) => x.id === pr.id && x.state === "ordered")
+    .sort((a, b) => (a.order || "").localeCompare(b.order || ""))[0];   // #64: price from the order (#69: oldest first)
   el.innerHTML = `<div class="head">${sw(pr.hex || pr.colors ? pr : "#" + t.color_rgba.slice(0, 6), "lg")}<div>
     <h3>${title(pr)}</h3><div class="sub">${T("newSpool")} · ${pr.brand ? esc(pr.brand) : "Bambu " + esc(pr.bambu_no ?? "–")}</div></div></div>
     <div class="sub">${p.in_cabinet ? T("proposeCab") : T("proposeOverflow")}</div>
     <div class="where">${esc(slot)}</div>
-    <div class="spoolopts">${refillSwitch(false)}</div>
-    <label class="pricein"><span class="sub">${L("Price (optional)")}</span><input id="newprice" inputmode="decimal" data-money value="${esc(lastTyped[pr.line] || "")}" placeholder="${esc(p.lastPrice != null ? L("last {0}", priceStr(p.lastPrice)) : "–")}"> ${esc(SET().currency || "€")}</label>
+    <div class="spoolopts">${refillSwitch(!!ord?.refill)}</div>
+    <label class="pricein"><span class="sub">${L("Price (optional)")}</span><input id="newprice" inputmode="decimal" data-money value="${esc(ord?.price != null ? priceStr(ord.price) : lastTyped[pr.line] || "")}" placeholder="${esc(p.lastPrice != null ? L("last {0}", priceStr(p.lastPrice)) : "–")}"> ${esc(SET().currency || "€")}</label>
+    ${ord?.price != null ? `<p class="sub">${L("Price from your order (shipping and credits included).")}</p>` : ""}
     <div class="actions"><button class="primary" id="store">${T("storeHere")}</button>
       <button id="other">${T("otherSlot")}</button></div>
     ${p.msg ? `<div class="msg err">${esc(p.msg)}</div>` : ""}${tagDetails(t)}`;
@@ -2159,8 +2292,27 @@ markSound();
 const shopUrl = (p) => p.brand
   ? (p.shop_url || "https://www.google.com/search?q=" + encodeURIComponent(`${p.line} ${p.color_name || ""} filament`))
   : "https://eu.store.bambulab.com/search?q=" + encodeURIComponent(`${p.line} ${p.name_en || p.color_name || ""}`);
-const chipP = (p, extra = "", unnote = false, note = false) => `<li>${sw(p)}<span class="grow">${esc(p.line)} ${esc(cname(p))} <span class="sub">${esc(p.bambu_no ?? "")}${extra}</span></span>
-  ${p.discontinued ? `<span class="discmark" title="${esc(L("Bambu Lab no longer sells this color"))}">${L("no longer available")}</span>` : `<a class="btn small" href="${shopUrl(p)}" target="_blank" rel="noopener">${L("Shop")}</a>`}${unnote ? `<span class="qty" role="group" aria-label="${esc(L("Number of spools"))}"><button class="small" data-qty="${p.id}" data-d="-1" title="${esc(p.qty > 1 ? L("One less") : L("Remove from shopping list"))}" aria-label="${esc(p.qty > 1 ? L("One less") : L("Remove from shopping list"))}">${p.qty > 1 ? "−" : "×"}</button><b>${p.qty || 1}</b><button class="small" data-qty="${p.id}" data-d="1" title="${esc(L("One more"))}" aria-label="${esc(L("One more"))}">+</button></span>` : ""}${note ? `<button class="small" data-note="${p.id}" title="${esc(L("Add to shopping list"))}" aria-label="${esc(L("Add to shopping list"))}">+</button>` : ""}</li>`;
+// #58/#62: status of a listed color (only a note for you) and "buy as refill"
+const SHOP_STATES = () => [["", L("Noted")], ["cart", L("In cart")], ["ordered", L("Ordered")], ["soldout", L("Out of stock")]];
+const stateSel = (p, attr) => `<select class="stsel st-${p.state || "open"}" ${attr}="${p.id}" aria-label="${esc(L("Status"))}" title="${esc(L("Status"))}">${
+  SHOP_STATES().map(([v, l]) => `<option value="${v}"${(p.state || "") === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+const refillBtn = (p, attr) => `<button class="small rfl${p.refill ? " on" : ""}" ${attr} aria-pressed="${p.refill ? "true" : "false"}" title="${esc(L("Buy as refill (no spool)"))}">${p.refill ? "✓ " : ""}${L("Refill")}</button>`;
+// #69: a color can be on the list once not ordered yet and once per order; openOf is the one not ordered yet
+const openOf = (pid) => insights?.shopping?.noted?.find((x) => x.id === pid && x.state !== "ordered");
+const notedOf = (pid) => openOf(pid) || insights?.shopping?.noted?.find((x) => x.id === pid);
+const orderedOf = (pid) => (insights?.shopping?.noted || []).filter((x) => x.id === pid && x.state === "ordered").reduce((a, x) => a + (x.qty || 1), 0);
+// #70: one status per color for the catalog: shipped > ordered > in cart > on the list > out of stock
+function catState(pid) {
+  const es = (insights?.shopping?.noted || []).filter((x) => x.id === pid);
+  if (!es.length) return "";
+  if (es.some((x) => x.state === "ordered" && x.parcel)) return "shipped";
+  if (es.some((x) => x.state === "ordered")) return "ordered";
+  const o = es.find((x) => x.state !== "ordered");
+  return o.state === "cart" ? "cart" : o.state === "soldout" ? "soldout" : "list";
+}
+const notedLabel = (pid) => ({ shipped: L("shipped"), ordered: L("ordered"), cart: L("in cart"), soldout: L("out of stock") })[catState(pid)] || L("on the list");
+const chipP = (p, extra = "", unnote = false, note = false) => `<li${unnote && p.state ? ` class="st-${p.state}"` : ""}${unnote && p.state === "ordered" ? ` data-o="${esc(p.order || "")}"` : ""}>${sw(p)}<span class="grow">${esc(p.line)} ${esc(cname(p))} <span class="sub">${esc(p.bambu_no ?? "")}${extra}</span></span>
+  ${p.discontinued ? `<span class="discmark" title="${esc(L("Bambu Lab no longer sells this color"))}">${L("no longer available")}</span>` : `<a class="btn small" href="${shopUrl(p)}" target="_blank" rel="noopener">${L("Shop")}</a>`}${unnote ? refillBtn(p, `data-refill="${p.id}"`) + stateSel(p, "data-state") : ""}${unnote ? `<span class="qty" role="group" aria-label="${esc(L("Number of spools"))}"><button class="small" data-qty="${p.id}" data-d="-1" title="${esc(p.qty > 1 ? L("One less") : L("Remove from shopping list"))}" aria-label="${esc(p.qty > 1 ? L("One less") : L("Remove from shopping list"))}">${p.qty > 1 ? "−" : "×"}</button><b>${p.qty || 1}</b><button class="small" data-qty="${p.id}" data-d="1" title="${esc(L("One more"))}" aria-label="${esc(L("One more"))}">+</button></span>` : ""}${note ? `<button class="small" data-note="${p.id}" title="${esc(L("Add to shopping list"))}" aria-label="${esc(L("Add to shopping list"))}">+</button>` : ""}</li>`;
 const isNoted = (pid) => !!insights?.shopping?.noted?.some((p) => p.id === pid);
 async function setNoted(pid, on) {
   try { insights = await api("/api/shoplist", { method: "POST", body: { product_id: pid, on } }); drawInsights(); drawCatalog();
@@ -2182,6 +2334,231 @@ async function askMinStock(pid, name) {
 function foldHead(id, title, sum, open) {
   return `<h3 class="fold" id="${id}">${title} <span class="sub foldsum">${sum}</span><span class="chev">›</span></h3>`;
 }
+// #64: record a shop order: which listed colors, how many, shop price per spool, shipping and Bambu Lab credits.
+// Shipping and credits are shared out by price; the result is filled in when the new spools are scanned.
+function orderDialog() {
+  const all = (insights?.shopping?.noted || []).filter((p) => p.state !== "ordered" && p.state !== "soldout");
+  if (!all.length) return;
+  const inCart = all.some((p) => p.state === "cart");
+  const num = (v) => { const n = parseFloat(String(v || "").replace(",", ".")); return isFinite(n) ? n : 0; };
+  const wrap = document.createElement("div"); wrap.className = "dlgwrap";
+  wrap.innerHTML = `<div class="dlg orderdlg" role="dialog" aria-modal="true"><h3>${L("Record an order")}</h3>
+    <p class="sub">${L("What you just ordered at Bambu Lab. The price per spool, with shipping and credits shared out, is filled in when you scan the new spools.")}</p>
+    <ul class="shop orditems">${all.map((p) => `<li data-oi="${p.id}">
+      <label class="ordchk"><input type="checkbox" ${!inCart || p.state === "cart" ? "checked" : ""}>${sw(p)}<span class="grow">${esc(p.line)} ${esc(cname(p))}<span class="sub"> ${esc(p.bambu_no ?? "")}</span></span></label>
+      <span class="ordf"><button class="small rfl${p.refill ? " on" : ""}" data-orf aria-pressed="${p.refill ? "true" : "false"}">${p.refill ? "✓ " : ""}${L("Refill")}</button>
+      <input class="oq" inputmode="numeric" value="${p.qty || 1}" aria-label="${esc(L("Number of spools"))}"><span class="sub">${esc(L("pcs."))}</span>
+      <input class="op" inputmode="decimal" data-money data-auto="1" data-unit="${p.price_hint ?? ""}" value="${esc(p.price_hint != null ? priceStr(p.price_hint * (p.qty || 1)) : "")}" placeholder="–" aria-label="${esc(L("Price for this line"))}"><span class="sub">${esc(SET().currency || "€")}</span></span>
+      <span class="ordgrip" title="${esc(L("Hold and drag to sort like your order"))}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span></li>`).join("")}</ul>
+    <p class="sub ordhint">${L("Enter the price per line as in the Bambu Lab cart (for 2 spools the price of both, with volume discount).")}</p>
+    <div class="ordgrid">
+      <label><span class="sub">${L("Shipping")}</span><span class="inline"><input id="oShip" inputmode="decimal" data-money value="0,00"> ${esc(SET().currency || "€")}</span></label>
+      <label><span class="sub">${L("Credits used")}</span><input id="oUsed" inputmode="numeric" value="0"></label>
+      <label><span class="sub">${L("Credits earned")}</span><input id="oEarn" inputmode="numeric" value="0"></label>
+    </div>
+    <div class="ordsum" id="oSum"></div>
+    <div class="actions"><span class="grow"></span><button data-ox>${L("Cancel")}</button><button class="primary" data-ook>${L("Save order")}</button></div></div>`;
+  document.body.append(wrap);
+  requestAnimationFrame(() => wrap.classList.add("in"));
+  const rows = () => [...wrap.querySelectorAll("[data-oi]")].map((li) => ({ li, id: +li.dataset.oi, on: li.querySelector("input[type=checkbox]").checked,
+    qty: Math.max(1, Math.min(99, parseInt(li.querySelector(".oq").value, 10) || 1)), total: li.querySelector(".op").value.trim(),
+    refill: li.querySelector("[data-orf]").classList.contains("on") }));
+  const sum = () => {
+    const r = rows().filter((x) => x.on), sub = r.reduce((a, x) => a + num(x.total), 0), ship = num($("#oShip").value), used = parseInt($("#oUsed").value, 10) || 0;
+    const earn = parseInt($("#oEarn").value, 10) || 0, cr = +SET().credits || 0, n = r.reduce((a, x) => a + x.qty, 0);
+    $("#oSum").innerHTML = `<span>${L("Subtotal")}</span><b>${money(sub)}</b><span>${L("Shipping")}</span><b>${money(ship)}</b>
+      <span>${L("Credits")}</span><b>−${money(used / 100)}</b><span class="tot">${L("Total")}</span><b class="tot">${money(Math.max(0, sub + ship - used / 100))}</b>
+      <span class="sub span2">${esc(Lp(n, "{0} spool", "{0} spools"))} · ${L("credits afterwards: {0}", Math.max(0, cr - used + earn).toLocaleString(LOCALE))}</span>`;
+    wrap.querySelector("[data-ook]").disabled = !r.length;
+  };
+  const close = () => { document.removeEventListener("keydown", key, true); wrap.classList.remove("in"); setTimeout(() => wrap.remove(), 180); };
+  const key = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", key, true);
+  wrap.oninput = (e) => {
+    // a price nobody typed follows the number of spools; once typed, it stays as typed
+    if (e.target.matches(".op")) delete e.target.dataset.auto;
+    if (e.target.matches(".oq")) { const op = e.target.closest("li").querySelector(".op");
+      if (op.dataset.auto && op.dataset.unit !== "") op.value = priceStr(+op.dataset.unit * (parseInt(e.target.value, 10) || 1)); }
+    sum();
+  };
+  wrap.onchange = sum;
+  // #68: sort the lines like the order in the shop: hold the grip at the end of a line and drag (mouse, touch, pen)
+  const ul = wrap.querySelector(".orditems");
+  ul.addEventListener("pointerdown", (e) => {
+    const grip = e.target.closest(".ordgrip"); if (!grip) return;
+    e.preventDefault();
+    const li = grip.closest("li"); li.classList.add("dragging");    // no pointer capture: moving the line in the DOM would drop it
+    const move = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      const sibs = [...ul.children].filter((x) => x !== li);
+      const after = sibs.find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+      if (after) { if (li.nextElementSibling !== after) ul.insertBefore(li, after); } else if (ul.lastElementChild !== li) ul.append(li);
+      const box = wrap.querySelector(".dlg"), r = box.getBoundingClientRect();     // scroll the dialog near its edges
+      if (ev.clientY < r.top + 40) box.scrollTop -= 12; else if (ev.clientY > r.bottom - 40) box.scrollTop += 12;
+    };
+    const up = (ev) => { if (ev.pointerId !== e.pointerId) return; li.classList.remove("dragging");
+      // keep the order for next time (and in the shopping list)
+      api("/api/shoplist/order", { method: "POST", body: { ids: [...ul.children].map((x) => +x.dataset.oi) } }).then((r) => { insights = r; drawInsights(); }).catch(() => {}); removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); };
+    addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
+  });
+  wrap.onclick = async (e) => {
+    if (e.target === wrap || e.target.closest("[data-ox]")) return close();
+    const rf = e.target.closest("[data-orf]");
+    if (rf) { const on = !rf.classList.contains("on"); rf.classList.toggle("on", on); rf.setAttribute("aria-pressed", on); rf.textContent = (on ? "✓ " : "") + L("Refill"); return; }
+    if (!e.target.closest("[data-ook]")) return;
+    const items = rows().filter((x) => x.on).map(({ id, qty, total, refill }) => ({ id, qty, total, refill }));
+    try {
+      const res = await api("/api/orders", { method: "POST", body: { items, shipping: $("#oShip").value.trim(), credits_used: $("#oUsed").value.trim(), credits_earned: $("#oEarn").value.trim() } });
+      insights = res; close(); await refresh(); toast(L("Order saved: {0}", money(res.order.total)));
+    } catch (err) { toast(tr(err.message)); }
+  };
+  sum();
+}
+// #71: parcels: carrier, tracking number (link to the carrier's tracking page) and which spools are in it
+const CARRIER_NAMES = { dhl: "DHL", dpd: "DPD", ups: "UPS", gls: "GLS", hermes: "Hermes", fedex: "FedEx", post_at: "Österreichische Post" };
+const CARRIER_URLS = { dhl: "https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode=", dpd: "https://tracking.dpd.de/status/de_DE/parcel/",
+  ups: "https://www.ups.com/track?tracknum=", gls: "https://gls-group.com/DE/de/paketverfolgung?match=", hermes: "https://www.myhermes.de/empfangen/sendungsverfolgung/sendungsinformation#",
+  fedex: "https://www.fedex.com/fedextrack/?trknbr=", post_at: "https://www.post.at/s/sendungsdetails?snr=" };
+const trackUrl = (pa) => pa?.tracking && CARRIER_URLS[pa.carrier] ? CARRIER_URLS[pa.carrier] + encodeURIComponent(pa.tracking) : "";
+function parcelDialog(order, id) {
+  const all = (insights?.shopping?.noted || []).filter((x) => x.state === "ordered" && (x.order || "") === order && (!x.parcel || x.parcel.id === id));
+  if (!all.length) return;
+  const pa = id ? all.find((x) => x.parcel?.id === id)?.parcel : null;
+  const wrap = document.createElement("div"); wrap.className = "dlgwrap";
+  wrap.innerHTML = `<div class="dlg parceldlg" role="dialog" aria-modal="true"><h3>${L(id ? "Edit parcel" : "Add a parcel")}</h3>
+    <p class="sub">${L("Bambu Lab often ships an order in several parcels. Tick the spools in this parcel.")}</p>
+    <ul class="shop">${all.map((p) => `<li><label class="ordchk"><input type="checkbox" data-pi="${p.id}" ${!id || p.parcel?.id === id ? "checked" : ""}>${sw(p)}<span class="grow">${esc(p.line)} ${esc(cname(p))}<span class="sub"> ${esc(p.bambu_no ?? "")} · ${esc(Lp(p.qty || 1, "{0} spool", "{0} spools"))}</span></span></label></li>`).join("")}</ul>
+    <div class="ordgrid pargrid">
+      <label class="field"><span class="sub">${L("Carrier")}</span><select id="pCar"><option value="">–</option>${Object.entries(CARRIER_NAMES).map(([k, v]) => `<option value="${k}" ${pa?.carrier === k ? "selected" : ""}>${esc(v)}</option>`).join("")}<option value="other" ${pa?.carrier === "other" ? "selected" : ""}>${L("Other")}</option></select></label>
+      <label class="field"><span class="sub">${L("Tracking number")}</span><input id="pTrk" autocomplete="off" spellcheck="false" value="${esc(pa?.tracking || "")}" placeholder="${esc(L("optional"))}"></label>
+    </div>
+    <div class="actions">${id ? `<button data-pdel>${L("Remove parcel")}</button>` : ""}<span class="grow"></span><button data-px>${L("Cancel")}</button><button class="primary" data-pok>${L("Save")}</button></div></div>`;
+  document.body.append(wrap);
+  requestAnimationFrame(() => wrap.classList.add("in"));
+  const close = () => { document.removeEventListener("keydown", key, true); wrap.classList.remove("in"); setTimeout(() => wrap.remove(), 180); };
+  const key = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", key, true);
+  const save = async (ids) => {
+    try { insights = await api("/api/parcels", { method: "POST", body: { order, id: id || null, ids, carrier: $("#pCar").value, tracking: $("#pTrk").value.trim() } });
+      close(); drawInsights(); drawCatalog(); }
+    catch (err) { toast(tr(err.message)); }
+  };
+  wrap.onchange = () => { wrap.querySelector("[data-pok]").disabled = !wrap.querySelector("[data-pi]:checked"); };
+  wrap.onclick = (e) => {
+    if (e.target === wrap || e.target.closest("[data-px]")) return close();
+    if (e.target.closest("[data-pdel]")) return save([]);
+    if (e.target.closest("[data-pok]")) return save([...wrap.querySelectorAll("[data-pi]:checked")].map((x) => +x.dataset.pi));
+  };
+  setTimeout(() => (id ? $("#pTrk") : $("#pCar")).focus(), 50);
+}
+// #76: scan a delivery: a bar at the bottom ticks off the spools of an order (or one parcel of it) as they are scanned.
+// The spools of an order count down by themselves when scanned; the bar remembers what was expected when it started.
+let deliv = null;
+try { deliv = JSON.parse(pref("deliv", "null")); } catch (e) { deliv = null; }
+function startDelivery(order, parcel, pname) {
+  const its = (insights?.shopping?.noted || []).filter((x) => x.state === "ordered" && (x.order || "") === order && (!parcel || x.parcel?.id === parcel));
+  if (!its.length) return;
+  deliv = { order, parcel: parcel || "", title: pname || L("Delivery"),
+    items: its.map((x) => ({ id: x.id, line: x.line, cn: cname(x), name: `${x.line} ${cname(x)}`, hex: x.hex, colors: x.colors, want: x.qty || 1, refill: !!x.refill, price: x.price })), seen: {} };
+  deliv.seen = Object.fromEntries(deliv.items.map((it) => [it.id, 0]));
+  setPref("deliv", JSON.stringify(deliv)); drawDelivery();
+}
+function drawDelivery() {
+  let bar = $("#delivbar");
+  if (!deliv) { if (bar) bar.remove(); document.body.classList.remove("hasdeliv"); return; }
+  if (!bar) { bar = document.createElement("div"); bar.id = "delivbar"; bar.className = "delivbar"; document.body.append(bar); }
+  document.body.classList.add("hasdeliv");
+  const left = (it) => (insights?.shopping?.noted || []).filter((x) => x.id === it.id && x.state === "ordered" && (x.order || "") === deliv.order).reduce((a, x) => a + (x.qty || 1), 0);
+  const rows = deliv.items.map((it) => ({ ...it, got: Math.max(0, Math.min(it.want, it.want - left(it))) }));
+  // #80: what came in since the last look is highlighted
+  const was = deliv.seen || {}, fresh = rows.filter((r) => r.got > (was[r.id] || 0));
+  deliv.seen = Object.fromEntries(rows.map((r) => [r.id, r.got]));
+  if (fresh.length) { deliv.last = fresh[fresh.length - 1].id; setPref("deliv", JSON.stringify(deliv)); }
+  const got = rows.reduce((a, r) => a + r.got, 0), all = rows.reduce((a, r) => a + r.want, 0), done = got >= all;
+  const lines = [...new Set(rows.map((r) => r.line || ""))];
+  const nameOf = (r) => r.cn || r.name;
+  const last = rows.find((r) => r.id === deliv.last);
+  bar.classList.toggle("min", !!deliv.min); bar.classList.toggle("done", done);
+  const ring = `<svg class="dbring" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15.5"/><circle class="v" cx="18" cy="18" r="15.5" stroke-dasharray="${(97.4 * got / Math.max(1, all)).toFixed(1)} 97.4"/></svg>`;
+  setHtml(bar, `<div class="dbhead" data-dbmin role="button" tabindex="0" aria-expanded="${!deliv.min}">
+      <span class="dbcount">${ring}<b>${got}</b><span>/${all}</span></span>
+      <span class="dbtitle"><b>${esc(deliv.title)}</b><span class="sub">${done ? esc(L("All spools of this delivery are in. Nice!")) : last ? `✓ ${esc(L("Just scanned: {0}", nameOf(last)))}` : esc(L("Hold the new spools to the reader one after the other."))}</span></span>
+      <span class="chev">›</span></div>
+    <div class="dbbody">
+      ${lines.length === 1 ? `<p class="sub dbline">${esc(lines[0])}${done ? "" : " · " + esc(L("price and refill come from the order"))}</p>` : ""}
+      <div class="dbgrid">${rows.sort((a, b) => (a.got >= a.want) - (b.got >= b.want)).map((r) => `<div class="dbt${r.got >= r.want ? " ok" : ""}${r.id === deliv.last ? " last" : ""}" title="${esc(r.name)}">
+        <span class="dbsw">${sw(r)}${r.got >= r.want ? `<i>✓</i>` : ""}</span><span class="dbn">${esc(lines.length === 1 ? nameOf(r) : r.name)}${r.refill ? `<small>${L("Refill")}</small>` : ""}</span>${r.want > 1 ? `<b>${r.got}/${r.want}</b>` : ""}</div>`).join("")}</div>
+      <div class="actions"><span class="grow"></span><button class="small${done ? " primary" : ""}" data-dbx>${L(done ? "Done" : "Stop scanning")}</button></div>
+    </div>`);
+  bar.querySelector("[data-dbx]").onclick = () => { deliv = null; setPref("deliv", "null"); drawDelivery(); };
+  const h = bar.querySelector("[data-dbmin]");
+  h.onclick = () => { deliv.min = !deliv.min; setPref("deliv", JSON.stringify(deliv)); drawDelivery(); };
+  h.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); h.onclick(); } };
+}
+// #79: the shopping list as text, to copy or send to someone who orders for you
+function shareList() {
+  const sh = insights?.shopping || {}, open = (sh.noted || []).filter((p) => p.state !== "ordered" && p.state !== "soldout");
+  const lines = [...open.map((p) => ({ p, n: p.qty || 1 })), ...(sh.below_min || []).filter((p) => !open.some((x) => x.id === p.id)).map((p) => ({ p, n: p.need || 1 }))];
+  const txt = [L("Shopping list ({0})", dateShort(new Date().toISOString().slice(0, 10))), "",
+    ...lines.map(({ p, n }) => `${n}× ${p.line} ${cname(p)}${p.bambu_no ? " (" + p.bambu_no + ")" : ""}${p.refill ? " – " + L("Refill") : ""}`), "",
+    L("{0} spools in total", lines.reduce((a, x) => a + x.n, 0))].join("\n");
+  const wrap = document.createElement("div"); wrap.className = "dlgwrap";
+  wrap.innerHTML = `<div class="dlg sharedlg" role="dialog" aria-modal="true"><h3>${L("Share list")}</h3>
+    <textarea readonly rows="${Math.min(16, lines.length + 4)}">${esc(txt)}</textarea>
+    <div class="actions"><span class="grow"></span><button data-sx>${L("Close")}</button>${navigator.share ? `<button data-sshare>${L("Share")}</button>` : ""}<button class="primary" data-scopy>${L("Copy")}</button></div></div>`;
+  document.body.append(wrap);
+  requestAnimationFrame(() => wrap.classList.add("in"));
+  const ta = wrap.querySelector("textarea");
+  const close = () => { document.removeEventListener("keydown", key, true); wrap.classList.remove("in"); setTimeout(() => wrap.remove(), 180); };
+  const key = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", key, true);
+  wrap.onclick = async (e) => {
+    if (e.target === wrap || e.target.closest("[data-sx]")) return close();
+    if (e.target.closest("[data-sshare]")) { try { await navigator.share({ text: txt }); } catch (err) {} return; }
+    if (e.target.closest("[data-scopy]")) {
+      // the clipboard API only works over https; on the local network the old way still copies
+      let ok = false;
+      try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(txt); ok = true; } } catch (err) {}
+      if (!ok) { ta.focus(); ta.select(); try { ok = document.execCommand("copy"); } catch (err) {} }
+      toast(L(ok ? "Copied" : "Select the text and copy it")); if (ok) close();
+    }
+  };
+  setTimeout(() => { ta.focus(); ta.select(); }, 50);
+}
+// #69: "Ordered, on the way": folded (count in the heading), grouped by order
+function ordSection(ordered) {
+  const n = ordered.reduce((a, p) => a + (p.qty || 1), 0), groups = [];
+  for (const p of ordered) { const g = groups.find((x) => x.id === (p.order || "")); if (g) g.items.push(p); else groups.push({ id: p.order || "", items: [p] }); }
+  groups.sort((a, b) => a.id.localeCompare(b.id));
+  const day = (id) => { const m = /(\d{4})(\d\d)(\d\d)/.exec(id); return m ? dateShort(`${m[1]}-${m[2]}-${m[3]}`) : ""; };
+  const head = (g) => { const p = g.items[0], k = g.items.reduce((a, x) => a + (x.qty || 1), 0), d = p.order_date ? dateShort(p.order_date) : day(g.id);
+    const t = p.order_date ? L("Order of {0}", d) : d ? L("Marked as ordered on {0}", d) : L("Marked as ordered");
+    return `<div class="ordgrp"><b>${esc(t)}</b><span class="sub"> · ${esc(Lp(k, "{0} spool", "{0} spools"))}${p.order_total != null ? " · " + money(p.order_total) : ""}</span>
+      <span class="grow"></span>${g.items.some((x) => !x.parcel) ? `<button class="small" data-parcel="" data-pord="${esc(g.id)}">${L("Add a parcel")}</button>` : ""}</div>`; };
+  const items = (list) => `<ul class="shop">${list.map((p) => chipP(p, p.price != null ? " · " + L("{0} per spool", money(p.price)) : "", true)).join("")}</ul>`;
+  // #71: an order can come in several parcels: each with carrier and tracking number, then what is not shipped yet
+  const body = (g) => {
+    const pids = [...new Set(g.items.filter((x) => x.parcel).map((x) => x.parcel.id))];
+    if (!pids.length) return items(g.items);
+    return pids.map((id, i) => { const pa = g.items.find((x) => x.parcel?.id === id).parcel, its = g.items.filter((x) => x.parcel?.id === id);
+      const url = trackUrl(pa), k = its.reduce((a, x) => a + (x.qty || 1), 0);
+      return `<div class="parcel"><span class="pico" aria-hidden="true">📦</span><span class="grow"><b>${esc(L("Parcel {0}", i + 1))}</b><span class="sub"> · ${esc(Lp(k, "{0} spool", "{0} spools"))} · ${esc(L("shipped {0}", dateShort(pa.date)))}</span>
+        ${pa.tracking ? `<br><span class="sub">${esc(CARRIER_NAMES[pa.carrier] || "")}${pa.carrier && CARRIER_NAMES[pa.carrier] ? " " : ""}</span>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(pa.tracking)}</a>` : `<span class="track">${esc(pa.tracking)}</span>`}` : ""}</span>
+        <button class="small" data-dscan="${esc(id)}" data-pord="${esc(g.id)}" data-pname="${esc(L("Parcel {0}", i + 1))}">${L("Scan")}</button><button class="small" data-parcel="${esc(id)}" data-pord="${esc(g.id)}">${L("Edit")}</button></div>` + items(its); }).join("") +
+      (g.items.some((x) => !x.parcel) ? `<div class="parcel notyet"><span class="grow"><b>${L("Not shipped yet")}</b></span></div>` + items(g.items.filter((x) => !x.parcel)) : "");
+  };
+  // #73: a card of its own; every order folds on its own (folded unless opened on this device)
+  const fold = (g) => { const k = g.items.reduce((a, x) => a + (x.qty || 1), 0), sh = g.items.filter((x) => x.parcel).reduce((a, x) => a + (x.qty || 1), 0), p = g.items[0];
+    const d = p.order_date ? dateShort(p.order_date) : day(g.id), t = p.order_date ? L("Order of {0}", d) : d ? L("Marked as ordered on {0}", d) : L("Marked as ordered");
+    const on = ordOpenIds.includes(g.id);
+    return `<div class="ordbox${on ? " open" : ""}"><h4 class="fold" data-ogt="${esc(g.id)}"><span>${esc(t)} <span class="sub">· ${esc(Lp(k, "{0} spool", "{0} spools"))}${p.order_total != null ? " · " + money(p.order_total) : ""}${sh ? " · " + esc(L("{0} shipped", sh)) : ""}</span></span><span class="chev">›</span></h4>
+      <div class="foldbody"><div class="ordgrp"><span class="grow"></span><button class="small" data-dscan="" data-pord="${esc(g.id)}" data-pname="${esc(t)}">${L("Scan delivery")}</button>${g.items.some((x) => !x.parcel) ? `<button class="small" data-parcel="" data-pord="${esc(g.id)}">${L("Add a parcel")}</button>` : ""}</div>${body(g)}</div></div>`; };
+  const shipped = ordered.filter((x) => x.parcel).reduce((a, x) => a + (x.qty || 1), 0);
+  return foldHead("ordfold", L("Running orders"), esc(Lp(n, "{0} spool", "{0} spools")) + (groups.length > 1 ? " · " + esc(Lp(groups.length, "{0} order", "{0} orders")) : "") + (shipped ? " · " + esc(L("{0} shipped", shipped)) : "")) +
+    `<div class="foldbody"><p class="sub">${L("Spools disappear from here when you scan them.")}</p>${groups.map(fold).join("")}</div>`;
+}
+// #59: live updates (printer, scale) redraw often; replacing unchanged content would swallow clicks (Shop link)
+function setHtml(el, html) { if (el._html !== html) { el._html = html; el.innerHTML = html; } }
 function drawInsights() {
   if (!insights) return;
   drawToday();
@@ -2189,41 +2566,87 @@ function drawInsights() {
   const dry = insights.drying, dn = $("#drynote");
   dn.hidden = !dry.length;
   dn.classList.toggle("open", dryOpen);
-  dn.innerHTML = foldHead("dryfold", L("Drying recommended"), T("spools", dry.length)) +
-    `<div class="foldbody">` + dry.map((sp) => `<span class="chip" data-spool="${sp.id}">${sw(sp)}${title(sp)} · ${L("open for {0} days", sp.open_days)}</span>`).join("") + `</div>`;
+  setHtml(dn, foldHead("dryfold", L("Drying recommended"), T("spools", dry.length)) +
+    `<div class="foldbody">` + dry.map((sp) => `<span class="chip" data-spool="${sp.id}">${sw(sp)}${title(sp)} · ${L("open for {0} days", sp.open_days)}</span>`).join("") + `</div>`);
   $("#dryfold").onclick = () => { dryOpen = !dryOpen; dn.classList.toggle("open", dryOpen); };
   // shopping list (colors view)
   const sh = insights.shopping, noted = sh.noted || [], below = sh.below_min || [], n = noted.length + below.length + sh.low.length + sh.used_up.length + sh.missing.length, se = $("#shopping");
-  const onList = noted.length + below.length;   // the count in the heading: colors put on the list and below their minimum, not the suggestions
+  const onList = noted.filter((p) => p.state !== "ordered").length + below.length;   // #73: orders have a card of their own
+  // #66: the heading counts spools, not entries: noted ones (not "out of stock") plus what is missing below the minimum
+  const spoolsOnList = noted.filter((p) => p.state !== "soldout" && p.state !== "ordered").reduce((a, p) => a + (p.qty || 1), 0) + below.reduce((a, p) => a + (p.need || 0), 0);
+  const open = noted.filter((p) => p.state !== "ordered"), ordered = noted.filter((p) => p.state === "ordered");
+  // #63: spool balance: every refill (in storage, on the list, in the cart, ordered) needs an empty spool
+  const rq = (f) => noted.filter((p) => p.refill && f(p.state || "")).reduce((a, p) => a + (p.qty || 1), 0);
+  const empt = +(SET().empty_spools ?? 0), rStock = sh.refills_stored || 0, rList = rq((s) => s === ""), rCart = rq((s) => s === "cart"), rOrd = rq((s) => s === "ordered");
+  const rNeed = rStock + rList + rCart + rOrd, short = rNeed - empt;
+  // #63/#65: one line: what is missing (big) and the sum behind it; terms that are 0 are left out
+  const terms = [[rStock, L("in storage")], [rList, L("noted")], [rCart, L("in cart")], [rOrd, L("ordered")]].filter((t) => t[0] > 0);
+  const balance = !rNeed ? `<p class="sub">${esc(Lp(empt, "{0} empty spool available for refills.", "{0} empty spools available for refills."))}</p>`
+    : `<div class="spoolbal${short > 0 ? " short" : " ok"}">
+    <div class="sbres"><b>${short > 0 ? short : "✓"}</b><span>${short > 0 ? esc(Lp(short, "empty spool missing", "empty spools missing")) : esc(L("enough empty spools"))}</span></div>
+    <div class="sbcalc"><div class="sbeq">${terms.map((t) => `<span><b>${t[0]}</b> ${esc(t[1])}</span>`).join("<i>+</i>")}${terms.length > 1 ? `<i>=</i><span class="sum"><b>${rNeed}</b> ${esc(L("refills"))}</span>` : ` <span>${esc(L("refills"))}</span>`}</div>
+      <div class="sub">${short > 0 ? esc(L("They need {0} empty spools, you have {1}. Order some colors with a spool instead of as a refill.", rNeed, empt))
+        : esc(L("They need {0} empty spools, you have {1}: {2} left over.", rNeed, empt, -short))}</div></div></div>`;   // the count in the heading: colors put on the list and below their minimum, not the suggestions
   se.classList.toggle("open", shopOpen);
-  se.innerHTML = foldHead("shopfold", L("Shopping list"), onList ? Lp(onList, "{0} item", "{0} items") : L("list is empty")) + `<div class="foldbody">` +
-    `<p class="sub">${L("{0} empty spools available – enough for that many refills.", SET().empty_spools ?? 0)}</p>` +
-    (noted.length ? `<h4>${L("Noted by you")}</h4><ul class="shop">${noted.map((p) => chipP(p, "", true)).join("")}</ul>` : "") +
-    (below.length ? `<h4>${L("Below your minimum stock")}</h4><ul class="shop">${below.map((p) => chipP(p, " · " + L("{0} of {1} in stock", p.have, p.want))).join("")}</ul>` : "") +
+  setHtml(se, foldHead("shopfold", L("Shopping list"), onList ? Lp(spoolsOnList, "{0} spool", "{0} spools") : L("list is empty")) + `<div class="foldbody">` +
+    balance +
+    (open.some((p) => p.state !== "soldout") || below.length ? `<div class="ordbar">${open.some((p) => p.state !== "soldout") ? `<button class="small primary" data-order>${L("Record an order")}</button>` : ""}<button class="small" data-share>${L("Share list")}</button>
+      <span class="sub">${L("Bambu Lab credits: {0} ({1})", (+SET().credits || 0).toLocaleString(LOCALE), money((+SET().credits || 0) / 100))}</span></div>` : "") +
+    (open.length ? `<h4>${L("Noted by you")}</h4><ul class="shop">${open.map((p) => chipP(p, "", true)).join("")}</ul>` : "") +
+    (below.length ? `<h4>${L("Below your minimum stock")}</h4><ul class="shop">${below.map((p) => chipP(p, " · " + L("{0} of {1} in stock", p.have, p.want) + (p.noted ? " · " + L("{0} noted", p.noted) : "")).replace(/<\/li>$/,
+      `<button class="small" data-need="${p.id}" data-n="${p.need}" title="${esc(L("Put {0} on the shopping list", p.need))}" aria-label="${esc(L("Put {0} on the shopping list", p.need))}">+${p.need}</button></li>`)).join("")}</ul>` : "") +
     (sh.low.length ? `<h4>${L("Almost empty, no spare spool")}</h4><ul class="shop">${sh.low.map((p) => chipP(p, " · " + L("{0} % remaining", p.remain_pct) + (reachText(p.product_id) ? " · " + L("lasts {0}", reachText(p.product_id)) : ""))).join("")}</ul>` : "") +
+
     (sh.used_up.length ? `<h4>${L("Used up")}</h4><ul class="shop">${sh.used_up.map((p) => chipP(p)).join("")}</ul>` : "") +
-    (sh.missing.length ? `<div class="subfold ${missOpen ? "open" : ""}" id="missbox"><h4 class="fold" id="missfold">${L("Missing from your collection lines")} <span class="sub foldsum">${sh.missing.length}</span><span class="chev">›</span></h4>
-      <ul class="shop">${sh.missing.map((p) => chipP(p, "", false, true)).join("")}</ul></div>` : "") +
-    (n ? "" : `<p class="sub">${L("The list is empty. Tap a color in the catalog to add it. Lines you want to have complete can be set under Options.")}</p>`) + `</div>`;
+    (n ? "" : `<p class="sub">${L("The list is empty. Tap a color in the catalog to add it.")}</p>`) + `</div>`);
   $("#shopfold").onclick = () => { shopOpen = !shopOpen; setPref("shopFold", shopOpen ? "1" : "0"); se.classList.toggle("open", shopOpen); };
-  const mf = $("#missfold");
-  if (mf) mf.onclick = () => { missOpen = !missOpen; $("#missbox").classList.toggle("open", missOpen); };
+  // #73: running orders (card below the shopping list)
+  const oe = $("#orders");
+  oe.hidden = !ordered.length; oe.classList.toggle("open", ordOpen);
+  setHtml(oe, ordered.length ? ordSection(ordered) : "");
+  const both = (q) => [...se.querySelectorAll(q), ...oe.querySelectorAll(q)];
+  oe.querySelectorAll("[data-parcel]").forEach((b) => (b.onclick = () => parcelDialog(b.dataset.pord, b.dataset.parcel)));
+  oe.querySelectorAll("[data-dscan]").forEach((b) => (b.onclick = () => startDelivery(b.dataset.pord, b.dataset.dscan, b.dataset.pname)));
+  drawDelivery();
+  const of = $("#ordfold"); if (of) of.onclick = () => { ordOpen = !ordOpen; setPref("ordFold", ordOpen ? "1" : "0"); oe.classList.toggle("open", ordOpen); };
+  oe.querySelectorAll("[data-ogt]").forEach((h) => (h.onclick = () => {
+    const id = h.dataset.ogt, on = !ordOpenIds.includes(id);
+    ordOpenIds = on ? [...ordOpenIds, id].slice(-20) : ordOpenIds.filter((x) => x !== id);
+    setPref("ordOpenIds", JSON.stringify(ordOpenIds)); h.parentElement.classList.toggle("open", on);
+  }));
   se.querySelectorAll("[data-note]").forEach((b) => (b.onclick = () => setNoted(+b.dataset.note, true)));
-  se.querySelectorAll("[data-qty]").forEach((b) => (b.onclick = async () => {
-    const pid = +b.dataset.qty, cur = noted.find((x) => x.id === pid)?.qty || 1, n = cur + +b.dataset.d;
-    if (n < 1) return setNoted(pid, false);
-    try { insights = await api("/api/shoplist", { method: "POST", body: { product_id: pid, on: true, qty: Math.min(99, n) } }); drawInsights(); }
+  // #58/#62: status (noted / in cart / ordered / not available) and refill of a listed color
+  // #69: an ordered entry is addressed with its order (data-o on its line)
+  const ordOf = (el) => { const o = el.closest("li")?.dataset.o; return o === undefined ? {} : { order: o }; };
+  const entryOf = (pid, el) => { const o = el.closest("li")?.dataset.o; return noted.find((x) => x.id === pid && (o === undefined ? x.state !== "ordered" : x.state === "ordered" && (x.order || "") === o)); };
+  const entry = async (pid, body, el) => {
+    try { insights = await api("/api/shoplist", { method: "POST", body: { product_id: pid, ...body, ...(el ? ordOf(el) : {}) } }); drawInsights(); drawCatalog(); }
     catch (e) { toast(tr(e.message)); }
+  };
+  const ob = se.querySelector("[data-order]"); if (ob) ob.onclick = () => orderDialog();
+  const sb = se.querySelector("[data-share]"); if (sb) sb.onclick = () => shareList();
+  both("[data-state]").forEach((sel) => (sel.onchange = () => entry(+sel.dataset.state, { state: sel.value }, sel)));
+  both("[data-refill]").forEach((b) => (b.onclick = () => entry(+b.dataset.refill, { refill: !entryOf(+b.dataset.refill, b)?.refill }, b)));
+  // #56: below the minimum: put the missing number on the list in one go (on top of what is already noted)
+  se.querySelectorAll("[data-need]").forEach((b) => (b.onclick = async () => {
+    const pid = +b.dataset.need, have = openOf(pid)?.qty || 0;
+    try { insights = await api("/api/shoplist", { method: "POST", body: { product_id: pid, on: true, qty: Math.min(99, have + +b.dataset.n) } }); drawInsights(); drawCatalog(); }
+    catch (e) { toast(tr(e.message)); }
+  }));
+  both("[data-qty]").forEach((b) => (b.onclick = async () => {
+    const pid = +b.dataset.qty, cur = entryOf(pid, b)?.qty || 1, n = cur + +b.dataset.d;
+    if (n < 1 && b.closest("li")?.dataset.o === undefined) return setNoted(pid, false);
+    entry(pid, n < 1 ? { on: false } : { on: true, qty: Math.min(99, n) }, b);
   }));
   // usage (colors view)
   const u = insights.usage, ue = $("#usage"), max = Math.max(1, ...u.months.map((m) => m.grams));
   const total30 = u.top30.reduce((a, p) => a + p.grams, 0);
   ue.classList.toggle("open", usageOpen);
-  ue.innerHTML = foldHead("usagefold", L("Usage"), u.since ? L("{0} in 30 days", gkg(total30)) : L("no data yet")) + `<div class="foldbody">` +
-    (u.since ? `<div class="months">${u.months.map((m) => `<div class="mbar"><i style="height:${(100 * m.grams / max).toFixed(0)}%"></i><b>${m.grams ? gkg(m.grams) : ""}</b><span>${m.month.slice(5)}/${m.month.slice(2, 4)}</span></div>`).join("")}</div>
+  setHtml(ue, foldHead("usagefold", L("Usage"), u.since ? L("{0} in 30 days", gkg(total30)) : L("no data yet")) + `<div class="foldbody">` +
+    (u.since ? `${statsData?.prints_total?.count ? "" : `<div class="months">${u.months.map((m) => `<div class="mbar"><i style="height:${(100 * m.grams / max).toFixed(0)}%"></i><b>${m.grams ? gkg(m.grams) : ""}</b><span>${m.month.slice(5)}/${m.month.slice(2, 4)}</span></div>`).join("")}</div>`}
       <h4>${L("Most used (30 days)")}</h4><ul class="shop">${u.top30.map((p) => `<li>${sw(p)}<span class="grow">${esc(p.line)} ${esc(cname(p))}</span><b>${gkg(p.grams)}</b></li>`).join("") || `<li class="sub">–</li>`}</ul>
       <p class="sub">${L("Calculated from the AMS percentages since {0}.", esc(u.since.slice(0, 10)))}</p>`
-      : `<p class="sub">${L("Recorded from the AMS percentages from now on.")}</p>`) + `</div>`;
+      : `<p class="sub">${L("Recorded from the AMS percentages from now on.")}</p>`) + `</div>`);
   $("#usagefold").onclick = () => { usageOpen = !usageOpen; ue.classList.toggle("open", usageOpen); };
 }
 
@@ -2288,10 +2711,6 @@ function fillSettings() {
   set("#setDryDry", st.dry_weeks_dry); set("#setDryOther", st.dry_weeks_other);
   document.querySelectorAll("[data-dryon]").forEach((b) => b.classList.toggle("on", (b.dataset.dryon === "1") === (st.dry_on !== false)));
   $("#dryfields").hidden = st.dry_on === false;
-  if (allLines && !$("#collectlines").dataset.filled) {
-    $("#collectlines").innerHTML = allLines.map((l) => `<label class="check"><input type="checkbox" value="${esc(l)}" ${(st.collect_lines || []).includes(l) ? "checked" : ""}> ${esc(l)}</label>`).join("");
-    $("#collectlines").dataset.filled = "1";
-  }
   set("#setScanPause", (st.scan_pause_ms ?? 500) / 1000);
   set("#setLogRows", st.log_rows ?? 5);
   set("#setLow", st.low_remain_pct); set("#setKeep", st.backup_keep_days); set("#setPoll", st.ha_poll_seconds);
@@ -2510,8 +2929,9 @@ async function applyCabs() {   // true when the layout was saved
   return ok;
 }
 $("#cabapply").onclick = () => applyCabs();
-$("#saveMisc").onclick = () => saveSettings({ low_remain_pct: $("#setLow").value, tight_pct: $("#setTight").value, min_stock_all: $("#setMinAll").value,
+$("#saveMisc").onclick = () => saveSettings({ low_remain_pct: $("#setLow").value, tight_pct: $("#setTight").value,
   ams_hum_max: $("#setAmsHum").value, return_min: $("#setReturn").value }).then(() => refresh());
+$("#saveMin").onclick = () => saveSettings({ min_stock_all: $("#setMinAll").value }).then(() => refresh());   // #83: own card under Shopping
 $("#setKeep").onchange = () => saveSettings({ backup_keep_days: $("#setKeep").value });
 document.querySelectorAll("[data-spooldelta]").forEach((b) => (b.onclick = () => saveSettings({ empty_spools_delta: +b.dataset.spooldelta })));
 // ------------------------------------------------------------ shareable spool card
@@ -2576,7 +2996,7 @@ function drawProject() {
     const rest = main && main.remain_pct != null ? ` · ${shownPct(main)} %` : "";
     const more = sps.length > 1 ? " · " + T("spools", sps.length) : "";
     return `<li ${main ? `data-spool="${main.id}"` : ""}>${sw(p)}<span class="grow">${esc(p.line)} ${esc(cname(p))} <span class="sub">${esc(p.bambu_no ?? "")}</span><br><span class="sub">${where}${rest}${more}</span></span>
-      ${main ? "" : `<a class="btn small" href="${shopUrl(p)}" target="_blank" rel="noopener">${L("Shop")}</a>` + (isNoted(p.id)
+      ${main ? "" : `<a class="btn small" href="${shopUrl(p)}" target="_blank" rel="noopener">${L("Shop")}</a>` + (openOf(p.id)
         ? `<button class="small" data-projnote="${p.id}" data-on="0" title="${esc(L("Remove from shopping list"))}">✓ ${L("On the list")}</button>`
         : `<button class="small" data-projnote="${p.id}" data-on="1" title="${esc(L("Add to shopping list"))}">${L("To shopping list")}</button>`)}
       <button class="small" data-projdel="${p.id}" aria-label="${L("Remove")}">×</button></li>`;
@@ -3043,11 +3463,8 @@ $("#manAdd").onclick = async () => {
   } catch (e) { ask(e.message, { title: L("Spool not added"), noCancel: true, warn: true }); }
 };
 loadProducts().catch(() => {});
-let allLines = null;
-api("/api/lines/all").then((l) => { allLines = l; fillSettings(); }).catch(() => {});
 document.querySelectorAll("[data-dryon]").forEach((b) => (b.onclick = () => saveSettings({ dry_on: b.dataset.dryon === "1" }).then(() => refresh())));
 $("#saveDry").onclick = () => saveSettings({ dry_weeks_dry: $("#setDryDry").value, dry_weeks_other: $("#setDryOther").value }).then(() => refresh());
-$("#saveShop").onclick = () => saveSettings({ collect_lines: [...document.querySelectorAll("#collectlines input:checked")].map((i) => i.value) }).then(() => refresh());
 let haCfg = null;
 async function loadHaCfg() {
   try { const c = haCfg = await api("/api/ha/config"); if (document.activeElement !== $("#haUrl")) $("#haUrl").value = c.url;
@@ -3467,6 +3884,7 @@ const ICONS = {
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
   code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
   list: '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   bug: '<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7V4M9 4l1 3M15 4l-1 3M3 12h4M17 12h4M4 18l3-2M20 18l-3-2"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
@@ -3486,9 +3904,9 @@ const ICONS = {
 };
 const icon = (k) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k] || ICONS.info}</svg>`;
 const TOOL_ICONS = {
-  manualtool: "plus", brandtool: "tag", pricetool: "cash", delivtool: "truck", batchtool: "scan", audittool: "check", spoolstool: "spool",
+  manualtool: "plus", brandtool: "tag", pricetool: "cash", ordertool: "truck", mintool: "alert", batchtool: "scan", audittool: "check", spoolstool: "spool",
   bambutool: "printer", readertool: "nfc", hatool: "home", remotetool: "globe", pushtool: "bell",
-  layouttool: "grid", warntool: "alert", shoptool: "list", viewtool: "contrast", langtool: "globe", helptool: "info",
+  layouttool: "grid", warntool: "alert", viewtool: "contrast", langtool: "globe", helptool: "info",
   backuptool: "save", offsitetool: "nas", authtool: "lock", updatetool: "download", logtool: "terminal", systool: "power", resettool: "trash",
   abouttool: "info", legaltool: "scale", usedtool: "trash",
 };
@@ -3843,8 +4261,27 @@ document.addEventListener("focusout", (e) => {
   if (f !== i.value) { i.value = f; i.dispatchEvent(new Event("input", { bubbles: true })); }
 });
 async function loadStatsView() {
-  try { statsData = await api("/api/stats"); } catch (e) { toast(e.message); return; }
+  drawRange(); loadSpending();
+  try { statsData = await api("/api/stats" + rangeQuery()); } catch (e) { toast(e.message); return; }
   drawStatsView();
+}
+// #77: spending: per month by the day received, per line with the price per kg, credits saved
+let spendOpen = pref("spendFold", "1") === "1";
+async function loadSpending() {
+  const el = $("#spending"); if (!el) return;
+  let d; try { d = await api("/api/spending" + rangeQuery()); } catch (e) { return; }
+  el.hidden = !d.lines.length && !d.orders && statRange.p === "12m";
+  el.classList.toggle("open", spendOpen);
+  const m12 = d.months.reduce((a, m) => a + (m.total || 0), 0), sp = d.months.reduce((a, m) => a + m.spools, 0);
+  el.innerHTML = foldHead("spendfold", L("Spending"), d.months.length ? (statRange.p === "12m" ? L("{0} in 12 months", money(m12)) : money(m12)) : L("no data yet")) + `<div class="foldbody">
+    ${d.months.length ? bars(d.months, "total", (v) => money(v).replace(/[,.]\d\d(?=\D*$)/, "")) : ""}
+    <div class="spendsum"><span><b>${money(m12)}</b><span class="sub">${esc(Lp(sp, "{0} spool", "{0} spools"))}</span></span>
+      ${sp ? `<span><b>${money(m12 / sp)}</b><span class="sub">${L("per spool on average")}</span></span>` : ""}
+      ${d.credits_used ? `<span><b>${money(d.credits_used / 100)}</b><span class="sub">${L("saved with credits")}</span></span>` : ""}
+      ${d.shipping ? `<span><b>${money(d.shipping)}</b><span class="sub">${L("shipping")}</span></span>` : ""}</div>
+    ${d.lines.length ? `<h4>${L("Per line")}</h4><ul class="shop spendlines">${d.lines.map((l) => `<li><span class="grow">${esc(l.line)} <span class="sub">· ${esc(Lp(l.spools, "{0} spool", "{0} spools"))}${l.refills ? " · " + esc(L("{0} refills", l.refills)) : ""}</span></span><span class="sub">${esc(L("{0}/kg", money(l.per_kg)))}</span><b>${money(l.total)}</b></li>`).join("")}</ul>` : ""}
+    <p class="sub">${L("From the price paid per spool (Options › Prices per delivery, or filled in from a recorded order).")}${d.unpriced ? " " + esc(Lp(d.unpriced, "{0} spool has no price yet.", "{0} spools have no price yet.")) : ""}${d.credits_earned ? " " + esc(L("Credits earned: {0}.", d.credits_earned.toLocaleString(LOCALE))) : ""}</p></div>`;
+  $("#spendfold").onclick = () => { spendOpen = !spendOpen; setPref("spendFold", spendOpen ? "1" : "0"); el.classList.toggle("open", spendOpen); };
 }
 function bars(rows, key, fmtv, pick = false) {
   const max = Math.max(1, ...rows.map((m) => m[key] || 0));
@@ -3853,28 +4290,28 @@ function bars(rows, key, fmtv, pick = false) {
 function drawStatsView() {
   const d = statsData, box = $("#statsbox"); if (!d || !box) return;
   const st = d.stock, pt = d.prints_total, kg = gkg;
-  const m6 = d.months.slice(-6), costM = d.months.slice(-1)[0];
+  const costM = d.this_month || { grams: 0, cost: null }, pa = d.prints_all || pt;
   const maxMat = Math.max(1, ...st.materials.map((m) => m.grams));
-  box.innerHTML = `<div class="kpis">
+  // #82: sections per tab (data-sv); the tab bar above shows one at a time
+  box.innerHTML = `<div class="kpis" data-sv="overview">
       <div class="kpi"><span class="sub">${L("Spools in stock")}</span><b>${st.spools}</b></div>
       <div class="kpi"><span class="sub">${L("Filament in stock")}</span><b>${kg(st.grams)}</b></div>
       <div class="kpi"><span class="sub">${L("Stock value")}</span><b>${st.priced ? money(st.value) : "–"}</b>${st.priced < st.spools ? `<span class="sub">${L("{0} of {1} spools with a price", st.priced, st.spools)}</span>` : ""}</div>
       <div class="kpi"><span class="sub">${L("Usage this month")}</span><b>${gkg(costM.grams)}</b>${costM.cost ? `<span class="sub">${money(costM.cost)}</span>` : ""}</div>
-      <div class="kpi"><span class="sub">${L("Prints recorded")}</span><b>${pt.count}</b>${pt.cost != null ? `<span class="sub">${money(pt.cost)}</span>` : ""}</div>
+      <div class="kpi"><span class="sub">${L("Prints recorded")}</span><b>${pa.count}</b>${pa.cost != null ? `<span class="sub">${money(pa.cost)}</span>` : ""}</div>
     </div>
-    <div class="tool"><h3>${L("Usage per month")}</h3>${bars(d.months, "grams", gkg, true)}${pt.count ? `<p class="sub">${L("Tap a month to see its prints and remove a wrong value.")}</p>` : ""}</div>
-    <div class="tool"><h3>${L("Cost per month")}</h3>${bars(d.months, "cost", (v) => Math.round(v) + " " + (SET().currency || "€"), true)}
-      <p class="sub">${L("Filament used times the spool price.")}</p>
-      <h4>${L("Spending on spools")}</h4>${bars(d.months, "spent", (v) => Math.round(v) + " " + (SET().currency || "€"))}
-      <p class="sub">${L("Spool prices by month received.")}</p></div>
-    ${(d.price_history || []).length ? `<div class="tool" id="pricehist"><h3>${L("Price history")}</h3>
+    ${ordOverview()}
+    ${pt.count || d.range?.custom ? `<div class="tool" data-sv="usage"><h3>${L("Usage per month")} <span class="sub">${L("from recorded prints")}</span></h3>${bars(d.months, "grams", gkg, true)}<p class="sub">${L("Tap a month to see its prints and remove a wrong value.")}</p></div>` : ""}
+    <div class="tool" data-sv="money"><h3>${L("Cost of the filament used")}</h3>${bars(d.months, "cost", (v) => Math.round(v) + " " + (SET().currency || "€"), true)}
+      <p class="sub">${L("Filament used times the spool price.")}</p></div>
+    ${(d.price_history || []).length ? `<div class="tool" id="pricehist" data-sv="money"><h3>${L("Price history")}</h3>
       <div class="phhead"><select id="phline" aria-label="${esc(L("Line"))}">${d.price_history.map((h, i) => `<option value="${i}" ${i === phSel ? "selected" : ""}>${esc(h.line)}</option>`).join("")}</select>
       <span class="sub">${L("Paid per spool, by delivery day.")}</span></div><div id="phchart"></div></div>` : ""}
-    <div class="tool"><h3>${L("Stock by material")}</h3><ul class="matbars">${st.materials.map((m) => `<li><span>${esc(m.material)}</span><span class="mb"><i style="width:${(100 * m.grams / maxMat).toFixed(0)}%"></i></span><b>${kg(m.grams)}</b><span class="sub">${Lp(m.spools, "{0} spool", "{0} spools")}</span></li>`).join("")}</ul></div>
-    ${d.by_printer.length ? `<div class="tool"><h3>${L("By printer")}</h3><ul class="shop">${d.by_printer.map((b) => `<li><span class="grow">${esc(b.printer)}<span class="sub">${Lp(b.count, "{0} print", "{0} prints")}</span></span><b>${kg(b.grams)}</b><span class="pcost">${b.cost != null ? money(b.cost) : "–"}</span></li>`).join("")}</ul></div>` : ""}
-    ${(d.projects || []).length ? `<div class="tool"><h3>${L("Projects")}</h3><p class="sub">${L("Prints you put into a project (open a print below), added up.")}</p>
+    <div class="tool" data-sv="overview"><h3>${L("Stock by material")}</h3><ul class="matbars">${st.materials.map((m) => `<li><span>${esc(m.material)}</span><span class="mb"><i style="width:${(100 * m.grams / maxMat).toFixed(0)}%"></i></span><b>${kg(m.grams)}</b><span class="sub">${Lp(m.spools, "{0} spool", "{0} spools")}</span></li>`).join("")}</ul></div>
+    ${d.by_printer.length ? `<div class="tool" data-sv="prints"><h3>${L("By printer")}</h3><ul class="shop">${d.by_printer.map((b) => `<li><span class="grow">${esc(b.printer)}<span class="sub">${Lp(b.count, "{0} print", "{0} prints")}</span></span><b>${kg(b.grams)}</b><span class="pcost">${b.cost != null ? money(b.cost) : "–"}</span></li>`).join("")}</ul></div>` : ""}
+    ${(d.projects || []).length ? `<div class="tool" data-sv="prints"><h3>${L("Projects")}</h3><p class="sub">${L("Prints you put into a project (open a print below), added up.")}</p>
       <ul class="shop projects">${d.projects.map((x) => `<li><span class="grow">${esc(x.name)}<span class="sub">${Lp(x.count, "{0} print", "{0} prints")} · ${esc(dateShort(x.first))}${x.first.slice(0, 10) !== x.last.slice(0, 10) ? " – " + esc(dateShort(x.last)) : ""}</span></span><b>${gkg(x.grams)}</b><span class="pcost">${x.cost != null ? money(x.cost) : "–"}</span></li>`).join("")}</ul></div>` : ""}
-    <div class="tool"><h3>${L("Recent prints")}</h3>${d.prints.length ? `<p class="sub costnote">${L("Costs are estimates from the information available (filament used and spool prices). Electricity, purge waste (flushing) and the prime tower are not included.")}</p>` : ""}${d.prints.length ? `<ul class="shop prints">${d.prints.map((p) => printLi(p, d.by_printer.length)).join("")}</ul>`
+    <div class="tool" data-sv="prints"><h3>${L("Recent prints")}</h3>${d.prints.length ? `<p class="sub costnote">${L("Costs are estimates from the information available (filament used and spool prices). Electricity, purge waste (flushing) and the prime tower are not included.")}</p>` : ""}${d.prints.length ? `<ul class="shop prints">${d.prints.map((p) => printLi(p, d.by_printer.length)).join("")}</ul>`
       : `<p class="sub">${L("From now on every finished print is recorded with usage and cost (needs the direct printer connection).")}</p>`}</div>`;
   box.querySelectorAll(".months.pick [data-month]").forEach((b) => (b.onclick = b.onkeydown = (e) => {
     if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
@@ -3884,7 +4321,65 @@ function drawStatsView() {
   box.querySelectorAll("ul.prints [data-pren]").forEach((b) => (b.onclick = () => renamePrint(b.closest("li"))));
   bindPrintRows(box);
   if ($("#phline")) { $("#phline").onchange = () => { phSel = +$("#phline").value; drawPriceChart(); }; drawPriceChart(); }
+  box.querySelectorAll("[data-goord]").forEach((b) => (b.onclick = () => {
+    const id = b.dataset.goord; if (!ordOpenIds.includes(id)) { ordOpenIds.push(id); setPref("ordOpenIds", JSON.stringify(ordOpenIds)); }
+    ordOpen = true; showView("catalog"); drawInsights(); setTimeout(() => $("#orders")?.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+  }));
+  applyStatTab();
+  drawInsights();      // the usage card leaves out its own month chart once prints are recorded
 }
+// #87: running orders in the statistics overview: spools on the way and one row per order (tap = open it)
+function ordGroups() {
+  const gs = [];
+  for (const p of (insights?.shopping?.noted || []).filter((x) => x.state === "ordered")) {
+    const g = gs.find((x) => x.id === (p.order || "")); if (g) g.items.push(p); else gs.push({ id: p.order || "", items: [p] });
+  }
+  return gs.sort((a, b) => a.id.localeCompare(b.id));
+}
+function ordOverview() {
+  const gs = ordGroups(); if (!gs.length) return "";
+  const row = (g) => { const p = g.items[0], k = g.items.reduce((a, x) => a + (x.qty || 1), 0), sh = g.items.filter((x) => x.parcel).reduce((a, x) => a + (x.qty || 1), 0);
+    const m = /(\d{4})(\d\d)(\d\d)/.exec(g.id), d = p.order_date ? dateShort(p.order_date) : m ? dateShort(`${m[1]}-${m[2]}-${m[3]}`) : "";
+    const t = p.order_date ? L("Order of {0}", d) : d ? L("Marked as ordered on {0}", d) : L("Marked as ordered");
+    return `<li role="button" tabindex="0" data-goord="${esc(g.id)}"><span class="ordsw">${g.items.slice(0, 8).map((x) => sw(x)).join("")}</span><span class="grow"><b>${esc(t)}</b>
+      <span class="sub">${esc(Lp(k, "{0} spool", "{0} spools"))}${p.order_total != null ? " · " + money(p.order_total) : ""} · ${sh ? esc(sh >= k ? L("all shipped") : L("{0} shipped", sh)) : esc(L("not shipped yet"))}</span></span><span class="chev">›</span></li>`; };
+  const n = gs.reduce((a, g) => a + g.items.reduce((b, x) => b + (x.qty || 1), 0), 0), val = gs.reduce((a, g) => a + (g.items[0].order_total || 0), 0);
+  return `<div class="tool" data-sv="overview"><h3>${L("Running orders")} <span class="sub">${esc(Lp(n, "{0} spool on the way", "{0} spools on the way"))}${val ? " · " + money(val) : ""}</span></h3><ul class="shop ordov">${gs.map(row).join("")}</ul></div>`;
+}
+// #86: time range of the statistics (not for the overview, which shows the stock now); remembered on this device
+let statRange = (() => { try { return JSON.parse(pref("statRange", "") || "null") || { p: "12m" }; } catch (e) { return { p: "12m" }; } })();
+function rangeQuery() {
+  const now = new Date(), r = statRange;
+  const from = r.p === "month" ? isoDay(new Date(now.getFullYear(), now.getMonth(), 1))
+    : r.p === "3m" ? isoDay(new Date(now.getFullYear(), now.getMonth() - 2, 1))
+    : r.p === "year" ? `${now.getFullYear()}-01-01` : r.p === "all" ? "2000-01-01" : r.p === "custom" ? r.from || "" : "";
+  const to = r.p === "custom" ? r.to || "" : "";
+  return from || to ? `?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` : "";
+}
+function drawRange() {
+  const el = $("#statrange"); if (!el) return;
+  const opts = [["month", L("This month")], ["3m", L("3 months")], ["12m", L("12 months")], ["year", L("This year")], ["all", L("All")], ["custom", L("Period…")]];
+  const r = statRange, today = isoDay(new Date());
+  setHtml(el, `<div class="seg-chips rangechips">${opts.map(([k, t]) => `<button class="${r.p === k ? "on" : ""}" data-rg="${k}">${esc(t)}</button>`).join("")}</div>
+    ${r.p === "custom" ? `<div class="rangecustom"><label>${L("from")} <input type="date" id="rgfrom" value="${esc(r.from || "")}" max="${today}"></label>
+      <label>${L("to")} <input type="date" id="rgto" value="${esc(r.to || today)}" max="${today}"></label><button class="small primary" id="rgok">${L("Apply")}</button></div>` : ""}`);
+  el.querySelectorAll("[data-rg]").forEach((b) => (b.onclick = () => {
+    statRange = { ...statRange, p: b.dataset.rg };
+    if (b.dataset.rg === "custom" && !statRange.from) { const d = new Date(); d.setMonth(d.getMonth() - 1); statRange.from = isoDay(d); statRange.to = today; }
+    setPref("statRange", JSON.stringify(statRange)); drawRange(); loadStatsView();
+  }));
+  if ($("#rgok")) $("#rgok").onclick = () => { statRange = { p: "custom", from: $("#rgfrom").value, to: $("#rgto").value }; setPref("statRange", JSON.stringify(statRange)); loadStatsView(); };
+}
+// #82: statistics in tabs (remembered on this device)
+let statTab = pref("statTab", "overview");
+if (statTab === "stock") statTab = "overview";
+function applyStatTab() {
+  document.querySelectorAll("#stattabs [data-st]").forEach((b) => { b.classList.toggle("on", b.dataset.st === statTab); b.setAttribute("aria-selected", b.dataset.st === statTab); });
+  document.querySelectorAll("#statsview [data-sv]").forEach((el) => el.classList.toggle("svoff", el.dataset.sv !== statTab));
+  if ($("#statrange")) $("#statrange").hidden = statTab === "overview";
+}
+document.querySelectorAll("#stattabs [data-st]").forEach((b) => (b.onclick = () => { statTab = b.dataset.st; setPref("statTab", statTab); applyStatTab(); window.scrollTo(0, 0); }));
+applyStatTab();
 // price history of one line: one line through the delivery prices, the line price as a dashed reference
 let phSel = 0;
 function drawPriceChart() {
@@ -4040,6 +4535,28 @@ async function monthPrints(month) {
 // ------------------------------------------------------------ prices (Options › Manage stock)
 const delivEdit = {};   // unsaved delivery prices: "day|line_id" -> text
 const dkey = (r) => `${r.day}|${r.line_id}|${r.refill ? 1 : 0}`;
+// #64: orders and Bambu Lab credits (Options › Shopping and prices)
+async function loadOrders() {
+  const box = $("#orderbox"); if (!box) return;
+  let d; try { d = await api("/api/orders"); } catch (e) { return; }
+  const saved = d.orders.reduce((a, o) => a + (o.credits_used || 0), 0) / 100;
+  box.innerHTML = `<div class="credrow"><label><span class="sub">${L("Your Bambu Lab credits")}</span><input id="credIn" inputmode="numeric" value="${d.credits}"></label>
+      <span class="sub" id="credEur">= ${money(d.credits / 100)}</span><button class="small" id="credSave">${L("Save")}</button></div>
+    <p class="sub">${L("100 credits = 1 {0}. Orders you record subtract the credits used and add the credits earned.", SET().currency || "€")}${saved ? " " + L("Saved with credits so far: {0}.", money(saved)) : ""}</p>
+    ${d.orders.length ? `<ul class="shop orders">${d.orders.slice(0, 15).map((o) => `<li><span class="grow"><b>${esc(dateShort(o.date))}</b> · ${esc(Lp(o.items.reduce((a, i) => a + i.qty, 0), "{0} spool", "{0} spools"))}
+      <span class="sub">${esc(o.items.map((i) => `${i.qty}× ${i.name}${i.refill ? " (" + L("Refill") + ")" : ""}`).join(", "))}</span></span>
+      <span class="ordtot"><b>${money(o.total)}</b><span class="sub">${o.shipping ? L("shipping {0}", money(o.shipping)) + " · " : ""}${o.credits_used ? "−" + o.credits_used + " · " : ""}${o.credits_earned ? "+" + o.credits_earned + " " + L("credits") : ""}</span>
+      <button class="small" data-again="${esc(o.id)}">${L("Order again")}</button></span></li>`).join("")}</ul>`
+      : `<p class="sub">${L("No orders yet. Record one from the shopping list in the catalog.")}</p>`}`;
+  $("#credIn").oninput = () => { $("#credEur").textContent = "= " + money((parseInt($("#credIn").value, 10) || 0) / 100); };
+  $("#credSave").onclick = async () => { await saveSettings({ credits: parseInt($("#credIn").value, 10) || 0 }); loadOrders(); drawInsights(); };
+  // #78: an old order back on the shopping list
+  box.querySelectorAll("[data-again]").forEach((b) => (b.onclick = async () => {
+    try { const r = await api(`/api/orders/${encodeURIComponent(b.dataset.again)}/again`, { method: "POST", body: {} }); insights = r; drawInsights(); drawCatalog();
+      toast(Lp(r.added, "{0} spool put on the shopping list", "{0} spools put on the shopping list")); }
+    catch (e) { toast(tr(e.message)); }
+  }));
+}
 async function loadPrices() {
   try { [priceRows, delivRows] = await Promise.all([api("/api/prices"), api("/api/deliveries")]); } catch (e) { return; }
   drawPrices(); drawOptSums();
@@ -4360,12 +4877,12 @@ function drawOptSums() {
   optSum("#authtool", !authSt ? "" : L(authSt.enabled ? "on" : "off"));
   optSum("#pushtool", !pushSt ? "" : pushSt.devices.length ? Lp(pushSt.devices.length, "{0} device", "{0} devices") : L("off"));
   if (priceRows) optSum("#pricetool", Lp(priceRows.length, "{0} line", "{0} lines"));
+  optSum("#ordertool", L("{0} credits", (+st.credits || 0).toLocaleString(LOCALE)));
   if (delivRows) optSum("#delivtool", delivRows.length ? Lp(delivRows.length, "{0} delivery", "{0} deliveries") : "");
   optSum("#backuptool", !offData?.host || !offData.on ? "" : offData.last?.ok === false ? L("Network backup: {0}", L("Error")) : L("Network backup: {0}", (offData.type || "").toUpperCase()));
   optSum("#brandtool", brandData ? Lp(brandData.lines.length, "{0} line", "{0} lines") : "");
   optSum("#updatetool", !updSt ? "" : updSt.job?.running ? L("running …") : updSt.check?.available ? L("{0} available", updSt.check.latest) : updSt.current);
   optSum("#layouttool", Lp((st.cabinets || []).length, "{0} storage unit", "{0} storage units"));
-  optSum("#shoptool", Lp((st.collect_lines || []).length, "{0} line", "{0} lines"));
   optSum("#spoolstool", `${st.empty_spools ?? 0}`);
 }
 

@@ -74,7 +74,15 @@
     <nav id="optnav" class="optnav" aria-label="Categories"></nav>
     <div id="optmain">
     <div class="optcat" data-cat="stock" data-ico="box">
-      <h2 class="optgroup">Manage stock</h2>
+      <h2 class="optgroup">Storage</h2>
+    <div class="tool" id="layouttool">
+      <h3>Set up storage</h3>
+      <p class="sub cabintro">A storage can be a cabinet, a shelf unit, a rod on the wall or anything similar. Its name is up to you. PixxelSpool tells apart the active storage, where every spool has a fixed slot, and the reserve for spare spools, which has no fixed slots or order. <button type="button" class="helpq" id="cabhelp" aria-label="Help and examples">?</button></p>
+      <p class="sub nowiz">When you apply, slot codes are updated and all spools move along. A backup is made first. Slots that still hold a spool can't be removed.</p>
+      <div id="cabeditor"></div>
+      <div class="actions"><button id="cabadd">+ Add storage</button><button class="primary nowiz" id="cabapply">Apply</button><button class="nowiz" id="cabreset">Discard</button><a class="btn nowiz" href="/labels">Print labels</a></div>
+      <div id="cabmsg"></div>
+    </div>
     <div class="tool" id="manualtool">
       <h3>Add spool manually</h3>
       <p class="sub">For spools without a tag, e.g. from other brands, and for spools you can't scan right now, e.g. still packed or the reader doesn't recognize the tag. If you scan the spool later, PixxelSpool knows it's this one and doesn't add it twice.</p>
@@ -112,23 +120,41 @@
       <div class="optrow"><span>Empty Bambu spools for refills</span><span class="inline"><button class="small" data-spooldelta="-1">−</button><b id="spoolcount" class="bignum">0</b><button class="small" data-spooldelta="1">+</button></span></div>
       <p class="sub">Counts automatically: spool marked empty → +1. Spool marked as refill using an empty spool → −1.</p>
     </div>
+    <div class="tool" id="brandtool">
+      <h3>Other brands</h3>
+      <p class="sub">Add filament from other makers, e.g. Sunlu, eSun or Polymaker: a line with material, weight and price, plus its colors. They then appear under “Add spool manually”. With an NFC sticker you find them by placing them on the reader, just like Bambu spools.</p>
+      <div id="brandbox"></div>
     </div>
-    <div class="optcat" data-cat="storage" data-ico="shelf">
-      <h2 class="optgroup">Storage and alerts</h2>
-    <div class="tool" id="layouttool">
-      <h3>Set up storage</h3>
-      <p class="sub cabintro">A storage can be a cabinet, a shelf unit, a rod on the wall or anything similar. Its name is up to you. PixxelSpool tells apart the active storage, where every spool has a fixed slot, and the reserve for spare spools, which has no fixed slots or order. <button type="button" class="helpq" id="cabhelp" aria-label="Help and examples">?</button></p>
-      <p class="sub nowiz">When you apply, slot codes are updated and all spools move along. A backup is made first. Slots that still hold a spool can't be removed.</p>
-      <div id="cabeditor"></div>
-      <div class="actions"><button id="cabadd">+ Add storage</button><button class="primary nowiz" id="cabapply">Apply</button><button class="nowiz" id="cabreset">Discard</button><a class="btn nowiz" href="/labels">Print labels</a></div>
-      <div id="cabmsg"></div>
     </div>
+    <div class="optcat" data-cat="shop" data-ico="store">
+      <h2 class="optgroup">Shopping</h2>
+    <div class="tool" id="ordertool">
+      <h3>Orders and Bambu Lab credits</h3>
+      <p class="sub">Orders you recorded from the shopping list, with shipping and credits. Their price per spool is filled in when you scan the new spools.</p>
+      <div id="orderbox"></div>
+    </div>
+    <div class="tool" id="mintool">
+      <h3>Minimum stock</h3>
+      <div class="optrow"><span>Minimum stock for all colors <span class="sub">If you have fewer spools of a color than this, it goes on the shopping list. Applies to every color you have or had. A minimum you set for a single color counts instead.</span></span><span><input id="setMinAll" type="number" min="0" max="9" inputmode="numeric"> spools</span></div>
+      <div class="actions"><button class="primary" id="saveMin">Save</button></div>
+    </div>
+    <div class="tool" id="pricetool">
+      <h3>Prices</h3>
+      <h4>Standard price per line</h4>
+      <p class="sub">What one spool of a line normally costs. It is suggested when you add a spool by hand and is used for value and print costs wherever a spool has no price of its own. Bambu Lab lines start with the prices of the Bambu Lab shop; change them to what you usually pay. Next to each line: what you actually paid on average.</p>
+      <div id="pricebox"></div>
+      <h4 class="prsub">Prices per delivery</h4>
+      <p class="sub">What you paid per spool for a delivery. Applies to all spools of the line stored on that day.</p>
+      <div id="delivbox"></div>
+    </div>
+    </div>
+    <div class="optcat" data-cat="alerts" data-ico="bell">
+      <h2 class="optgroup">Alerts and notifications</h2>
     <div class="tool" id="warntool">
       <h3>Alerts</h3>
       <p class="sub">When PixxelSpool shows a notice in the bell (and as a push message, if switched on). 0 means off.</p>
       <div class="optrow"><span>“Almost empty” alert from</span><span><input id="setLow" type="number" min="0" max="50" inputmode="numeric"> %</span></div>
       <div class="optrow"><span>Safety margin for prints <span class="sub">If a spool has less left than the print needs plus this margin, the print check warns with “tight”.</span></span><span><input id="setTight" type="number" min="0" max="100" inputmode="numeric"> %</span></div>
-      <div class="optrow"><span>Minimum stock for all colors <span class="sub">If you have fewer spools of a color than this, it goes on the shopping list. Applies to every color you have or had. A minimum you set for a single color counts instead.</span></span><span><input id="setMinAll" type="number" min="0" max="9" inputmode="numeric"> spools</span></div>
       <div class="optrow"><span>AMS humidity limit <span class="sub">0 = automatic by the loaded material</span></span><span><input id="setAmsHum" type="number" min="0" max="90" inputmode="numeric"> %</span></div>
       <div class="optrow"><span>Spool from the AMS not put back after</span><span><input id="setReturn" type="number" min="0" max="1440" inputmode="numeric"> min</span></div>
       <div class="actions"><button class="primary" id="saveMisc">Save</button></div>
@@ -149,30 +175,7 @@
       <div id="pushbox"><p class="sub">…</p></div>
     </div>
     </div>
-    <div class="optcat" data-cat="shop" data-ico="store">
-      <h2 class="optgroup">Shopping and prices</h2>
-    <div class="tool" id="brandtool">
-      <h3>Other brands</h3>
-      <p class="sub">Add filament from other makers, e.g. Sunlu, eSun or Polymaker: a line with material, weight and price, plus its colors. They then appear under “Add spool manually”. With an NFC sticker you find them by placing them on the reader, just like Bambu spools.</p>
-      <div id="brandbox"></div>
-    </div>
-    <div class="tool" id="pricetool">
-      <h3>Standard price per line</h3>
-      <p class="sub">What one spool of a line normally costs. It is suggested when you add a spool by hand and is used for value and print costs wherever a spool has no price of its own. Bambu Lab lines start with the prices of the Bambu Lab shop; change them to what you usually pay. Next to each line: what you actually paid on average.</p>
-      <div id="pricebox"></div>
-    </div>
-    <div class="tool" id="delivtool">
-      <h3>Prices per delivery</h3>
-      <p class="sub">What you paid per spool for a delivery. Applies to all spools of the line stored on that day.</p>
-      <div id="delivbox"></div>
-    </div>
-    <div class="tool" id="shoptool">
-      <h3>Shopping list</h3>
-      <p class="sub">Lines you want to have complete. Missing colors from them go on the shopping list.</p>
-      <div id="collectlines" class="checks"></div>
-      <div class="actions"><button class="primary" id="saveShop">Save</button></div>
-    </div>
-    </div>
+    
     <div class="optcat" data-cat="devices" data-ico="printer">
       <h2 class="optgroup">Printer and devices</h2>
     <div class="tool" id="bambutool">
@@ -317,8 +320,8 @@
       <p class="sub">PixxelSpool messages for troubleshooting, newest first. Access codes, tokens and passwords are redacted, in the export too.</p>
       <div class="optrow"><span>Detailed log <span class="sub">For troubleshooting: also records printer data, reader scans and every change. Switch it off again afterwards.</span></span><div class="seg on-always"><button data-logdet="1">On</button><button data-logdet="0">Off</button></div></div>
       <div class="logbar"><div class="seg on-always" id="loglvl"><button data-lvl="">All</button><button data-lvl="WARNING">Warnings and up</button><button data-lvl="ERROR">Error</button></div>
-        <input id="logq" type="search" placeholder="Filter…" autocomplete="off"><button class="small" id="logreload">Refresh</button><a class="btn small" id="logdl" href="/api/logs/download" download>Export</a><a class="btn small bugbtn" href="https://github.com/__PM_REPO__/issues/new?template=bug_report.yml" target="_blank" rel="noopener">Report a bug</a></div>
-      <p class="sub">Report a bug: opens a form on GitHub with version, platform and printer already filled in. Attach the exported log if it helps.</p>
+        <input id="logq" type="search" placeholder="Filter…" autocomplete="off"><button class="small" id="logreload">Refresh</button><a class="btn small" id="logdl" href="/api/logs/download" download>Export</a><a class="btn small bugbtn" href="https://github.com/__PM_REPO__/issues/new?template=bug_report.yml" target="_blank" rel="noopener">Report a bug</a><a class="btn small bugmail" href="mailto:contact@pixxelhoff.com">Report by e-mail</a></div>
+      <p class="sub">Report a bug: opens a form on GitHub with version, platform and printer already filled in. Without a GitHub account: report by e-mail, your mail program opens with a template. Attach the exported log if it helps.</p>
       <div id="logbox" class="logbox"></div>
     </div>
     <div class="tool" id="systool">
@@ -348,6 +351,7 @@
         <a class="btn" href="https://github.com/__PM_REPO__" target="_blank" rel="noopener"><span class="ico" data-ico="code"></span>Project on GitHub</a>
         <a class="btn" href="https://github.com/__PM_REPO__/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span class="ico" data-ico="list"></span>Changelog</a>
         <a class="btn bugbtn" href="https://github.com/__PM_REPO__/issues/new?template=bug_report.yml" target="_blank" rel="noopener"><span class="ico" data-ico="bug"></span>Report a bug</a>
+        <a class="btn bugmail" href="mailto:contact@pixxelhoff.com"><span class="ico" data-ico="mail"></span>Report by e-mail</a>
         <a class="btn" href="https://github.com/pixxelhoff" target="_blank" rel="noopener"><span class="ico" data-ico="user"></span>pixxelhoff on GitHub</a>
       </div>
       <details class="legal"><summary><span class="ico" data-ico="scale"></span>Legal notice</summary>
@@ -382,12 +386,6 @@
         <button class="small" id="tmfremove" hidden>Remove file</button><span class="sub" id="tmfname"></span></div>
       <div id="tmfout"></div>
     </div>
-  </section>
-  <section id="statsview" hidden>
-    <div id="usage" class="tool insight foldbox"></div>
-    <div id="statsbox"><p class="sub">…</p></div>
-  </section>
-  <section id="catalog" hidden>
     <div id="imgpick" class="tool foldbox">
       <h3 class="fold" id="imgfold">Color from picture <span class="sub foldsum" id="imgsum"></span><span class="chev">›</span></h3>
       <div class="foldbody">
@@ -404,17 +402,34 @@
         <ol id="imgpoints" class="imgpoints"></ol>
       </div>
     </div>
+  </section>
+  <section id="statsview" hidden>
+    <div class="seg-chips stattabs" id="stattabs" role="tablist">
+      <button data-st="overview" role="tab">Overview</button><button data-st="usage" role="tab">Usage</button><button data-st="money" role="tab">Costs</button><button data-st="prints" role="tab">Prints</button>
+    </div>
+    <div id="statrange" class="statrange" hidden></div>
+    <div id="usage" class="tool insight foldbox open" data-sv="usage"></div>
+    <div id="spending" class="tool insight foldbox" data-sv="money" hidden></div>
+    <div id="statsbox"><p class="sub">…</p></div>
+  </section>
+  <section id="catalog" hidden>
     <div id="shopping" class="tool insight foldbox"></div>
+    <div id="orders" class="tool insight foldbox" hidden></div>
     <div class="cathead">
-      <h2>Bambu Lab catalog</h2>
-      <p class="sub catnote">Only original Bambu Lab filament. Spools of other brands are set up under Options › Other brands.</p>
-      <div class="catfilters">
-        <label class="check toggle"><input type="checkbox" id="onlymissing"> <span data-t="onlyMissing"></span></label>
+      <div class="cattop"><h2>Bambu Lab catalog</h2><span class="sub" id="catcount"></span><span class="grow"></span>
+        <div class="catsearch"><input id="catq" type="search" placeholder="Search color or number" autocomplete="off" spellcheck="false"></div></div>
+      <div class="catfilters seg-chips" id="catstate" role="radiogroup" aria-label="Show">
+        <button data-cst="" class="on">All</button><button data-cst="stock">In stock</button><button data-cst="missing">Missing</button>
+        <button data-cst="list">On the shopping list</button><button data-cst="way">On the way</button><button data-cst="below">Below minimum stock</button>
+      </div>
+      <div class="catfilters catmore">
+        <select id="catmat" aria-label="Material"><option value="">All materials</option></select>
         <label class="check toggle"><input type="checkbox" id="onlyowned" checked> <span data-t="onlyOwnedLines"></span></label>
         <label class="check toggle" title="Colors Bambu Lab no longer sells. They do not count as missing and get no shop link."><input type="checkbox" id="showdisc"> <span>Show colors no longer available</span></label>
       </div>
     </div>
     <div id="catlines"></div>
+    <p class="sub catnote catfoot">Only original Bambu Lab filament. Spools of other brands are set up under Options › Other brands. <a class="catmail" href="mailto:contact@pixxelhoff.com">Color missing or wrong? Let us know</a></p>
   </section>
 </main>
 <div id="wizard" hidden>

@@ -348,7 +348,7 @@ def ha_trays(state: dict) -> list:
     now = str(ams.get("tray_now", ""))
     out = []
 
-    def one(t: dict, name: str, gid: str, unit: Optional[dict] = None) -> dict:
+    def one(t: dict, name: str, gid: str, unit: Optional[dict] = None, ams_no: int = 0) -> dict:
         """One AMS tray or external spool as a slot dict."""
         uuid = (t.get("tray_uuid") or "").upper()
         typ = t.get("tray_type") or ""
@@ -361,7 +361,9 @@ def ha_trays(state: dict) -> list:
             "remain": remain if isinstance(remain, (int, float)) and uuid and uuid != EMPTY_UUID else -1,
             "active": now == gid, "type": typ or "Empty",
             "color": "#" + (t.get("tray_color") or "00000000").upper(),
-            "filament_id": t.get("tray_info_idx") or "", "tag_uid": t.get("tag_uid") or "",
+            # "ams" (unit number, 0 = external) and "material_id" as in trays(): the print check needs them for the AMS backup
+            "ams": ams_no, "filament_id": t.get("tray_info_idx") or "", "material_id": t.get("tray_info_idx") or "",
+            "tag_uid": t.get("tag_uid") or "",
             "tray_weight": t.get("tray_weight") or 0, "label": label, "state": label,
         }
         if unit is not None:
@@ -379,7 +381,7 @@ def ha_trays(state: dict) -> list:
             present = _present(ams, gid)
             if not present:
                 t = {"id": t.get("id")}
-            d = one(t, _slot_name(uid, tid), str(gid), unit)
+            d = one(t, _slot_name(uid, tid), str(gid), unit, uid + 1)
             # the AMS reports a spool here (bit mask), but no material is set for it (no Bambu tag, not set on the
             # printer): occupied, not empty. Without the bit mask nothing is known about it.
             d["occupied"] = present if ams.get("tray_exist_bits") not in (None, "") and gid < HT_BASE else None

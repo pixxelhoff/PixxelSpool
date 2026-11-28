@@ -8,6 +8,29 @@ get the current version plus `-patch.N` (e.g. 1.0.0-patch.1); the Pi does not of
 
 The German changelog is [CHANGELOG.de.md](CHANGELOG.de.md).
 
+## [1.0.0-beta.7] – 2026-11-28
+
+Sixth bundled release. Mostly new: orders, from the shopping list to the running order to scanning the delivery. Statistics and options are also easier to find your way around.
+
+### Added
+- **Orders:** record an order with prices, shipping and Bambu Lab credits. Running orders have their own card, with parcels and tracking numbers. "Scan delivery" ticks off the new spools and takes over price and refill. "Order again" puts an old order back on the list.
+- **Shopping list:** every entry has a status (noted, in cart, ordered, out of stock) and a refill switch. A spool balance shows whether your empty spools are enough for the refills. "+N" puts what is missing for the minimum stock on the list. The list can be shared as text.
+- **Colors** (formerly "Catalog"): tiles are coloured by status and show the minimum stock; filters for status, material and search; a new color card.
+- **Statistics:** tabs Overview, Usage, Costs and Prints with a freely selectable time range; new "Spending" card and running orders in the overview.
+- **Report a problem** by e-mail, also for wrong catalog data.
+
+### Changed
+- Options are sorted anew: Storage, Shopping, Alerts, Devices, App, System and About.
+- "Today" also shows spools on the way and spools the AMS reports as empty.
+- 9 PETG Matte colors that are not sold in the shop are hidden.
+- "Color from image" moved to the Print tab.
+
+### Fixed
+- Print check: "then slot …" with AMS filament backup never applied.
+- Sorting the storage: moving a spool there and back counted as a change.
+- Shopping list: clicking "Shop" sometimes did nothing.
+- A spool the AMS reports as empty was suggested to be put back instead of checked out.
+
 ## [1.0.0-beta.6] – 2026-11-26
 
 Fifth bundled release with bug fixes.

@@ -45,7 +45,10 @@ DEFAULTS = {
     "date_fmt": "auto",       # auto (by language) | dmy. | dmy/ | mdy/ | ymd-
     "time_fmt": "auto",       # auto (by language) | 24 | 12
     "collect_lines": [],      # lines to collect completely: their missing colors go on the shopping list
-    "shop_list": [],          # colors put on the shopping list by hand: [{"id": product id, "since": "YYYY-MM-DD HH:MM:SS", "qty": n}]
+    "shop_list": [],          # colors put on the shopping list by hand: [{"id": product id, "since": "YYYY-MM-DD HH:MM:SS", "qty": n, "state": "cart"|"ordered"|"soldout", "refill": true}]
+    "orders": [],             # #64: shop orders: date, items with prices, shipping, credits used / earned
+    "credits": 0,             # #64: Bambu Lab credits you have (100 credits = 1 €)
+    "parcels": [],            # #71: parcels of an order: [{"id", "order", "carrier", "tracking", "date"}]; shop_list entries point to one
     "min_stock": {},          # minimum number of spools per color: {"product id": n}; below it the color goes on the shopping list
     "shop_prices": "",        # date of the Bambu shop prices filled in as standard prices ("" = not yet)
     "use_minutes": 0,         # minutes the app was open and visible (counted until the donation note was shown)
@@ -231,10 +234,32 @@ def save(patch: dict) -> dict:
                     qty = max(1, min(99, int(e.get("qty") or 1)))
                 except (TypeError, ValueError):
                     qty = 1
-                if pid not in seen and re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d", since):
-                    seen.add(pid)
-                    clean.append({"id": pid, "since": since, "qty": qty})
+                # state: "" = noted, "cart" = in the shop cart, "ordered" = on the way; refill = buy as refill
+                state = e.get("state") if e.get("state") in ("cart", "ordered", "soldout") else ("cart" if e.get("cart") is True else "")
+                # #69: a color can be on the list once not ordered yet and once per order
+                key = (pid, str(e.get("order") or "")[:20] if state == "ordered" else None)
+                if key not in seen and re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d", since):
+                    seen.add(key)
+                    # #64: price per spool from a recorded order (shipping and credits included) and the order's id
+                    try:
+                        price = round(float(e["price"]), 2) if e.get("price") is not None and 0 <= float(e["price"]) <= 10000 else None
+                    except (TypeError, ValueError):
+                        price = None
+                    order = str(e.get("order") or "")[:20]
+                    parcel = str(e.get("parcel") or "")[:20] if state == "ordered" else ""    # #71: shipped in this parcel
+                    clean.append({"id": pid, "since": since, "qty": qty, **({"state": state} if state else {}), **({"parcel": parcel} if parcel else {}),
+                                  **({"refill": True} if e.get("refill") is True else {}),
+                                  **({"price": price} if price is not None else {}), **({"order": order} if order else {})})
             cur["shop_list"] = clean[:300]
+        # #64: recorded shop orders (written by insights.record_order) and the Bambu Lab credits balance
+        if isinstance(patch.get("orders"), list):
+            cur["orders"] = [o for o in patch["orders"] if isinstance(o, dict)][-100:]
+        if "credits" in patch:
+            cur["credits"] = _clamp(patch.get("credits"), 0, 10 ** 7, 0)
+        if isinstance(patch.get("parcels"), list):
+            cur["parcels"] = [{"id": str(x.get("id") or "")[:20], "order": str(x.get("order") or "")[:20],
+                               "carrier": str(x.get("carrier") or "")[:20], "tracking": str(x.get("tracking") or "").strip()[:60],
+                               "date": str(x.get("date") or "")[:10]} for x in patch["parcels"] if isinstance(x, dict) and x.get("id")][-100:]
         if isinstance(patch.get("min_stock"), dict):
             ms = {}
             for k, v in patch["min_stock"].items():

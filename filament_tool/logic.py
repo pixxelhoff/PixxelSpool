@@ -457,7 +457,8 @@ def catalog(conn: sqlite3.Connection) -> list:
         "SELECT p.id, p.bambu_no, p.name_en, p.name_de, p.color_name, p.hex, p.colors, p.kind, "
         "  p.in_catalog, p.discontinued, l.name AS line, l.shop_url, l.brand, "
         "  (SELECT COUNT(*) FROM spools s WHERE s.product_id = p.id AND s.status != 'empty') AS owned, "
-        "  (SELECT slot_id FROM spools s WHERE s.product_id = p.id AND s.in_cabinet = 1) AS cabinet_slot "
+        "  (SELECT slot_id FROM spools s WHERE s.product_id = p.id AND s.in_cabinet = 1) AS cabinet_slot, "
+        "  EXISTS (SELECT 1 FROM spools s WHERE s.product_id = p.id) AS ever "      # had a spool once: default minimum applies
         "FROM products p JOIN lines l ON l.id = p.line_id WHERE COALESCE(l.brand, '') = '' "   # Bambu Lab lines only
         "ORDER BY l.name, p.bambu_no").fetchall()
     lines: dict = {}

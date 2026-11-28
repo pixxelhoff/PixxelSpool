@@ -4160,7 +4160,8 @@
 "#F0BDA5"
 ],
 "kind": "single",
-"de_source": "übersetzt"
+"de_source": "übersetzt",
+"discontinued": true
 },
 {
 "bambu_no": "35702",
@@ -4199,7 +4200,8 @@
 "#FFD100"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35602",
@@ -4212,7 +4214,8 @@
 "#003087"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35601",
@@ -4225,7 +4228,8 @@
 "#00a9e0"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35200",
@@ -4238,7 +4242,8 @@
 "#D6001C"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35300",
@@ -4251,7 +4256,8 @@
 "#FF671F"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35603",
@@ -4264,7 +4270,8 @@
 "#00c7b1"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35703",
@@ -4277,7 +4284,8 @@
 "#EF4A81"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "35801",
@@ -4290,7 +4298,8 @@
 "#bf9474"
 ],
 "kind": "single",
-"de_source": "bambu-andere-linie"
+"de_source": "bambu-andere-linie",
+"discontinued": true
 },
 {
 "bambu_no": "56400",
