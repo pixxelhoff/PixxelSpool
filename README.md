@@ -99,15 +99,23 @@
 ### 🎨 Colors
 - Color from photo (Print tab): tap points in a picture and get the closest Bambu Lab filaments (ΔE2000), filtered by PLA,
   PETG, ABS, TPU or "in stock only".
-- Catalog of all original Bambu Lab colors with your stock. Tap a color to see your spools or put it on the
-  shopping list.
-- Shopping list in the catalog: colors you noted, colors below your minimum stock (one tap puts the missing number
-  on the list), nearly empty and used-up spools.
+- Colors tab with all original Bambu Lab colors and your stock: tiles are colored by status (in stock, below
+  minimum, on the list, ordered) and show the minimum stock; filter by status and material or search. Tap a color
+  for its color card with your spools.
+
+### 🛒 Shopping and orders
+- Shopping list: colors you noted, colors below your minimum stock ("+N" puts what is missing on the list), nearly
+  empty and used-up spools. Every entry has a status (noted, in cart, ordered, out of stock) and a refill switch;
+  a spool balance shows whether your empty spools are enough for the refills. Share the list as text.
+- Orders: record an order with prices, shipping and Bambu Lab credits. Running orders have their own card with
+  parcels and tracking numbers. "Scan delivery" ticks off the new spools and takes over price and refill; "Order
+  again" puts an old order back on the list.
 
 ### 📊 Statistics
-- Stock value, filament per material, usage and cost per month, spending on spools, and a list of finished prints
-  with grams and cost. Tap a month to see its prints; wrong entries can be removed. Enter what you paid per delivery
-  (or when storing a spool); an estimated price per line covers older spools.
+- Tabs Overview, Usage, Costs and Prints with a freely selectable time range: stock value, filament per material,
+  usage and cost per month, spending on spools and orders, and a list of finished prints with grams and cost. Tap a
+  month to see its prints; wrong entries can be removed. Prices come from your orders (or are entered when storing
+  a spool); an estimated price per line covers older spools.
 
 ### 🔔 Notifications
 - A notification bell in the app: print finished or failed, printer errors, not enough filament, spool almost
@@ -126,22 +134,24 @@
   second as a light preview, or "Max" with every frame at full resolution. Tap the picture to open it large.
 - Switch the printer light from the printer card. For now that is the only thing PixxelSpool controls on the
   printer; more controls are planned.
-- Several printers: add each one under **Options › Printers and devices › Printer**. The storage view then shows a
+- Several printers: add each one under **Options › Printer and devices › Printer**. The storage view then shows a
   compact tile per printer (printing ones first; tap one for the full card), spools in an AMS are listed with their
   printer, and notifications and statistics name the printer.
 - Alternatively via Home Assistant and the Bambu Lab integration.
 
 ### 🔒 Privacy
 - Everything stays on your own device. Optional password, encrypted backups, logs with secrets redacted.
+- Found a bug or wrong catalog data? Report it on GitHub or, without an account, with **Report by e-mail**
+  (Options › About or Options › System › Log): your mail program opens with a template.
 
 ## What you need
 
 | | Raspberry Pi | Windows app | Mac app | Docker |
 | --- | --- | --- | --- | --- |
 | Computer | Raspberry Pi (see below) | PC with Windows 10/11, 64-bit | Mac with Apple silicon (M1 or later), macOS 12 or newer | Linux server or NAS (amd64 or arm64) |
-| NFC reader | USB or GPIO (PN532) | USB | USB | USB, PN532 (devices passed in) |
+| NFC reader | USB or GPIO (PN532) | USB | USB | none for now (see [Docker](#docker)) |
 | Runs | around the clock, low power | while the PC is on | while the Mac is awake | around the clock |
-| Status | main platform, tested the most | preview | preview | new, preview |
+| Status | main platform, tested the most | preview | preview | experimental, without reader |
 
 A Raspberry Pi is the best choice if PixxelSpool should always be reachable (push notifications, print recording,
 nightly backup). The Windows and Mac apps are handy to try PixxelSpool or if your computer is on anyway.
@@ -341,19 +351,24 @@ Good to know:
 ### Docker
 
 PixxelSpool also runs as a Docker image for amd64 and arm64: on a home server, a NAS or a Raspberry Pi that runs Docker
-anyway. Like the apps it is a preview.
+anyway. **For now the Docker version is experimental and meant to be used without an NFC reader.** Passing a USB reader
+into a container is not plug and play on most NAS systems, and Docker Desktop (Mac/Windows) does not pass USB devices
+through at all. If you want to scan at a reader, use the Raspberry Pi, Windows or Mac version.
+
+Without a reader you can still:
+
+- let the **AMS** recognize Bambu Lab spools with a tag ("New spool detected", see [Features](#features)),
+- add spools under **Options › Storage › Add spool manually**.
 
 1. **Get the compose file:** download [docker-compose.yml](docker-compose.yml) into a new folder, e.g. `~/pixxelspool`.
-2. **NFC reader (optional):** in `docker-compose.yml`, remove the `#` in front of `devices:` and the line of your reader
-   (USB reader, PN532 with USB-C or PN532 on the Pi pins).
-3. **Start:**
+2. **Start:**
 
    ```bash
    cd ~/pixxelspool
    docker compose up -d
    ```
 
-4. **Open** `http://<address of the computer>:8000` in the browser. The setup assistant guides you through the rest.
+3. **Open** `http://<address of the computer>:8000` in the browser. The setup assistant guides you through the rest.
 
 Good to know:
 
@@ -364,7 +379,8 @@ Good to know:
 - **Updating:** `docker compose pull && docker compose up -d`. PixxelSpool tells you about new versions in the bell;
   the image tags are the version (e.g. `1.0.0-beta.4`), `beta` for the newest pre-release and later `latest`.
 - **Restart** under Options › System works through the restart policy (`restart: unless-stopped`).
-- USB readers (ACR122U, ACR1252U): the image brings its own PC/SC service. If the computer itself runs `pcscd`, stop it
+- Reader on Linux (experimental, for tinkerers): the `devices:` lines in `docker-compose.yml` pass a reader in. USB
+  readers (ACR122U, ACR1252U): the image brings its own PC/SC service. If the computer itself runs `pcscd`, stop it
   (`sudo systemctl disable --now pcscd.socket pcscd`), and on Linux block the kernel driver that grabs the ACR122U:
   `echo "blacklist pn533_usb" | sudo tee /etc/modprobe.d/no-pn533.conf` (then reboot).
 - Not in the Docker version: shutting down the computer, Tailscale setup, the power-loss notice and installing updates
@@ -390,7 +406,7 @@ The setup assistant walks you through:
 
 At the end, the bulk inventory helps you add the spools you already have. On an iPhone, choose "Share › Add to
 Home Screen" in Safari and PixxelSpool starts like an app. You can run the assistant again under **Options ›
-System** (the section is called "Raspberry Pi" on the Pi and "PixxelSpool" in the apps).
+App › Help › Setup assistant**.
 
 ## Password
 
